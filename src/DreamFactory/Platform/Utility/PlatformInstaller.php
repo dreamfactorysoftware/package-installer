@@ -37,7 +37,7 @@ class PlatformInstaller extends LibraryInstaller
 	 */
 	public function getInstallPath( PackageInterface $package )
 	{
-		$_parts = explode( '/', $package->getPrettyName(), 1 );
+		$_parts = explode( '/', $package->getPrettyName(), 2 );
 
 		if ( static::PACKAGE_PREFIX != ( $_prefix = @current( $_parts ) ) )
 		{
@@ -54,7 +54,7 @@ class PlatformInstaller extends LibraryInstaller
 		 */
 
 		return static::BASE_INSTALL_PATH . '/' .
-			( @current( @explode( '-', end( $_parts ), 1 ) ) ? : static::DEFAULT_INSTALL_NAMESPACE ) . '/' .
+			( @current( @explode( '-', end( $_parts ), 2 ) ) ? : static::DEFAULT_INSTALL_NAMESPACE ) . '/' .
 			$package->getPrettyName();
 	}
 
