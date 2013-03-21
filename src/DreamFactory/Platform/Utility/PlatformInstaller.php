@@ -41,7 +41,11 @@ class PlatformInstaller extends LibraryInstaller
 
 		if ( static::PACKAGE_PREFIX != ( $_prefix = @current( $_parts ) ) )
 		{
-			throw new \InvalidArgumentException( 'This package is not a DreamFactory package and cannot be installed.' );
+			throw new \InvalidArgumentException(
+				'This package is not a DreamFactory package and cannot be installed.' . PHP_EOL .
+					'  * Name: ' . $package->getPrettyName() . PHP_EOL .
+					'  * Parts: ' . print_r( $_parts, true ) . PHP_EOL
+			);
 		}
 
 		/**
