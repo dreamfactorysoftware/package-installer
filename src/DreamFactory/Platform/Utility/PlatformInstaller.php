@@ -37,7 +37,7 @@ class PlatformInstaller extends LibraryInstaller
 	 */
 	public function getInstallPath( PackageInterface $package )
 	{
-		$_installPath = dirname( dirname( dirname( $this->vendorDir ) ) ) . static::BASE_INSTALL_PATH;
+		$_installPath = dirname( dirname( $this->vendorDir ) ) . static::BASE_INSTALL_PATH;
 		$_parts = explode( '/', $package->getPrettyName(), 2 );
 
 		if ( static::PACKAGE_PREFIX != ( $_prefix = @current( $_parts ) ) )
