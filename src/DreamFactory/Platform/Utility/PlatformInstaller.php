@@ -22,7 +22,7 @@ class PlatformInstaller extends LibraryInstaller
 	/**
 	 * @var string
 	 */
-	const BASE_INSTALL_PATH = '../../dsp-share';
+	const BASE_INSTALL_PATH = '/dsp-share';
 	/**
 	 * @var string
 	 */
@@ -37,6 +37,7 @@ class PlatformInstaller extends LibraryInstaller
 	 */
 	public function getInstallPath( PackageInterface $package )
 	{
+		$_installPath = dirname( dirname( $this->vendorDir ) ) . static::BASE_INSTALL_PATH;
 		$_parts = explode( '/', $package->getPrettyName(), 2 );
 
 		if ( static::PACKAGE_PREFIX != ( $_prefix = @current( $_parts ) ) )
@@ -53,9 +54,16 @@ class PlatformInstaller extends LibraryInstaller
 		 *    go into ./apps/app-xyz and ./lib/lib-abc respectively)
 		 */
 
-		return static::BASE_INSTALL_PATH . '/' . $_prefix . '/' .
+		$_fullPath = $_installPath . '/' . $_prefix . '/' .
 			( @current( @explode( '-', end( $_parts ), 2 ) ) ? :
 				static::DEFAULT_INSTALL_NAMESPACE ) . '/' . $_parts[1];
+
+		if ( !is_dir( $_fullPath ) )
+		{
+			@mkdir( $_fullPath, 0777, true );
+		}
+
+		return $_fullPath;
 	}
 
 	/**
