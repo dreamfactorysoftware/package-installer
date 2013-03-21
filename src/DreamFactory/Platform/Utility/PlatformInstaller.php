@@ -86,7 +86,7 @@ class PlatformInstaller extends LibraryInstaller
 
 		//	Effectively /docRoot/shared/[vendor]/[namespace]/[package]
 		return $this->_buildInstallPath(
-			realpath( dirname( $this->vendorDir ) . static::BASE_INSTALL_PATH ),
+			dirname( $this->vendorDir ) . static::BASE_INSTALL_PATH,
 			$_prefix,
 			$_parts );
 	}
@@ -109,8 +109,13 @@ class PlatformInstaller extends LibraryInstaller
 		 *    go into ./apps/app-xyz and ./lib/lib-abc respectively)
 		 */
 
+		if ( !is_dir( $baseInstallPath ) || false === realpath( $baseInstallPath ) )
+		{
+			@mkdir( $baseInstallPath, 0777, true );
+		}
+
 		//	i.e. /var/www/dsp-share/dreamfactory/
-		$_fullPath = $baseInstallPath . '/' . $prefix . '/';
+		$_fullPath = realpath( $baseInstallPath ) . '/' . $prefix . '/';
 
 		//	Split package type off of front (app-*, lib-*, web-*, etc.)
 		$_subparts = explode( '-', $parts[1], 2 );
