@@ -54,7 +54,7 @@ class PlatformInstaller extends LibraryInstaller
 		 *    go into ./apps/app-xyz and ./lib/lib-abc respectively)
 		 */
 
-		$_fullPath = $_installPath . '/' . $_prefix . '/' .
+		$_fullPath = realpath( $_installPath ) . '/' . $_prefix . '/' .
 			( @current( @explode( '-', end( $_parts ), 2 ) ) ? :
 				static::DEFAULT_INSTALL_NAMESPACE ) . '/' . $_parts[1];
 
