@@ -22,7 +22,7 @@ class PlatformInstaller extends LibraryInstaller
 	/**
 	 * @var string
 	 */
-	const BASE_INSTALL_PATH = '/opt/dreamfactory/share';
+	const BASE_INSTALL_PATH = '/opt/dreamfactory/web/dsp-share';
 	/**
 	 * @var string
 	 */
@@ -53,9 +53,9 @@ class PlatformInstaller extends LibraryInstaller
 		 *    go into ./apps/app-xyz and ./lib/lib-abc respectively)
 		 */
 
-		return static::BASE_INSTALL_PATH . '/' .
-			( @current( @explode( '-', end( $_parts ), 2 ) ) ? : static::DEFAULT_INSTALL_NAMESPACE ) . '/' .
-			$package->getPrettyName();
+		return static::BASE_INSTALL_PATH . '/' . $_prefix . '/' .
+			( @current( @explode( '-', end( $_parts ), 2 ) ) ? :
+				static::DEFAULT_INSTALL_NAMESPACE ) . '/' . $_parts[1];
 	}
 
 	/**
