@@ -22,7 +22,7 @@ class PlatformInstaller extends LibraryInstaller
 	/**
 	 * @var string
 	 */
-	const BASE_INSTALL_PATH = '/opt/dreamfactory/web/dsp-share';
+	const BASE_INSTALL_PATH = '../../dsp-share';
 	/**
 	 * @var string
 	 */
