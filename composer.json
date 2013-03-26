@@ -5,6 +5,7 @@
 	"keywords":          ["dreamfactory", "dsp", "cloud", "utility"],
 	"homepage":          "http://dreamfactorybeta.com/",
 	"license":           ["GPL-3.0", "proprietary"],
+	"version":           "1.0.0",
 	"support":           {
 		"email":  "developer-support@dreamfactory.com",
 		"issues": "https://bitbucket.org/dreamfactory/app-admin/issues",
