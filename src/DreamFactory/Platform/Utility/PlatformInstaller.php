@@ -81,14 +81,14 @@ class PlatformInstaller extends LibraryInstaller
 
 		if ( $this->_fabricHosted )
 		{
-			return $this->_buildInstallPath( static::FABRIC_INSTALL_PATH, $_prefix, $_parts );
+			return $this->_buildInstallPath( static::FABRIC_INSTALL_PATH, $_prefix, $_parts[1] );
 		}
 
 		//	Effectively /docRoot/shared/[vendor]/[namespace]/[package]
 		return $this->_buildInstallPath(
 			dirname( $this->vendorDir ) . static::BASE_INSTALL_PATH,
 			$_prefix,
-			$_parts );
+			$_parts[1] );
 	}
 
 	/**
@@ -96,19 +96,22 @@ class PlatformInstaller extends LibraryInstaller
 	 *
 	 * @param string $baseInstallPath
 	 * @param string $prefix
-	 * @param array  $parts
+	 * @param string $package
 	 * @param bool   $createIfMissing
 	 *
 	 * @throws \InvalidArgumentException
 	 * @return string
 	 */
-	protected function _buildInstallPath( $baseInstallPath, $prefix, $parts, $createIfMissing = true )
+	protected function _buildInstallPath( $baseInstallPath, $prefix, $package, $createIfMissing = true )
 	{
 		/**
 		 *    Package like dreamfactory/app-xyz or dreamfactory/lib-abc will
 		 *    go into ./apps/app-xyz and ./lib/lib-abc respectively)
+		 *
+		 * baseInstall  : ./shared
+		 * prefix       : dreamfactory
+		 * parts        : abc-xyz
 		 */
-
 		if ( !is_dir( $baseInstallPath ) || false === realpath( $baseInstallPath ) )
 		{
 			@mkdir( $baseInstallPath, 0777, true );
@@ -118,7 +121,7 @@ class PlatformInstaller extends LibraryInstaller
 		$_fullPath = realpath( $baseInstallPath ) . '/' . $prefix . '/';
 
 		//	Split package type off of front (app-*, lib-*, web-*, etc.)
-		$_subparts = explode( '-', $parts[1], 2 );
+		$_subparts = explode( '-', $package, 2 );
 
 		if ( empty( $_subparts ) )
 		{
@@ -130,7 +133,7 @@ class PlatformInstaller extends LibraryInstaller
 		}
 
 		//	/var/www/dsp-share/dreamfactory/[namespace]/[package]
-		$_fullPath .= $_namespace . '/' . $parts[1];
+		$_fullPath .= $_namespace . '/' . $package;
 
 		if ( $createIfMissing && !is_dir( $_fullPath ) )
 		{
