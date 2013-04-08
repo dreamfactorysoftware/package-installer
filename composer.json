@@ -35,6 +35,9 @@
 		"wiki":   "https://bitbucket.org/dreamfactory/app-admin/wiki",
 		"source": "https://bitbucket.org/dreamfactory/app-admin/src"
 	},
+	"require":           {
+		"kisma/kisma": "dev-master"
+	},
 	"minimum-stability": "dev",
 	"autoload":          {
 		"psr-0": {

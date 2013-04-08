@@ -1,0 +1,68 @@
+{
+    "hash": "928c10b933c6d25d218f61a7656ed854",
+    "packages": [
+        {
+            "name": "kisma/kisma",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/lucifurious/kisma.git",
+                "reference": "af51cec23008d3145289a357632aac03fcb3e23b"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/lucifurious/kisma/zipball/af51cec23008d3145289a357632aac03fcb3e23b",
+                "reference": "af51cec23008d3145289a357632aac03fcb3e23b",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3.10"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "Kisma": "src/"
+                },
+                "files": [
+                    "src/autoload.php"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Jerry Ablan",
+                    "email": "getkisma@gmail.com"
+                }
+            ],
+            "description": "A Fun-Sized PHP Framework",
+            "homepage": "https://github.com/kisma/kisma",
+            "keywords": [
+                "framework",
+                "mvc",
+                "php",
+                "php5",
+                "rest"
+            ],
+            "time": "2013-04-01 21:16:42"
+        }
+    ],
+    "packages-dev": [
+
+    ],
+    "aliases": [
+
+    ],
+    "minimum-stability": "dev",
+    "stability-flags": {
+        "kisma/kisma": 20
+    },
+    "platform": [
+
+    ],
+    "platform-dev": [
+
+    ]
+}
