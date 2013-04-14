@@ -33,10 +33,6 @@ class PlatformInstaller extends LibraryInstaller
 	 * @var string
 	 */
 	const FABRIC_MARKER = '/var/www/.fabric_hosted';
-	/**
-	 * @var string
-	 */
-	const FABRIC_INSTALL_PATH = '/var/www/dsp-share';
 
 	//*************************************************************************
 	//* Members
@@ -77,11 +73,6 @@ class PlatformInstaller extends LibraryInstaller
 					'  * Name: ' . $package->getPrettyName() . PHP_EOL .
 					'  * Parts: ' . print_r( $_parts, true ) . PHP_EOL
 			);
-		}
-
-		if ( $this->_fabricHosted )
-		{
-			return $this->_buildInstallPath( static::FABRIC_INSTALL_PATH, $_prefix, $_parts[1] );
 		}
 
 		//	Effectively /docRoot/shared/[vendor]/[namespace]/[package]
