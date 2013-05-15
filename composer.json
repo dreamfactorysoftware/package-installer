@@ -1,11 +1,12 @@
 {
 	"name":              "dreamfactory/lib-platform-installer",
 	"description":       "DreamFactory Services Platform(tm) Package Installer",
+	"notification-url":  "https://packagist.org/downloads/",
 	"type":              "composer-installer",
 	"keywords":          ["dreamfactory", "dsp", "cloud", "dsp-lib", "dsp-core"],
 	"homepage":          "http://dreamfactorybeta.com/",
 	"license":           ["GPL-3.0", "proprietary"],
-	"version":           "1.0.1",
+	"version":           "1.0.2",
 	"authors":           [
 		{
 			"name":  "Sykes, Jason",
