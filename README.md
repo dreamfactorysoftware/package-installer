@@ -1,4 +1,3 @@
-lib-installer
-=============
+# lib-platform-installer
 
-DreamFactory Services Platform Installer
+Package installer for the DreamFactory Services Platform&trade;

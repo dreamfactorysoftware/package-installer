@@ -29,10 +29,6 @@ class PlatformInstaller extends LibraryInstaller
 	 * @var string
 	 */
 	const DEFAULT_INSTALL_NAMESPACE = 'app';
-	/**
-	 * @var string
-	 */
-	const FABRIC_MARKER = '/var/www/.fabric_hosted';
 
 	//*************************************************************************
 	//* Members
@@ -42,6 +38,15 @@ class PlatformInstaller extends LibraryInstaller
 	 * @var bool
 	 */
 	protected $_fabricHosted = false;
+	/**
+	 * @var array The types of packages I can install
+	 */
+	protected $_supportPackageTypes
+		= array(
+			'dreamfactory-platform',
+			'dreamfactory-jetpack',
+			'dreamfactory-fuelcell',
+		);
 
 	//*************************************************************************
 	//* Methods
@@ -56,7 +61,7 @@ class PlatformInstaller extends LibraryInstaller
 	{
 		parent::__construct( $io, $composer, $type );
 
-		$this->_fabricHosted = file_exists( static::FABRIC_MARKER );
+		$this->_fabricHosted = Fabric::fabricHosted();
 	}
 
 	/**
@@ -70,8 +75,8 @@ class PlatformInstaller extends LibraryInstaller
 		{
 			throw new \InvalidArgumentException(
 				'This package is not a DreamFactory package and cannot be installed by this installer.' . PHP_EOL .
-					'  * Name: ' . $package->getPrettyName() . PHP_EOL .
-					'  * Parts: ' . print_r( $_parts, true ) . PHP_EOL
+				'  * Name: ' . $package->getPrettyName() . PHP_EOL .
+				'  * Parts: ' . print_r( $_parts, true ) . PHP_EOL
 			);
 		}
 
@@ -79,7 +84,8 @@ class PlatformInstaller extends LibraryInstaller
 		return $this->_buildInstallPath(
 			dirname( $this->vendorDir ) . static::BASE_INSTALL_PATH,
 			$_prefix,
-			$_parts[1] );
+			$_parts[1]
+		);
 	}
 
 	/**
@@ -111,19 +117,11 @@ class PlatformInstaller extends LibraryInstaller
 		//	i.e. /var/www/dsp-share/dreamfactory/
 		$_fullPath = realpath( $baseInstallPath ) . '/' . $prefix . '/';
 
-		//	Split package type off of front (app-*, lib-*, web-*, etc.)
+		//	Split package type off of front (app-*, lib-*, web-*, jetpack-*, fuelcell-*, etc.)
 		$_subparts = explode( '-', $package, 2 );
+		$_namespace = empty( $_subparts ) ? static::DEFAULT_INSTALL_NAMESPACE : current( $_subparts );
 
-		if ( empty( $_subparts ) )
-		{
-			$_namespace = static::DEFAULT_INSTALL_NAMESPACE;
-		}
-		else
-		{
-			$_namespace = $_subparts[0];
-		}
-
-		//	/var/www/dsp-share/dreamfactory/[namespace]/[package]
+		//	/path/to/project/shared/[vendor]/[namespace]/[package]
 		$_fullPath .= $_namespace . '/' . $package;
 
 		if ( $createIfMissing && !is_dir( $_fullPath ) )
@@ -142,6 +140,6 @@ class PlatformInstaller extends LibraryInstaller
 	 */
 	public function supports( $packageType )
 	{
-		return 'dreamfactory-platform' === $packageType;
+		return in_array( $packageType, $this->_supportPackageTypes );
 	}
 }

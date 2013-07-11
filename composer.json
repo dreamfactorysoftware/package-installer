@@ -1,51 +1,37 @@
 {
 	"name":              "dreamfactory/lib-platform-installer",
-	"description":       "DreamFactory Services Platform(tm) Package Installer",
-	"notification-url":  "https://packagist.org/downloads/",
+	"description":       "DreamFactory Services Platform(tm) JetPack/FuelCell Installer",
 	"type":              "composer-installer",
-	"keywords":          ["dreamfactory", "dsp", "cloud", "dsp-lib", "dsp-core"],
-	"homepage":          "http://dreamfactorybeta.com/",
-	"license":           ["GPL-3.0", "proprietary"],
-	"version":           "1.0.2",
+	"keywords":          ["dreamfactory", "dsp", "cloud", "jetpack", "fuelcell"],
+	"homepage":          "http://dreamfactory.com/",
+	"license":           [ "Apache-2.0" ],
+	"version":           "1.0.5",
 	"authors":           [
-		{
-			"name":  "Sykes, Jason",
-			"email": "jasonsykes@dreamfactory.com",
-			"role":  "Lead Engineer, client-side"
-		},
-		{
-			"name":  "Hicks, Lee",
-			"email": "leehicks@dreamfactory.com",
-			"role":  "Lead Engineer, server-side"
-		},
-		{
-			"name":  "Appleton, Todd",
-			"email": "toddappleton@dreamfactory.com",
-			"role":  "Lead Engineer, client-side; UX/QA"
-		},
 		{
 			"name":  "Ablan, Jerry",
 			"email": "jerryablan@dreamfactory.com",
-			"role":  "Black Ops"
+			"role":  "Sr. Software Engineer"
 		}
 	],
 	"support":           {
-		"email":  "developer-support@dreamfactory.com",
-		"issues": "https://bitbucket.org/dreamfactory/app-admin/issues",
-		"forum":  "https://bitbucket.org/dreamfactory/app-admin/forum",
-		"wiki":   "https://bitbucket.org/dreamfactory/app-admin/wiki",
-		"source": "https://bitbucket.org/dreamfactory/app-admin/src"
+		"email":  "support@dreamfactory.com",
+		"issues": "https://github.com/dreamfactorysoftware/dsp-core/issues",
+		"forum":  "https://github.com/dreamfactorysoftware/dsp-core/forum",
+		"wiki":   "https://github.com/dreamfactorysoftware/dsp-core/wiki",
+		"source": "https://github.com/dreamfactorysoftware/dsp-core/src"
 	},
 	"require":           {
-		"kisma/kisma": "dev-master"
+		"kisma/kisma":                          "dev-master",
+		"dreamfactory/lib-php-common-platform": ">=1.0.5"
 	},
-	"minimum-stability": "dev",
 	"autoload":          {
 		"psr-0": {
-			"DreamFactory\\Platform\\Utility": "src/"
+			"DreamFactory\\Platform\\Utility": ""
 		}
 	},
 	"extra":             {
 		"class": "DreamFactory\\Platform\\Utility\\PlatformInstaller"
-	}
+	},
+	"target-dir":        "DreamFactory/Platform/Utility",
+	"minimum-stability": "dev"
 }
