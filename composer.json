@@ -4,7 +4,7 @@
 	"type":              "composer-installer",
 	"keywords":          ["dreamfactory", "dsp", "cloud", "jetpack", "fuelcell"],
 	"homepage":          "http://dreamfactory.com/",
-	"license":           [ "Apache-2.0" ],
+	"license":           ["Apache-2.0"],
 	"version":           "1.0.5",
 	"authors":           [
 		{
