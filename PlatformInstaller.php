@@ -29,6 +29,10 @@ class PlatformInstaller extends LibraryInstaller
 	 * @var string
 	 */
 	const DEFAULT_INSTALL_NAMESPACE = 'app';
+	/**
+	 * @var string
+	 */
+	const FABRIC_MARKER = '/var/www/.fabric_hosted';
 
 	//*************************************************************************
 	//* Members
@@ -61,7 +65,7 @@ class PlatformInstaller extends LibraryInstaller
 	{
 		parent::__construct( $io, $composer, $type );
 
-		$this->_fabricHosted = Fabric::fabricHosted();
+		$this->_fabricHosted = file_exists( static::FABRIC_MARKER );
 	}
 
 	/**
