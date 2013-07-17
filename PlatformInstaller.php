@@ -1,5 +1,5 @@
 <?php
-namespace DreamFactory\Platform\Utility;
+namespace DreamFactory\Composer\Utility;
 
 use Composer\Composer;
 use Composer\IO\IOInterface;
