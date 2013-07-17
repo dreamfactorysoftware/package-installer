@@ -1,5 +1,9 @@
 {
-    "hash": "928c10b933c6d25d218f61a7656ed854",
+    "_readme": [
+        "This file locks the dependencies of your project to a known state",
+        "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file"
+    ],
+    "hash": "f30198b12ec5766288e7b30f6c31c301",
     "packages": [
         {
             "name": "kisma/kisma",
@@ -7,12 +11,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/lucifurious/kisma.git",
-                "reference": "af51cec23008d3145289a357632aac03fcb3e23b"
+                "reference": "1ecafbbde4929e2b958531a36c187c65c2185504"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/lucifurious/kisma/zipball/af51cec23008d3145289a357632aac03fcb3e23b",
-                "reference": "af51cec23008d3145289a357632aac03fcb3e23b",
+                "url": "https://api.github.com/repos/lucifurious/kisma/zipball/1ecafbbde4929e2b958531a36c187c65c2185504",
+                "reference": "1ecafbbde4929e2b958531a36c187c65c2185504",
                 "shasum": ""
             },
             "require": {
@@ -29,7 +33,7 @@
             },
             "notification-url": "https://packagist.org/downloads/",
             "license": [
-                "MIT"
+                "GPL3"
             ],
             "authors": [
                 {
@@ -37,16 +41,15 @@
                     "email": "getkisma@gmail.com"
                 }
             ],
-            "description": "A Fun-Sized PHP Framework",
+            "description": "PHP Utility Belt",
             "homepage": "https://github.com/kisma/kisma",
             "keywords": [
-                "framework",
-                "mvc",
+                "library",
                 "php",
                 "php5",
-                "rest"
+                "utility"
             ],
-            "time": "2013-04-01 21:16:42"
+            "time": "2013-07-10 21:27:51"
         }
     ],
     "packages-dev": [

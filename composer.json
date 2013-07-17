@@ -21,17 +21,16 @@
 		"source": "https://github.com/dreamfactorysoftware/dsp-core/src"
 	},
 	"require":           {
-		"kisma/kisma":                          "dev-master",
-		"dreamfactory/lib-php-common-platform": ">=1.0.5"
+		"kisma/kisma": "dev-master"
 	},
 	"autoload":          {
 		"psr-0": {
-			"DreamFactory\\Platform\\Utility": ""
+			"DreamFactory\\Composer\\Utility": ""
 		}
 	},
 	"extra":             {
-		"class": "DreamFactory\\Platform\\Utility\\PlatformInstaller"
+		"class": "DreamFactory\\Composer\\Utility\\PlatformInstaller"
 	},
-	"target-dir":        "DreamFactory/Platform/Utility",
+	"target-dir":        "DreamFactory/Composer/Utility",
 	"minimum-stability": "dev"
 }
