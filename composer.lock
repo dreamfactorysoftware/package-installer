@@ -3,7 +3,7 @@
         "This file locks the dependencies of your project to a known state",
         "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file"
     ],
-    "hash": "f30198b12ec5766288e7b30f6c31c301",
+    "hash": "e526eb32f6e5272d1919666e3f27e9e3",
     "packages": [
         {
             "name": "kisma/kisma",
@@ -11,12 +11,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/lucifurious/kisma.git",
-                "reference": "1ecafbbde4929e2b958531a36c187c65c2185504"
+                "reference": "8f8f7b3391d8536c40f3cc4ce3098d685a00a189"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/lucifurious/kisma/zipball/1ecafbbde4929e2b958531a36c187c65c2185504",
-                "reference": "1ecafbbde4929e2b958531a36c187c65c2185504",
+                "url": "https://api.github.com/repos/lucifurious/kisma/zipball/8f8f7b3391d8536c40f3cc4ce3098d685a00a189",
+                "reference": "8f8f7b3391d8536c40f3cc4ce3098d685a00a189",
                 "shasum": ""
             },
             "require": {
@@ -49,7 +49,7 @@
                 "php5",
                 "utility"
             ],
-            "time": "2013-07-10 21:27:51"
+            "time": "2013-12-05 19:25:49"
         }
     ],
     "packages-dev": [
@@ -59,9 +59,9 @@
 
     ],
     "minimum-stability": "dev",
-    "stability-flags": {
-        "kisma/kisma": 20
-    },
+    "stability-flags": [
+
+    ],
     "platform": [
 
     ],

@@ -1,9 +1,9 @@
 {
 	"name":              "dreamfactory/lib-platform-installer",
-	"description":       "DreamFactory Services Platform(tm) JetPack/FuelCell Installer",
+	"description":       "DreamFactory Services Platform(tm) Library Installer",
 	"type":              "composer-installer",
-	"keywords":          ["dreamfactory", "dsp", "cloud", "jetpack", "fuelcell"],
-	"homepage":          "http://dreamfactory.com/",
+	"keywords":          ["dreamfactory", "dsp", "cloud", "jetpack", "plug-in"],
+	"homepage":          "http://dreamfactorysoftware.github.io/",
 	"license":           ["Apache-2.0"],
 	"version":           "1.0.5",
 	"authors":           [
@@ -21,7 +21,7 @@
 		"source": "https://github.com/dreamfactorysoftware/dsp-core/src"
 	},
 	"require":           {
-		"kisma/kisma": "dev-master"
+		"kisma/kisma": "*"
 	},
 	"autoload":          {
 		"psr-0": {
