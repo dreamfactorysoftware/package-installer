@@ -1,11 +1,11 @@
 {
 	"name":              "dreamfactory/lib-platform-installer",
 	"description":       "DreamFactory Services Platform(tm) Library Installer",
+	"version":           "1.1.9",
 	"type":              "composer-plugin",
 	"keywords":          ["dreamfactory", "dsp", "cloud", "jetpack", "plug-in"],
 	"homepage":          "http://dreamfactorysoftware.github.io/",
 	"license":           ["Apache-2.0"],
-	"version":           "1.1.8",
 	"authors":           [
 		{
 			"name":  "Ablan, Jerry",
