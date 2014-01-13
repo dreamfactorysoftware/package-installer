@@ -257,8 +257,8 @@ class PlatformInstaller extends LibraryInstaller
 	protected function _buildInstallPath( $vendor, $package, $createIfMissing = true )
 	{
 		//	Build path
-		$_fullPath = static::BASE_INSTALL_PATH . ( $this->_plugIn ? static::PLUGIN_INSTALL_PATH : static::PACKAGE_INSTALL_PATH ) . '/' . $vendor . '/' . $package;
-		$_basePath = $this->vendorDir ? : getcwd();
+		$_fullPath = trim( static::BASE_INSTALL_PATH . ( $this->_plugIn ? static::PLUGIN_INSTALL_PATH : static::PACKAGE_INSTALL_PATH ) . '/' . $vendor . '/' . $package, ' /' );
+		$_basePath = rtrim( $this->vendorDir ? $this->vendorDir . '/' : null, ' /' );
 
 		if ( $createIfMissing && !is_dir( $_basePath . $_fullPath ) )
 		{
