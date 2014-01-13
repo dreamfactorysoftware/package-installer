@@ -146,6 +146,7 @@ class PlatformInstaller extends LibraryInstaller
 	 */
 	public function install( InstalledRepositoryInterface $repo, PackageInterface $package )
 	{
+		Log::info( 'Install package "' . $package->getPrettyName() . ' ' . $package->getVersion() );
 		parent::install( $repo, $package );
 
 		$this->_linkPlugIn( $this->_installPath, $this->_linkName );
@@ -160,6 +161,8 @@ class PlatformInstaller extends LibraryInstaller
 	 */
 	public function update( InstalledRepositoryInterface $repo, PackageInterface $initial, PackageInterface $target )
 	{
+		Log::info( 'Update package "' . $initial->getPrettyName() . ' ' . $initial->getVersion() );
+
 		$this->_validatePackage( $target );
 		$this->_unlinkPlugIn();
 
@@ -176,6 +179,8 @@ class PlatformInstaller extends LibraryInstaller
 	 */
 	public function uninstall( InstalledRepositoryInterface $repo, PackageInterface $package )
 	{
+		Log::info( 'Uninstall package "' . $package->getPrettyName() . ' ' . $package->getVersion() );
+
 		$this->_validatePackage( $package );
 
 		parent::uninstall( $repo, $package );
@@ -226,7 +231,7 @@ class PlatformInstaller extends LibraryInstaller
 
 		//	Link path for plug-ins
 		$this->_linkName = $_parts[1];
-		$this->_linkPath = \realpath( dirname( $this->vendorDir ) . static::PLUG_IN_LINK_PATH . '/' . $_parts[1] );
+		$this->_linkPath = rtrim( getcwd() . ' /' ) . '/' . trim( static::PLUG_IN_LINK_PATH . '/' . $_parts[1], ' /' );
 
 		Log::debug( 'Platform Installer Debug: ' . $this->_installPath );
 		Log::debug( '  * Install path: ' . $this->_installPath );
