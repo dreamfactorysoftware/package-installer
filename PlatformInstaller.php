@@ -21,9 +21,9 @@
 namespace DreamFactory\Composer\Utility;
 
 use Composer\Composer;
+use Composer\Installer\LibraryInstaller;
 use Composer\IO\IOInterface;
 use Composer\Package\PackageInterface;
-use Composer\Installer\LibraryInstaller;
 use Composer\Repository\InstalledRepositoryInterface;
 use Kisma\Core\Exceptions\FileSystemException;
 
@@ -119,6 +119,16 @@ class PlatformInstaller extends LibraryInstaller
 		parent::__construct( $io, $composer, $type );
 
 		$this->_fabricHosted = file_exists( static::FABRIC_MARKER );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function getPackageBasePath( PackageInterface $package )
+	{
+		$this->_validatePackage( $package );
+
+		return $this->_installPath;
 	}
 
 	/**
@@ -304,4 +314,16 @@ class PlatformInstaller extends LibraryInstaller
 		}
 	}
 
+	/**
+	 * @param InstalledRepositoryInterface $repo
+	 * @param PackageInterface             $package
+	 *
+	 * @return bool
+	 */
+	public function isInstalled( InstalledRepositoryInterface $repo, PackageInterface $package )
+	{
+		$this->_validatePackage( $package );
+
+		return \is_link( $this->_linkPath );
+	}
 }
