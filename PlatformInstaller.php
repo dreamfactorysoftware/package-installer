@@ -42,13 +42,17 @@ class PlatformInstaller extends LibraryInstaller
 	 */
 	const PACKAGE_PREFIX = 'dreamfactory';
 	/**
-	 * @var string
+	 * @var string The base installation path
 	 */
-	const BASE_INSTALL_PATH = '/storage/applications';
+	const BASE_INSTALL_PATH = '/storage';
 	/**
-	 * @var string
+	 * @var string The package installation path relative to base
 	 */
-	const PLUG_IN_INSTALL_PATH = '/storage/.private/library';
+	const PACKAGE_INSTALL_PATH = '/applications';
+	/**
+	 * @var string The plugin installation path relative to base
+	 */
+	const PLUGIN_INSTALL_PATH = '/.private/library';
 	/**
 	 * @var string
 	 */
@@ -60,7 +64,7 @@ class PlatformInstaller extends LibraryInstaller
 	/**
 	 * @var string
 	 */
-	const DSP_PLUG_IN = 'dsp-plug-in';
+	const DSP_PLUGIN_PACKAGE_TYPE = 'dreamfactory-dsp-plugin';
 
 	//*************************************************************************
 	//* Members
@@ -73,13 +77,12 @@ class PlatformInstaller extends LibraryInstaller
 	/**
 	 * @var array The types of packages I can install
 	 */
-	protected $_supportPackageTypes
-		= array(
-			'dreamfactory-platform',
-			'dreamfactory-jetpack',
-			'dreamfactory-fuelcell',
-			self::DSP_PLUG_IN,
-		);
+	protected $_supportPackageTypes = array(
+		'dreamfactory-platform',
+		'dreamfactory-jetpack',
+		'dreamfactory-fuelcell',
+		self::DSP_PLUGIN_PACKAGE_TYPE,
+	);
 	/**
 	 * @var bool If true, install into user-space library
 	 */
@@ -93,15 +96,23 @@ class PlatformInstaller extends LibraryInstaller
 	 */
 	protected $_packageName;
 	/**
-	 * @var string
+	 * @var string The base package path, i.e. /path/to/vendor/full-package-name
+	 */
+	protected $_packageBasePath;
+	/**
+	 * @var string The base installation path, parent of /vendor
+	 */
+	protected $_installBasePath;
+	/**
+	 * @var string The full install path, i.e. /path/to/storage/[.private/library|applications]/full-package-name
 	 */
 	protected $_installPath;
 	/**
-	 * @var string
+	 * @var string The name of the package link within the web root
 	 */
 	protected $_linkName;
 	/**
-	 * @var string
+	 * @var string The full target of the link, i.e. $installPath essentially
 	 */
 	protected $_linkPath;
 
@@ -122,24 +133,13 @@ class PlatformInstaller extends LibraryInstaller
 	}
 
 	/**
-	 * {@inheritDoc}
-	 */
-	public function getPackageBasePath( PackageInterface $package )
-	{
-		$this->_validatePackage( $package );
-
-		return $this->_installPath;
-	}
-
-	/**
 	 * @param InstalledRepositoryInterface $repo
 	 * @param PackageInterface             $package
 	 */
 	public function install( InstalledRepositoryInterface $repo, PackageInterface $package )
 	{
-		$this->_validatePackage( $package );
-
 		parent::install( $repo, $package );
+
 		$this->_linkPlugIn( $this->_installPath, $this->_linkName );
 	}
 
@@ -153,9 +153,10 @@ class PlatformInstaller extends LibraryInstaller
 	public function update( InstalledRepositoryInterface $repo, PackageInterface $initial, PackageInterface $target )
 	{
 		$this->_validatePackage( $target );
-
 		$this->_unlinkPlugIn();
+
 		parent::update( $repo, $initial, $target );
+
 		$this->_linkPlugIn();
 	}
 
@@ -191,29 +192,39 @@ class PlatformInstaller extends LibraryInstaller
 	 */
 	protected function _validatePackage( PackageInterface $package )
 	{
-		$this->_plugIn = ( static::DSP_PLUG_IN == $package->getType() );
-		$_parts = explode( '/', $_packageName = $package->getPrettyName(), 2 );
+		$_packageName = $package->getPrettyName();
+		$_parts = explode( '/', $_packageName, 2 );
+
+		$this->_plugIn = ( static::DSP_PLUGIN_PACKAGE_TYPE == $package->getType() );
 
 		//	Only install DreamFactory packages if not a plug-in
-		if ( static::PACKAGE_PREFIX != ( $_prefix = @current( $_parts ) ) && !$this->_plugIn )
+		if ( static::PACKAGE_PREFIX != ( $_vendor = @current( $_parts ) ) && !$this->_plugIn )
 		{
-			throw new \InvalidArgumentException(
-				'This package is not a DreamFactory package and cannot be installed by this installer.' . PHP_EOL .
-				'  * Name: ' . $package->getPrettyName() . PHP_EOL .
-				'  * Parts: ' . print_r( $_parts, true ) . PHP_EOL
-			);
+			throw new \InvalidArgumentException( 'This package is not a DreamFactory package and cannot be installed by this installer.' .
+												 PHP_EOL .
+												 '  * Name: ' .
+												 $_packageName .
+												 PHP_EOL .
+												 '  * Parts: ' .
+												 implode( ' / ', $_parts ) .
+												 PHP_EOL );
 		}
 
 		//	Effectively /docRoot/shared/[vendor]/[namespace]/[package]
-		$this->_installPath = $this->_buildInstallPath(
-			dirname( $this->vendorDir ) . ( $this->_plugIn ? static::PLUG_IN_INSTALL_PATH : static::BASE_INSTALL_PATH ),
-			$_prefix,
-			$_parts[1]
-		);
+		$this->_installPath = $this->_buildInstallPath( static::BASE_INSTALL_PATH, $_vendor, @end( $_parts ) );
 
 		//	Link path for plug-ins
 		$this->_linkName = $_parts[1];
-		$this->_linkPath = dirname( $this->vendorDir ) . static::PLUG_IN_LINK_PATH . '/' . $_parts[1];
+		$this->_linkPath = \realpath( dirname( $this->vendorDir ) . static::PLUG_IN_LINK_PATH . '/' . $_parts[1] );
+
+		$this->io->write( 'Platform Installer Debug: ' . $this->_installPath );
+		$this->io->write( '  * Install path: ' . $this->_installPath );
+
+		if ( $this->_plugIn )
+		{
+			$this->io->write( '  *    Link name: ' . $this->_linkName );
+			$this->io->write( '  *    Link path: ' . $this->_linkPath );
+		}
 
 		return true;
 	}
@@ -249,9 +260,7 @@ class PlatformInstaller extends LibraryInstaller
 
 		//	Build path
 		$_fullPath =
-			rtrim( realpath( $baseInstallPath ) . '/' . $vendor, ' /' ) . '/' .
-			( $this->_plugIn ? static::PLUG_IN_INSTALL_PATH : static::BASE_INSTALL_PATH ) . '/' .
-			$package;
+			rtrim( realpath( $baseInstallPath ) . '/' . $vendor, ' /' ) . '/' . ( $this->_plugIn ? static::PLUGIN_INSTALL_PATH : static::BASE_INSTALL_PATH ) . '/' . $package;
 
 		if ( $createIfMissing && !is_dir( $_fullPath ) )
 		{
