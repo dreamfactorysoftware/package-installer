@@ -60,7 +60,7 @@ class PlatformInstaller extends LibraryInstaller
 	/**
 	 * @var string
 	 */
-	const DSP_PLUG_IN = 'dsp-plug-in';
+	const DSP_PLUG_IN = 'dsp-plugin';
 
 	//*************************************************************************
 	//* Members
