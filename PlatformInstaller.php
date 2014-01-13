@@ -28,6 +28,8 @@ use Composer\Repository\InstalledRepositoryInterface;
 use Kisma\Core\Exceptions\FileSystemException;
 use Kisma\Core\Utility\Log;
 
+Log::setDefaultLog( './log/package.installer.log' );
+
 /**
  * PlatformInstaller
  * Class/plug-in/library/jetpack installer
