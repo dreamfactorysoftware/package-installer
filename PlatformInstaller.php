@@ -132,12 +132,10 @@ class PlatformInstaller extends LibraryInstaller
 
 		$this->_fabricHosted = file_exists( static::FABRIC_MARKER );
 
-		$_logDir = `pwd` . '/log';
+		$_logDir = getcwd() . '/log';
+		@mkdir( $_logDir, 0777, true );
 
-		if ( is_dir( $_logDir ) )
-		{
-			Log::setDefaultLog( $_logDir . '/package.installer.log' );
-		}
+		Log::setDefaultLog( $_logDir . '/package.installer.log' );
 	}
 
 	/**
