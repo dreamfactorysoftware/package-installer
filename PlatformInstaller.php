@@ -21,9 +21,10 @@
 namespace DreamFactory\Composer\Utility;
 
 use Composer\Composer;
+use Composer\Installer\LibraryInstaller;
 use Composer\IO\IOInterface;
 use Composer\Package\PackageInterface;
-use Composer\Installer\LibraryInstaller;
+use Composer\Repository\InstalledRepositoryInterface;
 use Kisma\Core\Exceptions\FileSystemException;
 
 /**
@@ -43,15 +44,15 @@ class PlatformInstaller extends LibraryInstaller
 	/**
 	 * @var string
 	 */
-	const BASE_INSTALL_PATH = '/shared';
+	const BASE_INSTALL_PATH = '/storage/applications';
 	/**
 	 * @var string
 	 */
-	const USER_INSTALL_PATH = '/storage/library';
+	const PLUG_IN_INSTALL_PATH = '/storage/.private/library';
 	/**
 	 * @var string
 	 */
-	const DEFAULT_INSTALL_NAMESPACE = 'app';
+	const PLUG_IN_LINK_PATH = '/web';
 	/**
 	 * @var string
 	 */
@@ -59,7 +60,7 @@ class PlatformInstaller extends LibraryInstaller
 	/**
 	 * @var string
 	 */
-	const DSP_USER_LIBRARY = 'dsp-user-library';
+	const DSP_PLUG_IN = 'dsp-plug-in';
 
 	//*************************************************************************
 	//* Members
@@ -77,12 +78,32 @@ class PlatformInstaller extends LibraryInstaller
 			'dreamfactory-platform',
 			'dreamfactory-jetpack',
 			'dreamfactory-fuelcell',
-			self::DSP_USER_LIBRARY,
+			self::DSP_PLUG_IN,
 		);
 	/**
 	 * @var bool If true, install into user-space library
 	 */
-	protected $_userPackage = false;
+	protected $_plugIn = false;
+	/**
+	 * @var string The package vendor
+	 */
+	protected $_vendor;
+	/**
+	 * @var string The name of the package
+	 */
+	protected $_packageName;
+	/**
+	 * @var string
+	 */
+	protected $_installPath;
+	/**
+	 * @var string
+	 */
+	protected $_linkName;
+	/**
+	 * @var string
+	 */
+	protected $_linkPath;
 
 	//*************************************************************************
 	//* Methods
@@ -96,7 +117,60 @@ class PlatformInstaller extends LibraryInstaller
 	public function __construct( IOInterface $io, Composer $composer, $type = 'library' )
 	{
 		parent::__construct( $io, $composer, $type );
+
 		$this->_fabricHosted = file_exists( static::FABRIC_MARKER );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function getPackageBasePath( PackageInterface $package )
+	{
+		$this->_validatePackage( $package );
+
+		return $this->_installPath;
+	}
+
+	/**
+	 * @param InstalledRepositoryInterface $repo
+	 * @param PackageInterface             $package
+	 */
+	public function install( InstalledRepositoryInterface $repo, PackageInterface $package )
+	{
+		$this->_validatePackage( $package );
+
+		parent::install( $repo, $package );
+		$this->_linkPlugIn( $this->_installPath, $this->_linkName );
+	}
+
+	/**
+	 * @param InstalledRepositoryInterface $repo
+	 * @param PackageInterface             $initial
+	 * @param PackageInterface             $target
+	 *
+	 * @throws \Kisma\Core\Exceptions\FileSystemException
+	 */
+	public function update( InstalledRepositoryInterface $repo, PackageInterface $initial, PackageInterface $target )
+	{
+		$this->_validatePackage( $target );
+
+		$this->_unlinkPlugIn();
+		parent::update( $repo, $initial, $target );
+		$this->_linkPlugIn();
+	}
+
+	/**
+	 * @param InstalledRepositoryInterface $repo
+	 * @param PackageInterface             $package
+	 *
+	 * @throws \Kisma\Core\Exceptions\FileSystemException
+	 */
+	public function uninstall( InstalledRepositoryInterface $repo, PackageInterface $package )
+	{
+		$this->_validatePackage( $package );
+
+		parent::uninstall( $repo, $package );
+		$this->_unlinkPlugIn();
 	}
 
 	/**
@@ -104,11 +178,24 @@ class PlatformInstaller extends LibraryInstaller
 	 */
 	public function getInstallPath( PackageInterface $package )
 	{
+		$this->_validatePackage( $package );
+
+		return $this->_installPath;
+	}
+
+	/**
+	 * @param PackageInterface $package
+	 *
+	 * @throws \InvalidArgumentException
+	 * @return string
+	 */
+	protected function _validatePackage( PackageInterface $package )
+	{
+		$this->_plugIn = ( static::DSP_PLUG_IN == $package->getType() );
 		$_parts = explode( '/', $_packageName = $package->getPrettyName(), 2 );
 
-		$this->_userPackage = ( static::DSP_USER_LIBRARY == $package->getType() );
-
-		if ( static::PACKAGE_PREFIX != ( $_prefix = @current( $_parts ) ) && !$this->_userPackage )
+		//	Only install DreamFactory packages if not a plug-in
+		if ( static::PACKAGE_PREFIX != ( $_prefix = @current( $_parts ) ) && !$this->_plugIn )
 		{
 			throw new \InvalidArgumentException(
 				'This package is not a DreamFactory package and cannot be installed by this installer.' . PHP_EOL .
@@ -118,18 +205,24 @@ class PlatformInstaller extends LibraryInstaller
 		}
 
 		//	Effectively /docRoot/shared/[vendor]/[namespace]/[package]
-		return $this->_buildInstallPath(
-			dirname( $this->vendorDir ) . ( $this->_userPackage ? static::USER_INSTALL_PATH : static::BASE_INSTALL_PATH ),
+		$this->_installPath = $this->_buildInstallPath(
+			dirname( $this->vendorDir ) . ( $this->_plugIn ? static::PLUG_IN_INSTALL_PATH : static::BASE_INSTALL_PATH ),
 			$_prefix,
 			$_parts[1]
 		);
+
+		//	Link path for plug-ins
+		$this->_linkName = $_parts[1];
+		$this->_linkPath = dirname( $this->vendorDir ) . static::PLUG_IN_LINK_PATH . '/' . $_parts[1];
+
+		return true;
 	}
 
 	/**
 	 * Build the install path
 	 *
 	 * @param string $baseInstallPath
-	 * @param string $prefix
+	 * @param string $vendor
 	 * @param string $package
 	 * @param bool   $createIfMissing
 	 *
@@ -137,17 +230,14 @@ class PlatformInstaller extends LibraryInstaller
 	 * @throws \Kisma\Core\Exceptions\FileSystemException
 	 * @return string
 	 */
-	protected function _buildInstallPath( $baseInstallPath, $prefix, $package, $createIfMissing = true )
+	protected function _buildInstallPath( $baseInstallPath, $vendor, $package, $createIfMissing = true )
 	{
 		/**
-		 *    Package like dreamfactory/app-xyz or dreamfactory/lib-abc will
-		 *    go into ./apps/app-xyz and ./lib/lib-abc respectively)
+		 * User libraries are installed into /storage/.private/library/<vendor>/<package>
 		 *
-		 * User libraries are installed into /storage/library/<prefix>/<package>
-		 *
-		 * baseInstall  : ./shared
-		 * prefix       : dreamfactory
-		 * parts        : abc-xyz
+		 * $baseInstall : /storage/.private/library
+		 * $vendor      : dreamfactory
+		 * $package     : abc-xyz
 		 */
 		if ( !is_dir( $baseInstallPath ) || false === realpath( $baseInstallPath ) )
 		{
@@ -157,18 +247,11 @@ class PlatformInstaller extends LibraryInstaller
 			}
 		}
 
-		//	i.e. /var/www/dsp-share/dreamfactory/
-		$_fullPath = rtrim( realpath( $baseInstallPath ) . '/' . $prefix, ' /' ) . '/';
-
-		//	Split package type off of front (app-*, lib-*, web-*, jetpack-*, fuelcell-*, etc.)
-		if ( !$this->_userPackage )
-		{
-			$_subparts = explode( '-', $package, 2 );
-			//	/path/to/project/shared/[vendor]/[namespace]/[package]
-			$_fullPath .= empty( $_subparts ) ? static::DEFAULT_INSTALL_NAMESPACE : current( $_subparts );
-		}
-
-		$_fullPath .= '/' . $package;
+		//	Build path
+		$_fullPath =
+			rtrim( realpath( $baseInstallPath ) . '/' . $vendor, ' /' ) . '/' .
+			( $this->_plugIn ? static::PLUG_IN_INSTALL_PATH : static::BASE_INSTALL_PATH ) . '/' .
+			$package;
 
 		if ( $createIfMissing && !is_dir( $_fullPath ) )
 		{
@@ -187,5 +270,60 @@ class PlatformInstaller extends LibraryInstaller
 	public function supports( $packageType )
 	{
 		return in_array( $packageType, $this->_supportPackageTypes );
+	}
+
+	/**
+	 * @param string $target
+	 * @param string $link
+	 *
+	 * @throws \Kisma\Core\Exceptions\FileSystemException
+	 */
+	protected function _linkPlugIn( $target = null, $link = null )
+	{
+		$target = $target ? : $this->_installPath;
+		$link = $link ? : $this->_linkPath;
+
+		//	Already linked?
+		if ( \is_link( $link ) )
+		{
+			return;
+		}
+
+		if ( false === @\symlink( $target, $link ) )
+		{
+			throw new FileSystemException( 'Unable to create link: ' . $link );
+		}
+	}
+
+	/**
+	 * @param string $link
+	 *
+	 * @throws \Kisma\Core\Exceptions\FileSystemException
+	 */
+	protected function _unlinkPlugIn( $link = null )
+	{
+		$link = $link ? : $this->_linkPath;
+
+		//	Unlink from linked root
+		if ( $this->_plugIn && \is_link( $link ) )
+		{
+			if ( false === @\unlink( $link ) )
+			{
+				throw new FileSystemException( 'Unable to unlink link: ' . $link );
+			}
+		}
+	}
+
+	/**
+	 * @param InstalledRepositoryInterface $repo
+	 * @param PackageInterface             $package
+	 *
+	 * @return bool
+	 */
+	public function isInstalled( InstalledRepositoryInterface $repo, PackageInterface $package )
+	{
+		$this->_validatePackage( $package );
+
+		return \is_link( $this->_linkPath );
 	}
 }
