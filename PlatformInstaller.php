@@ -18,7 +18,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Composer\Utility;
+namespace DreamFactory\Composer;
 
 use Composer\Composer;
 use Composer\Installer\LibraryInstaller;

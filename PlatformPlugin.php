@@ -23,7 +23,6 @@ namespace DreamFactory\Composer;
 use Composer\Composer;
 use Composer\IO\IOInterface;
 use Composer\Plugin\PluginInterface;
-use DreamFactory\Composer\Utility\PlatformInstaller;
 
 /**
  * PlatformPlugin
