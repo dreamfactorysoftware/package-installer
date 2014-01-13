@@ -26,6 +26,7 @@ use Composer\IO\IOInterface;
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 use Kisma\Core\Exceptions\FileSystemException;
+use Kisma\Core\Utility\Log;
 
 /**
  * PlatformInstaller
@@ -130,6 +131,13 @@ class PlatformInstaller extends LibraryInstaller
 		parent::__construct( $io, $composer, $type );
 
 		$this->_fabricHosted = file_exists( static::FABRIC_MARKER );
+
+		$_logDir = `pwd` . '/log';
+
+		if ( is_dir( $_logDir ) )
+		{
+			Log::setDefaultLog( $_logDir . '/package.installer.log' );
+		}
 	}
 
 	/**
@@ -211,20 +219,22 @@ class PlatformInstaller extends LibraryInstaller
 		}
 
 		//	Effectively /docRoot/shared/[vendor]/[namespace]/[package]
+		Log::debug( 'Package "' . $_packageName . '" installation type: ' . ( $this->_plugIn ? 'Plug-in' : 'Package' ) );
+
 		$this->_packageName = $_packageName;
-		$this->_installPath = $this->_buildInstallPath( static::BASE_INSTALL_PATH, $_vendor, @end( $_parts ) );
+		$this->_installPath = $this->_buildInstallPath( $_vendor, @end( $_parts ) );
 
 		//	Link path for plug-ins
 		$this->_linkName = $_parts[1];
 		$this->_linkPath = \realpath( dirname( $this->vendorDir ) . static::PLUG_IN_LINK_PATH . '/' . $_parts[1] );
 
-		$this->io->write( 'Platform Installer Debug: ' . $this->_installPath );
-		$this->io->write( '  * Install path: ' . $this->_installPath );
+		Log::debug( 'Platform Installer Debug: ' . $this->_installPath );
+		Log::debug( '  * Install path: ' . $this->_installPath );
 
 		if ( $this->_plugIn )
 		{
-			$this->io->write( '  *    Link name: ' . $this->_linkName );
-			$this->io->write( '  *    Link path: ' . $this->_linkPath );
+			Log::debug( '  *    Link name: ' . $this->_linkName );
+			Log::debug( '  *    Link path: ' . $this->_linkPath );
 		}
 
 		return true;
@@ -233,7 +243,9 @@ class PlatformInstaller extends LibraryInstaller
 	/**
 	 * Build the install path
 	 *
-	 * @param string $baseInstallPath
+	 * User libraries are installed into /storage/.private/library/<vendor>/<package>
+	 * Applications   are installed into /storage/applications/<vendor>/<package>
+	 *
 	 * @param string $vendor
 	 * @param string $package
 	 * @param bool   $createIfMissing
@@ -242,32 +254,10 @@ class PlatformInstaller extends LibraryInstaller
 	 * @throws \Kisma\Core\Exceptions\FileSystemException
 	 * @return string
 	 */
-	protected function _buildInstallPath( $baseInstallPath, $vendor, $package, $createIfMissing = true )
+	protected function _buildInstallPath( $vendor, $package, $createIfMissing = true )
 	{
-		/**
-		 * User libraries are installed into /storage/.private/library/<vendor>/<package>
-		 *
-		 * $baseInstall : /storage/.private/library
-		 * $vendor      : dreamfactory
-		 * $package     : abc-xyz
-		 */
-		if ( !is_dir( $baseInstallPath ) || false === realpath( $baseInstallPath ) )
-		{
-			if ( false === @mkdir( $baseInstallPath, 0777, true ) )
-			{
-				throw new FileSystemException( 'Unable to create directory: ' . $baseInstallPath );
-			}
-		}
-
 		//	Build path
-		$_fullPath =
-			\realpath( dirname( $this->vendorDir ) ) .
-			$baseInstallPath .
-			( $this->_plugIn ? static::PLUGIN_INSTALL_PATH : static::PACKAGE_INSTALL_PATH ) .
-			'/' .
-			$vendor .
-			'/' .
-			$package;
+		$_fullPath = static::BASE_INSTALL_PATH . ( $this->_plugIn ? static::PLUGIN_INSTALL_PATH : static::PACKAGE_INSTALL_PATH ) . '/' . $vendor . '/' . $package;
 
 		if ( $createIfMissing && !is_dir( $_fullPath ) )
 		{
