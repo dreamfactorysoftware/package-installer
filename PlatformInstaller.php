@@ -211,6 +211,7 @@ class PlatformInstaller extends LibraryInstaller
 		}
 
 		//	Effectively /docRoot/shared/[vendor]/[namespace]/[package]
+		$this->_packageName = $_packageName;
 		$this->_installPath = $this->_buildInstallPath( static::BASE_INSTALL_PATH, $_vendor, @end( $_parts ) );
 
 		//	Link path for plug-ins
@@ -260,7 +261,13 @@ class PlatformInstaller extends LibraryInstaller
 
 		//	Build path
 		$_fullPath =
-			rtrim( realpath( $baseInstallPath ) . '/' . $vendor, ' /' ) . '/' . ( $this->_plugIn ? static::PLUGIN_INSTALL_PATH : static::BASE_INSTALL_PATH ) . '/' . $package;
+			\realpath( dirname( $this->vendorDir ) ) .
+			$baseInstallPath .
+			( $this->_plugIn ? static::PLUGIN_INSTALL_PATH : static::PACKAGE_INSTALL_PATH ) .
+			'/' .
+			$vendor .
+			'/' .
+			$package;
 
 		if ( $createIfMissing && !is_dir( $_fullPath ) )
 		{
