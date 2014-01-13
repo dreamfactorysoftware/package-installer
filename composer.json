@@ -5,7 +5,7 @@
 	"keywords":          ["dreamfactory", "dsp", "cloud", "jetpack", "plug-in"],
 	"homepage":          "http://dreamfactorysoftware.github.io/",
 	"license":           ["Apache-2.0"],
-	"version":           "1.1.6",
+	"version":           "1.1.7",
 	"authors":           [
 		{
 			"name":  "Ablan, Jerry",
