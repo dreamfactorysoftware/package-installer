@@ -258,12 +258,13 @@ class PlatformInstaller extends LibraryInstaller
 	{
 		//	Build path
 		$_fullPath = static::BASE_INSTALL_PATH . ( $this->_plugIn ? static::PLUGIN_INSTALL_PATH : static::PACKAGE_INSTALL_PATH ) . '/' . $vendor . '/' . $package;
+		$_basePath = $this->vendorDir ? : getcwd();
 
-		if ( $createIfMissing && !is_dir( $_fullPath ) )
+		if ( $createIfMissing && !is_dir( $_basePath . $_fullPath ) )
 		{
-			if ( false === @mkdir( $_fullPath, 0777, true ) )
+			if ( false === @mkdir( $_basePath . $_fullPath, 0775, true ) )
 			{
-				throw new FileSystemException( 'Unable to create installation path "' . $_fullPath . '"' );
+				throw new FileSystemException( 'Unable to create installation path "' . $_basePath . $_fullPath . '"' );
 			}
 		}
 
