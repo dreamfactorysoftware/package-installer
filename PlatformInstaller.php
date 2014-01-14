@@ -149,7 +149,7 @@ class PlatformInstaller extends LibraryInstaller
 		Log::info( 'Install package "' . $package->getPrettyName() . ' ' . $package->getVersion() );
 		parent::install( $repo, $package );
 
-		$this->_linkPlugIn( $this->_installPath, $this->_linkName );
+		$this->_linkPlugIn();
 	}
 
 	/**
