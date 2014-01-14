@@ -231,7 +231,8 @@ class PlatformInstaller extends LibraryInstaller
 		$this->_installPath = $this->_buildInstallPath( $_vendor, @end( $_parts ) );
 
 		//	Link path for plug-ins
-		$this->_linkName = Option::get( Option::clean( $package->getExtra() ), 'link_name', $_parts[1] );
+		$_extra = Option::clean( $package->getExtra() );
+		$this->_linkName = Option::get( $_extra, 'link_name', $_parts[1] );
 		$this->_linkPath = trim( static::PLUG_IN_LINK_PATH . '/' . $this->_linkName, '/' );
 
 		Log::info( 'Platform Installer Debug > ' . $_packageName . ' > Version ' . $package->getVersion() );
