@@ -26,6 +26,7 @@ use Composer\IO\IOInterface;
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 use Kisma\Core\Exceptions\FileSystemException;
+use Kisma\Core\Utility\Inflector;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 
@@ -82,47 +83,38 @@ class PackageInstaller extends LibraryInstaller
 	 * @var array The types of packages I can install
 	 */
 	protected $_supportPackageTypes = array(
-		'dreamfactory-platform',
+		'dreamfactory-dsp-app',
 		'dreamfactory-jetpack',
-		'dreamfactory-fuelcell',
 		self::DSP_PLUGIN_PACKAGE_TYPE,
 	);
 	/**
 	 * @var bool If true, install into user-space library
 	 */
-	protected $_plugIn = false;
+	protected $_packageType = PackageTypes::APPLICATION;
 	/**
-	 * @var string The package vendor
-	 */
-	protected $_vendor;
-	/**
-	 * @var string The name of the package
+	 * @var string The full name of the package, i.e. "dreamfactory/portal-sandbox"
 	 */
 	protected $_packageName;
 	/**
-	 * @var string The base package path, i.e. /path/to/vendor/full-package-name
+	 * @var string The full name of the package vendor, i.e. "dreamfactory"
 	 */
-	protected $_packageBasePath;
+	protected $_vendorName;
 	/**
-	 * @var string The base installation path, parent of /vendor
+	 * @var string The non-vendor portion of the package name, i.e. "dreamfactory/portal-sandbox" is package name, package suffix is "portal-sandbox"
+	 */
+	protected $_packageSuffix;
+	/**
+	 * @var string The base installation path, where composer.json lives
 	 */
 	protected $_installBasePath;
 	/**
-	 * @var string The full install path, i.e. /path/to/storage/[.private/library|applications]/full-package-name
+	 * @var string The path of the install relative to $installBasePath, i.e. /storage/[.private/library|applications]/full-package-name
 	 */
-	protected $_installPath;
-	/**
-	 * @var string The name of the package link within the web root
-	 */
-	protected $_linkName;
-	/**
-	 * @var string The full target of the link, i.e. $installPath essentially
-	 */
-	protected $_linkPath;
+	protected $_packageInstallPath;
 	/**
 	 * @var array
 	 */
-	protected $_packageLinks = array();
+	protected $_config = array();
 
 	//*************************************************************************
 	//* Methods
@@ -138,23 +130,12 @@ class PackageInstaller extends LibraryInstaller
 		parent::__construct( $io, $composer, $type );
 
 		$this->_fabricHosted = file_exists( static::FABRIC_MARKER );
+		$this->_installBasePath = \getcwd();
 
-		$_logDir = getcwd() . '/log';
+		$_logDir = $this->_installBasePath . '/log';
 		@mkdir( $_logDir, 0777, true );
 
 		Log::setDefaultLog( $_logDir . '/package.installer.log' );
-	}
-
-	/**
-	 * @param InstalledRepositoryInterface $repo
-	 * @param PackageInterface             $package
-	 */
-	public function install( InstalledRepositoryInterface $repo, PackageInterface $package )
-	{
-		Log::info( 'Install package "' . $package->getPrettyName() . ' ' . $package->getVersion() );
-		parent::install( $repo, $package );
-
-		$this->_linkPlugIn();
 	}
 
 	/**
@@ -167,29 +148,34 @@ class PackageInstaller extends LibraryInstaller
 	public function update( InstalledRepositoryInterface $repo, PackageInterface $initial, PackageInterface $target )
 	{
 		Log::info( 'Update package "' . $initial->getPrettyName() . ' ' . $initial->getVersion() );
-
-		$this->_validatePackage( $target );
-		$this->_unlinkPlugIn();
+		$this->_validatePackage( $initial );
+		$this->_deleteLinks();
 
 		parent::update( $repo, $initial, $target );
 
-		$this->_linkPlugIn();
+		$this->_createLinks();
 	}
 
 	/**
-	 * @param InstalledRepositoryInterface $repo
-	 * @param PackageInterface             $package
-	 *
-	 * @throws \Kisma\Core\Exceptions\FileSystemException
+	 * @param PackageInterface $package
 	 */
-	public function uninstall( InstalledRepositoryInterface $repo, PackageInterface $package )
+	protected function installCode( PackageInterface $package )
 	{
-		Log::info( 'Uninstall package "' . $package->getPrettyName() . ' ' . $package->getVersion() );
+		parent::installCode( $package );
 
-		$this->_validatePackage( $package );
+		Log::info( 'Creating links for package "' . $package->getPrettyName() . ' ' . $package->getVersion() );
+		$this->_createLinks();
+	}
 
-		parent::uninstall( $repo, $package );
-		$this->_unlinkPlugIn();
+	/**
+	 * @param PackageInterface $package
+	 */
+	protected function removeCode( PackageInterface $package )
+	{
+		parent::removeCode( $package );
+
+		Log::info( 'Removing package "' . $this->_packageName . ' ' . $package->getVersion() );
+		$this->_deleteLinks();
 	}
 
 	/**
@@ -199,7 +185,7 @@ class PackageInstaller extends LibraryInstaller
 	{
 		$this->_validatePackage( $package );
 
-		return $this->_installPath;
+		return $this->_packageInstallPath;
 	}
 
 	/**
@@ -210,43 +196,88 @@ class PackageInstaller extends LibraryInstaller
 	 */
 	protected function _validatePackage( PackageInterface $package )
 	{
-		$_packageName = $package->getPrettyName();
-		$_parts = explode( '/', $_packageName, 2 );
-
-		$this->_plugIn = ( static::DSP_PLUGIN_PACKAGE_TYPE == $package->getType() );
+		//	Link path for plug-ins
+		$this->_parseConfiguration( $package );
 
 		//	Only install DreamFactory packages if not a plug-in
-		if ( static::PACKAGE_PREFIX != ( $_vendor = @current( $_parts ) ) && !$this->_plugIn )
+		if ( static::PACKAGE_PREFIX != $this->_vendorName && !$this->_packageType == PackageTypes::APPLICATION )
 		{
-			throw new \InvalidArgumentException( 'This package is not a DreamFactory package and cannot be installed by this installer.' . PHP_EOL .
-												 '  * Name: ' . $_packageName . PHP_EOL . '  * Parts: ' . implode( ' / ', $_parts ) . PHP_EOL );
+			throw new \InvalidArgumentException( 'This package is not one that can be installed by this installer.' . PHP_EOL . '  * Name: ' .
+												 $this->_packageName );
 		}
 
 		//	Effectively /docRoot/shared/[vendor]/[namespace]/[package]
-		Log::debug( 'Package "' . $_packageName . '" installation type: ' . ( $this->_plugIn ? 'Plug-in' : 'Package' ) );
+		Log::debug( 'Package "' . $this->_packageName . '" installation type: ' . Inflector::display( PlatformTypes::nameOf( $this->_packageType ) ) );
 
-		$this->_packageName = $_packageName;
-		$this->_installPath = $this->_buildInstallPath( $_vendor, @end( $_parts ) );
+		$this->_buildInstallPath( $this->_vendorName, $this->_packageSuffix );
 
-		//	Link path for plug-ins
-		$_extra = Option::clean( $package->getExtra() );
+		Log::info( 'DreamFactory Package Installer > ' . $this->_packageName . ' > Version ' . $package->getVersion() );
+		Log::debug( '  * Install path: ' . $this->_packageInstallPath );
 
-		$this->_packageLinks = Option::get( $_extra, 'links', array() );
-		$this->_linkName = Option::get( $_extra, 'link_name', $_parts[1] );
-
-		//	Relative to composer.json... i.e. web/[link_name]
-		$this->_linkPath = trim( static::PLUG_IN_LINK_PATH . '/' . $this->_linkName, '/' );
-
-		Log::info( 'Platform Installer Debug > ' . $_packageName . ' > Version ' . $package->getVersion() );
-		Log::debug( '  * Install path: ' . $this->_installPath );
-
-		if ( $this->_plugIn )
+		if ( null !== ( $_links = Option::get( $this->_config, 'links' ) ) )
 		{
-			Log::debug( '  *    Link name: ' . $this->_linkName );
-			Log::debug( '  *    Link path: ' . $this->_linkPath );
+			foreach ( $_links as $_link )
+			{
+				Log::debug( '  *         Link: ' . $this->_packageInstallPath . ' -> ' . $_link['link'] );
+			}
 		}
 
 		return true;
+	}
+
+	/**
+	 * Parse a package configuration
+	 *
+	 * @param PackageInterface $package
+	 *
+	 * @return array
+	 */
+	protected function _parseConfiguration( PackageInterface $package )
+	{
+		$_parts = explode( '/', $this->_packageName = $package->getPrettyName(), 2 );
+		$this->_vendorName = $_parts[0];
+		$this->_packageSuffix = $_parts[1];
+
+		$_extra = Option::clean( $package->getExtra() );
+
+		if ( !empty( $_extra ) )
+		{
+			//	Read configuration section. Can be an array or name of file to include
+			if ( null !== ( $_config = Option::get( $_extra, 'config' ) ) )
+			{
+				if ( !is_array( $_config ) && is_file( $_config ) && is_readable( $_config ) )
+				{
+					if ( false === ( $_config = @include( $_config ) ) )
+					{
+						Log::error( 'File system error reading package configuration file: ' . $_config );
+						$_config = array();
+					}
+				}
+			}
+		}
+
+		if ( empty( $_config ) )
+		{
+			$_config = array(
+				'bootstrap' => 'autoload.php',
+				'links'     => array(),
+				'routes'    => array(),
+			);
+		}
+		else if ( !isset( $_config['links'] ) || empty( $_config['links'] ) )
+		{
+			$_config['links'] = array(
+				array(
+					'target' => null,
+					'link'   => $this->_packageSuffix,
+				),
+			);
+		}
+
+		//	Check the type...
+		$this->_packageType = $_config['type'] = Option::get( $_config, 'type', PackageTypes::APPLICATION );
+
+		return $this->_config = $_config;
 	}
 
 	/**
@@ -267,21 +298,64 @@ class PackageInstaller extends LibraryInstaller
 	{
 		//	Build path
 		$_basePath = \realpath( getcwd() );
-		$_fullPath = trim(
-			static::BASE_INSTALL_PATH . ( $this->_plugIn ? static::PLUGIN_INSTALL_PATH : static::PACKAGE_INSTALL_PATH ) . '/' . $vendor . '/' . $package,
-			' /'
-		/** intentional space */
-		);
+		$_subPath = $this->_getInstallSubPath();
 
-		if ( $createIfMissing && !is_dir( $_basePath . '/' . $_fullPath ) )
+		//	Construct relative install path (base + sub + package name = /storage/[sub]/vendor/package-name). Remove leading/trailing slashes and spaces
+		$_installPath = trim( static::BASE_INSTALL_PATH . $_subPath . '/' . $vendor . '/' . $package, ' /' /** intentional space */ );
+
+		if ( $createIfMissing && !is_dir( $_basePath . '/' . $_installPath ) )
 		{
-			if ( false === @mkdir( $_basePath . '/' . $_fullPath, 0775, true ) )
+			if ( false === @mkdir( $_basePath . '/' . $_installPath, 0775, true ) )
 			{
-				throw new FileSystemException( 'Unable to create installation path "' . $_basePath . '/' . $_fullPath . '"' );
+				throw new FileSystemException( 'Unable to create installation path "' . $_basePath . '/' . $_installPath . '"' );
 			}
 		}
 
-		return $_fullPath;
+		return $this->_packageInstallPath = $_installPath;
+	}
+
+	/**
+	 * Constructs the relative path (from composer.json) to the install directory
+	 *
+	 * @return string
+	 */
+	protected function _getInstallSubPath()
+	{
+		switch ( Option::get( $this->_config, 'type', PackageTypes::APPLICATION ) )
+		{
+			case PackageTypes::WEB_APPLICATION:
+			case PackageTypes::LIBRARY:
+				$_path = static::PLUGIN_INSTALL_PATH;
+				break;
+
+			default:
+				$_path = static::PACKAGE_INSTALL_PATH;
+				break;
+		}
+
+		return $_path;
+	}
+
+	/**
+	 * Constructs the relative path (from composer.json) to the install directory
+	 *
+	 * @return string
+	 */
+	protected function _getDefaultLink()
+	{
+		switch ( $this->_packageType )
+		{
+			case PackageTypes::WEB_APPLICATION:
+			case PackageTypes::LIBRARY:
+				$_path = static::PLUGIN_INSTALL_PATH;
+				break;
+
+			default:
+				$_path = static::PACKAGE_INSTALL_PATH;
+				break;
+		}
+
+		return $_path;
 	}
 
 	/**
@@ -293,41 +367,74 @@ class PackageInstaller extends LibraryInstaller
 	}
 
 	/**
-	 * @param string $target
-	 * @param string $link
-	 *
 	 * @throws \Kisma\Core\Exceptions\FileSystemException
 	 */
-	protected function _linkPlugIn( $target = null, $link = null )
+	protected function _createLinks()
 	{
-		//	Install path is relative to composer.json. Get our directory (cwd) and append install path for full target
-		$target = \realpath( $target ? : getcwd() ) . '/' . trim( $this->_installPath, ' /' /** intentional space */ );
-		//	Link path is relative to composer.json as well
-		$link = $link ? : $this->_linkPath;
-
-		//	Already linked?
-		if ( !\is_link( $link ) && false === @\symlink( $target, $link ) )
+		if ( null === ( $_links = Option::get( $this->_config, 'links' ) ) )
 		{
-			throw new FileSystemException( 'Unable to create link: ' . $link );
+			return;
+		}
+
+		//	Only link for web apps
+		if ( PackageTypes::WEB_APPLICATION != $this->_packageType )
+		{
+			return;
+		}
+
+		//	Make the links
+		foreach ( $_links as $_link )
+		{
+			$_target = Option::get( $_link, 'target', $this->_packageInstallPath );
+			$_linkName = Option::get( $_link, 'link', static::PLUG_IN_LINK_PATH . '/' . $this->_packageSuffix );
+
+			//	Already linked?
+			if ( \is_link( $_linkName ) )
+			{
+				Log::debug( '  * Package "' . $this->_packageName . '" already linked.' );
+			}
+			else if ( false === @\symlink( $_target, $_linkName ) )
+			{
+				throw new FileSystemException( 'Unable to create link: ' . $_linkName );
+			}
+
+			Log::debug( '  * Package "' . $this->_packageName . '" linked.', array( 'target' => $_target, 'link' => $_linkName ) );
 		}
 	}
 
 	/**
-	 * @param string $link
-	 *
 	 * @throws \Kisma\Core\Exceptions\FileSystemException
 	 */
-	protected function _unlinkPlugIn( $link = null )
+	protected function _deleteLinks()
 	{
-		$link = $link ? : $this->_linkPath;
-
-		//	Unlink from linked root
-		if ( $this->_plugIn && \is_link( $link ) )
+		if ( null === ( $_links = Option::get( $this->_config, 'links' ) ) )
 		{
-			if ( false === @\unlink( $link ) )
+			return;
+		}
+
+		//	Only link for web apps
+		if ( PackageTypes::WEB_APPLICATION != $this->_packageType )
+		{
+			return;
+		}
+
+		//	Make the links
+		foreach ( $_links as $_link )
+		{
+			$_target = Option::get( $_link, 'target', $this->_packageInstallPath );
+			$_linkName = Option::get( $_link, 'link', static::PLUG_IN_LINK_PATH . '/' . $this->_packageSuffix );
+
+			//	Already linked?
+			if ( !\is_link( $_linkName ) )
 			{
-				throw new FileSystemException( 'Unable to unlink link: ' . $link );
+				Log::warning( '  * Package "' . $this->_packageName . '" link not found.' );
 			}
+			else if ( false === @\unlink( $_linkName ) )
+			{
+				throw new FileSystemException( 'Unable to remove symlink: ' . $_linkName );
+			}
+
+			Log::debug( '  * Package "' . $this->_packageName . '" link removed.', array( 'target' => $_target, 'link' => $_linkName ) );
 		}
 	}
 
@@ -341,6 +448,6 @@ class PackageInstaller extends LibraryInstaller
 	{
 		$this->_validatePackage( $package );
 
-		return \is_link( $this->_linkPath );
+		return is_dir( $this->_packageInstallPath );
 	}
 }
