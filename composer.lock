@@ -3,7 +3,7 @@
         "This file locks the dependencies of your project to a known state",
         "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file"
     ],
-    "hash": "e526eb32f6e5272d1919666e3f27e9e3",
+    "hash": "f32f8569a586ee3f3906e035078efea2",
     "packages": [
         {
             "name": "kisma/kisma",
