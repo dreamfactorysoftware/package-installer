@@ -1,7 +1,7 @@
 {
 	"name":              "dreamfactory/lib-platform-installer",
 	"description":       "DreamFactory Services Platform(tm) Library Installer",
-	"version":           "1.2.2",
+	"version":           "1.2.3",
 	"type":              "composer-plugin",
 	"keywords":          ["dreamfactory", "dsp", "cloud", "jetpack", "plug-in"],
 	"homepage":          "http://dreamfactorysoftware.github.io/",
