@@ -241,7 +241,10 @@ class PlatformInstaller extends LibraryInstaller
 		$this->_installPath = $this->_buildInstallPath( $_vendor, @end( $_parts ) );
 
 		//	Link path for plug-ins
-		$this->_linkName = Option::get( $this->_extra, 'link_name', $_parts[1] );
+		$_extra = Option::clean( $package->getExtra() );
+		$this->_linkName = Option::get( $_extra, 'link_name', $_parts[1] );
+
+		//	Relative to composer.json... i.e. web/[link_name]
 		$this->_linkPath = trim( static::PLUG_IN_LINK_PATH . '/' . $this->_linkName, '/' );
 
 		Log::info( 'Platform Installer Debug > ' . $_packageName . ' > Version ' . $package->getVersion() );
@@ -303,7 +306,7 @@ class PlatformInstaller extends LibraryInstaller
 	 */
 	protected function _linkPlugIn( $target = null, $link = null )
 	{
-		$target = $target ? : $this->_installPath;
+		$target = \realpath( $target ? : getcwd() . '/' . rtrim( $this->_installPath, '/' ) );
 		$link = $link ? : $this->_linkPath;
 
 		//	Already linked?
