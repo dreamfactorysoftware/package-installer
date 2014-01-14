@@ -266,8 +266,12 @@ class PlatformInstaller extends LibraryInstaller
 	protected function _buildInstallPath( $vendor, $package, $createIfMissing = true )
 	{
 		//	Build path
-		$_fullPath = trim( static::BASE_INSTALL_PATH . ( $this->_plugIn ? static::PLUGIN_INSTALL_PATH : static::PACKAGE_INSTALL_PATH ) . '/' . $vendor . '/' . $package, ' /' );
 		$_basePath = \realpath( getcwd() );
+		$_fullPath = trim(
+			static::BASE_INSTALL_PATH . ( $this->_plugIn ? static::PLUGIN_INSTALL_PATH : static::PACKAGE_INSTALL_PATH ) . '/' . $vendor . '/' . $package,
+			' /'
+		/** intentional space */
+		);
 
 		if ( $createIfMissing && !is_dir( $_basePath . '/' . $_fullPath ) )
 		{
@@ -296,16 +300,13 @@ class PlatformInstaller extends LibraryInstaller
 	 */
 	protected function _linkPlugIn( $target = null, $link = null )
 	{
-		$target = \realpath( $target ? : getcwd() . '/' . rtrim( $this->_installPath, '/' ) );
+		//	Install path is relative to composer.json. Get our directory (cwd) and append install path for full target
+		$target = \realpath( $target ? : getcwd() ) . '/' . trim( $this->_installPath, ' /' /** intentional space */ );
+		//	Link path is relative to composer.json as well
 		$link = $link ? : $this->_linkPath;
 
 		//	Already linked?
-		if ( \is_link( $link ) )
-		{
-			return;
-		}
-
-		if ( false === @\symlink( $target, $link ) )
+		if ( !\is_link( $link ) && false === @\symlink( $target, $link ) )
 		{
 			throw new FileSystemException( 'Unable to create link: ' . $link );
 		}
