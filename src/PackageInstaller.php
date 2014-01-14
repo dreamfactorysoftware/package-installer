@@ -126,7 +126,11 @@ class PackageInstaller extends LibraryInstaller
 	/**
 	 * @var array
 	 */
-	protected $_extra;
+    protected $_extra;
+    /**
+     * @var array
+     */
+	protected $_packageLinks = array();
 
 	//*************************************************************************
 	//* Methods
@@ -224,14 +228,8 @@ class PackageInstaller extends LibraryInstaller
 		//	Only install DreamFactory packages if not a plug-in
 		if ( static::PACKAGE_PREFIX != ( $_vendor = @current( $_parts ) ) && !$this->_plugIn )
 		{
-			throw new \InvalidArgumentException( 'This package is not a DreamFactory package and cannot be installed by this installer.' .
-												 PHP_EOL .
-												 '  * Name: ' .
-												 $_packageName .
-												 PHP_EOL .
-												 '  * Parts: ' .
-												 implode( ' / ', $_parts ) .
-												 PHP_EOL );
+			throw new \InvalidArgumentException( 'This package is not a DreamFactory package and cannot be installed by this installer.' . PHP_EOL .
+												 '  * Name: ' . $_packageName . PHP_EOL . '  * Parts: ' . implode( ' / ', $_parts ) . PHP_EOL );
 		}
 
 		//	Effectively /docRoot/shared/[vendor]/[namespace]/[package]
@@ -242,6 +240,8 @@ class PackageInstaller extends LibraryInstaller
 
 		//	Link path for plug-ins
 		$_extra = Option::clean( $package->getExtra() );
+
+		$this->_packageLinks = Option::get( $_extra, 'links', array() );
 		$this->_linkName = Option::get( $_extra, 'link_name', $_parts[1] );
 
 		//	Relative to composer.json... i.e. web/[link_name]
