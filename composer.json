@@ -1,7 +1,7 @@
 {
-	"name":              "dreamfactory/lib-platform-installer",
-	"description":       "DreamFactory Services Platform(tm) Library Installer",
-	"version":           "1.2.3",
+	"name":              "dreamfactory/package-installer",
+	"description":       "DreamFactory Services Platform(tm) Package Installer",
+	"version":           "1.2.4",
 	"type":              "composer-plugin",
 	"keywords":          ["dreamfactory", "dsp", "cloud", "jetpack", "plug-in"],
 	"homepage":          "http://dreamfactorysoftware.github.io/",
@@ -15,23 +15,21 @@
 	],
 	"support":           {
 		"email":  "support@dreamfactory.com",
-		"issues": "https://github.com/dreamfactorysoftware/dsp-core/issues",
-		"forum":  "https://github.com/dreamfactorysoftware/dsp-core/forum",
-		"wiki":   "https://github.com/dreamfactorysoftware/dsp-core/wiki",
-		"source": "https://github.com/dreamfactorysoftware/dsp-core/src"
+		"source": "https://github.com/dreamfactorysoftware/package-installer",
+		"issues": "https://github.com/dreamfactorysoftware/package-installer/issues"
 	},
 	"minimum-stability": "dev",
 	"autoload":          {
 		"psr-0": {
-			"DreamFactory\\Composer": ""
+			"DreamFactory\\Tools\\Composer": "src/"
 		}
 	},
 	"extra":             {
-		"class": "DreamFactory\\Composer\\PlatformPlugin"
+		"class": "DreamFactory\\Tools\\Composer\\PackageInstallerPlugin"
 	},
 	"require":           {
 		"kisma/kisma":         "*",
 		"composer-plugin-api": "1.0.0"
 	},
-	"target-dir":        "DreamFactory/Composer"
+	"target-dir":        "DreamFactory/Tools/Composer"
 }
