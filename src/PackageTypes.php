@@ -37,11 +37,19 @@ class PackageTypes extends SeedEnum
 	 */
 	const APPLICATION = 0;
 	/**
-	 * @type int Indicates the package is a web application (other)
+	 * @type int Indicates the package is a code/app hybrid
 	 */
 	const WEB_APPLICATION = 1;
 	/**
-	 * @type int Indicates the package is a library (other)
+	 * @type int Indicates the package is code/app hybrid
+	 */
+	const PLUGIN = 1;
+	/**
+	 * @type int Indicates the package is a DreamFactory JetPack(tm) code library
+	 */
+	const JETPACK = 2;
+	/**
+	 * @type int Indicates the package is a code library
 	 */
 	const LIBRARY = 2;
 }
