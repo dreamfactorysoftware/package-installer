@@ -231,7 +231,7 @@ class PlatformInstaller extends LibraryInstaller
 
 		//	Link path for plug-ins
 		$this->_linkName = $_parts[1];
-		$this->_linkPath = rtrim( getcwd() . ' /' ) . '/' . trim( static::PLUG_IN_LINK_PATH . '/' . $_parts[1], ' /' );
+		$this->_linkPath = rtrim( getcwd() . '/ ' ) . '/' . trim( static::PLUG_IN_LINK_PATH . '/' . $_parts[1], '/' );
 
 		Log::debug( 'Platform Installer Debug: ' . $this->_installPath );
 		Log::debug( '  * Install path: ' . $this->_installPath );
