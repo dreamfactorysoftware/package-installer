@@ -80,20 +80,25 @@ class PackageInstaller extends LibraryInstaller
 	 */
 	protected $_fabricHosted = false;
 	/**
+	 * @var array The list of package types to installation paths
+	 */
+	protected $_installationPaths = array(
+		PackageTypes::APPLICATION => '/applications',
+		PackageTypes::JETPACK     => '/lib',
+		PackageTypes::PLUGIN      => '/plugins',
+	);
+	/**
 	 * @var array The types of packages I can install. Can be changed via composer.json:extra.supported-types[]
 	 */
 	protected $_supportedTypes = array(
-		//	Application
-		'dreamfactory-application',
-		//	Code library
-		'dreamfactory-jetpack',
-		//	Code/app hybrid
-		'dreamfactory-plugin',
+		PackageTypeNames::APPLICATION,
+		PackageTypeNames::JETPACK,
+		PackageTypeNames::PLUGIN,
 	);
 	/**
-	 * @var bool If true, install into user-space library
+	 * @var int The package type
 	 */
-	protected $_packageType = PackageTypes::APPLICATION;
+	protected $_packageType = self::DEFAULT_PACKAGE_TYPE;
 	/**
 	 * @var string The full name of the package, i.e. "dreamfactory/portal-sandbox"
 	 */
@@ -138,7 +143,7 @@ class PackageInstaller extends LibraryInstaller
 		$_logDir = $this->_baseInstallPath . '/log';
 		@mkdir( $_logDir, 0777, true );
 
-		Log::setDefaultLog( $_logDir . '/package.installer.log' );
+		Log::setDefaultLog( $_logDir . '/package-installer.log' );
 	}
 
 	/**
@@ -151,7 +156,7 @@ class PackageInstaller extends LibraryInstaller
 
 		parent::install( $repo, $package );
 
-		Log::info( 'Creating links for package "' . $package->getPrettyName() . ' ' . $package->getVersion() );
+		Log::info( '  * Creating links for package "' . $package->getPrettyName() . ' ' . $package->getVersion() );
 		$this->_createLinks();
 	}
 
@@ -165,7 +170,7 @@ class PackageInstaller extends LibraryInstaller
 
 		parent::uninstall( $repo, $package );
 
-		Log::info( 'Removing package "' . $this->_packageName . ' ' . $package->getVersion() );
+		Log::info( '  * Removing package "' . $this->_packageName . ' ' . $package->getVersion() );
 		$this->_deleteLinks();
 	}
 
@@ -183,7 +188,7 @@ class PackageInstaller extends LibraryInstaller
 
 		parent::update( $repo, $initial, $target );
 
-		Log::info( 'Update package "' . $initial->getPrettyName() . ' ' . $initial->getVersion() );
+		Log::info( '  * Updating package "' . $initial->getPrettyName() . ' from ' . $initial->getVersion() . ' to ' . $target->getVersion() );
 		$this->_createLinks();
 	}
 
@@ -302,10 +307,9 @@ class PackageInstaller extends LibraryInstaller
 		if ( empty( $_config ) )
 		{
 			$_config = array(
-				'name'      => $this->_packageSuffix,
-				'bootstrap' => 'autoload.php',
-				'links'     => array(),
-				'routes'    => array(),
+				'name'   => $this->_packageSuffix,
+				'links'  => array(),
+				'routes' => array(),
 			);
 		}
 		else if ( !isset( $_config['links'] ) || empty( $_config['links'] ) )
@@ -319,7 +323,7 @@ class PackageInstaller extends LibraryInstaller
 		}
 
 		//	Check the type...
-		$this->_packageType = $_config['type'] = Option::get( $_config, 'type', PackageTypes::APPLICATION );
+		$this->_packageType = $_config['type'] = Option::get( $_config, 'type', static::DEFAULT_PACKAGE_TYPE );
 
 		return $this->_config = $_config;
 	}
@@ -342,7 +346,7 @@ class PackageInstaller extends LibraryInstaller
 	{
 		//	Build path
 		$_basePath = \realpath( getcwd() );
-		$_subPath = $this->_getInstallSubPath();
+		$_subPath = Option::get( $this->_installationPaths, $this->_packageType, static::DEFAULT_PACKAGE_INSTALL_PATH );
 
 		//	Construct relative install path (base + sub + package name = /storage/[sub]/vendor/package-name). Remove leading/trailing slashes and spaces
 		$_installPath = trim( static::DEFAULT_INSTALL_PATH . $_subPath . '/' . $vendor . '/' . $package, ' /' /** intentional space */ );
@@ -356,27 +360,6 @@ class PackageInstaller extends LibraryInstaller
 		}
 
 		return $this->_packageInstallPath = $_installPath;
-	}
-
-	/**
-	 * Constructs the relative path (from composer.json) to the install directory
-	 *
-	 * @return string
-	 */
-	protected function _getInstallSubPath()
-	{
-		switch ( $this->_packageType )
-		{
-			case PackageTypes::APPLICATION:
-				$_path = static::DEFAULT_PACKAGE_INSTALL_PATH;
-				break;
-
-			default:
-				$_path = static::DEFAULT_PLUGIN_INSTALL_PATH;
-				break;
-		}
-
-		return $_path;
 	}
 
 	/**
