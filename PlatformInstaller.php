@@ -119,6 +119,14 @@ class PlatformInstaller extends LibraryInstaller
 	 * @var string The full target of the link, i.e. $installPath essentially
 	 */
 	protected $_linkPath;
+	/**
+	 * @var array
+	 */
+	protected $_config;
+	/**
+	 * @var array
+	 */
+	protected $_extra;
 
 	//*************************************************************************
 	//* Methods
@@ -208,6 +216,8 @@ class PlatformInstaller extends LibraryInstaller
 	{
 		$_packageName = $package->getPrettyName();
 		$_parts = explode( '/', $_packageName, 2 );
+		$this->_extra = Option::clean( $package->getExtra() );
+		$this->_config = Option::get( $this->_extra, 'config', array() );
 
 		$this->_plugIn = ( static::DSP_PLUGIN_PACKAGE_TYPE == $package->getType() );
 
@@ -231,8 +241,7 @@ class PlatformInstaller extends LibraryInstaller
 		$this->_installPath = $this->_buildInstallPath( $_vendor, @end( $_parts ) );
 
 		//	Link path for plug-ins
-		$_extra = Option::clean( $package->getExtra() );
-		$this->_linkName = Option::get( $_extra, 'link_name', $_parts[1] );
+		$this->_linkName = Option::get( $this->_extra, 'link_name', $_parts[1] );
 		$this->_linkPath = trim( static::PLUG_IN_LINK_PATH . '/' . $this->_linkName, '/' );
 
 		Log::info( 'Platform Installer Debug > ' . $_packageName . ' > Version ' . $package->getVersion() );
