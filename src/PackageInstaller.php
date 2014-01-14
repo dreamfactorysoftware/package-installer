@@ -1,9 +1,9 @@
 <?php
 /**
- * This file is part of the DreamFactory Services Platform(tm) Library Installer
+ * This file is part of the DreamFactory Services Platform(tm) Package Installer
  * Copyright 2012-2013 DreamFactory Software, Inc. {@email support@dreamfactory.com}
  *
- * DreamFactory Services Platform(tm) Library Installer {@link http://github.com/dreamfactorysoftware/lib-platform-installer}
+ * DreamFactory Services Platform(tm) Package Installer {@link http://github.com/dreamfactorysoftware/package-installer}
  * DreamFactory Services Platform(tm) {@link http://github.com/dreamfactorysoftware/dsp-core}
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Composer;
+namespace DreamFactory\Tools\Composer;
 
 use Composer\Composer;
 use Composer\Installer\LibraryInstaller;
@@ -32,10 +32,10 @@ use Kisma\Core\Utility\Option;
 Log::setDefaultLog( './log/package.installer.log' );
 
 /**
- * PlatformInstaller
+ * PackageInstaller
  * Class/plug-in/library/jetpack installer
  */
-class PlatformInstaller extends LibraryInstaller
+class PackageInstaller extends LibraryInstaller
 {
 	//*************************************************************************
 	//* Constants
