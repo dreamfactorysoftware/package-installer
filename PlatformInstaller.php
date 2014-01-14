@@ -27,6 +27,7 @@ use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 use Kisma\Core\Exceptions\FileSystemException;
 use Kisma\Core\Utility\Log;
+use Kisma\Core\Utility\Option;
 
 Log::setDefaultLog( './log/package.installer.log' );
 
@@ -230,10 +231,10 @@ class PlatformInstaller extends LibraryInstaller
 		$this->_installPath = $this->_buildInstallPath( $_vendor, @end( $_parts ) );
 
 		//	Link path for plug-ins
-		$this->_linkName = $_parts[1];
-		$this->_linkPath = rtrim( getcwd() . '/ ' ) . '/' . trim( static::PLUG_IN_LINK_PATH . '/' . $_parts[1], '/' );
+		$this->_linkName = Option::get( Option::clean( $package->getExtra() ), 'link_name', $_parts[1] );
+		$this->_linkPath = trim( static::PLUG_IN_LINK_PATH . '/' . $this->_linkName, '/' );
 
-		Log::debug( 'Platform Installer Debug: ' . $this->_installPath );
+		Log::info( 'Platform Installer Debug > ' . $_packageName );
 		Log::debug( '  * Install path: ' . $this->_installPath );
 
 		if ( $this->_plugIn )
