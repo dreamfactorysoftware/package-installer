@@ -75,7 +75,6 @@ class Package extends Seed
 	{
 		if ( null !== ( $_package = Option::get( $settings, 'package' ) ) )
 		{
-
 		}
 
 		parent::__construct( $settings );
