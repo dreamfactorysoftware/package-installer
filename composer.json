@@ -36,5 +36,5 @@
 	"require":           {
 		"kisma/kisma":         "*",
 		"composer-plugin-api": "1.0.0"
-	},
+	}
 }

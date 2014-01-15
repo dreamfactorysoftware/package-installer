@@ -88,19 +88,8 @@ If you would like to help take a look at the [list of issues](http://github
 
 ## Community
 
-Join our other DSP users on Google Groups! <iframe id="forum_embed"
-  src="javascript:void(0)"
-  scrolling="no"
-  frameborder="0"
-  width="900"
-  height="700">
-</iframe>
-<script type="text/javascript">
-  document.getElementById('forum_embed').src =
-     'https://groups.google.com/forum/embed/?place=forum/dsp-users'
-     + '&showsearch=true&showpopout=true&showtabs=false'
-     + '&parenturl=' + encodeURIComponent(window.location.href);
-</script>
+Join our other DSP users on [Google Groups](https://groups.google
+.com/forum/#!forum/dsp-devs)!
 
 IRC channels are on irc.freenode.org: [#dreamfactory](irc://irc.freenode
 .org/dreamfactory)
