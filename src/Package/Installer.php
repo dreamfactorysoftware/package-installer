@@ -248,11 +248,11 @@ class Installer extends LibraryInstaller
 		//	Get supported types
 		if ( null !== ( $_types = Option::get( $this->_config, 'supported-types' ) ) )
 		{
-			foreach ( $_types as $_type )
+			foreach ( $_types as $_type => $_path )
 			{
 				if ( !array_key_exists( $_type, $this->_supportedTypes ) )
 				{
-					$this->_supportedTypes[] = array( $_type => '/' . \str_ireplace( 'dreamfactory-', null, $_type ) );
+					$this->_supportedTypes[$_type] = $_path;
 					Log::debug( '  * Added package type "' . $_type . '"' );
 				}
 			}
@@ -365,7 +365,11 @@ class Installer extends LibraryInstaller
 		$_subPath = Option::get( $this->_supportedTypes, $this->_packageType );
 
 		//	Construct relative install path (base + sub + package name = /storage/[sub]/vendor/package-name). Remove leading/trailing slashes and spaces
-		$_installPath = trim( static::DEFAULT_INSTALL_PATH . $_subPath . '/' . $vendor . '/' . $package, ' /' /** intentional space */ );
+		$_installPath = trim(
+			Option::get( $this->_config, 'base-install-path', static::DEFAULT_INSTALL_PATH ) . $_subPath . '/' . $vendor . '/' . $package,
+			' /'
+		/** intentional space */
+		);
 
 		if ( $createIfMissing && !is_dir( $_basePath . '/' . $_installPath ) )
 		{
