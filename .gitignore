@@ -2,3 +2,4 @@
 vendor
 .gitignore
 log
+composer.lock

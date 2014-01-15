@@ -18,7 +18,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Tools\Composer;
+namespace DreamFactory\Tools\Composer\Package;
 
 use Composer\Composer;
 use Composer\IO\IOInterface;

@@ -1,0 +1,35 @@
+{
+	"name":              "dreamfactory/package-installer",
+	"description":       "DreamFactory Services Platform(tm) Package Installer",
+	"version":           "1.2.8",
+	"type":              "composer-plugin",
+	"keywords":          ["dreamfactory", "dsp", "cloud", "jetpack", "plug-in"],
+	"homepage":          "http://dreamfactorysoftware.github.io/",
+	"license":           ["Apache-2.0"],
+	"authors":           [
+		{
+			"name":  "Ablan, Jerry",
+			"email": "jerryablan@dreamfactory.com",
+			"role":  "Sr. Software Engineer"
+		}
+	],
+	"support":           {
+		"email":  "support@dreamfactory.com",
+		"source": "https://github.com/dreamfactorysoftware/package-installer",
+		"issues": "https://github.com/dreamfactorysoftware/package-installer/issues"
+	},
+	"minimum-stability": "dev",
+	"autoload":          {
+		"psr-4": {
+			"DreamFactory\\Tools\\Composer": "src/"
+		}
+	},
+	"extra":             {
+		"class":           "DreamFactory\\Tools\\Composer\\Package\\Plugin",
+		"supported-types": ["dreamfactory-application", "dreamfactory-library", "dreamfactory-plugin"]
+	},
+	"require":           {
+		"kisma/kisma":         "*",
+		"composer-plugin-api": "1.0.0"
+	},
+}
