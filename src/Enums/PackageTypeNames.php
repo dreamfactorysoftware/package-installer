@@ -18,15 +18,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Tools\Composer;
+namespace DreamFactory\Tools\Composer\Enums;
 
 use Kisma\Core\Enums\SeedEnum;
 
 /**
- * PackageTypes
+ * PackageTypeNames
  * Class/plug-in/library/jetpack installer
  */
-class PackageTypes extends SeedEnum
+class PackageTypeNames extends SeedEnum
 {
 	//*************************************************************************
 	//* Constants
@@ -35,21 +35,13 @@ class PackageTypes extends SeedEnum
 	/**
 	 * @type int Indicates the package is an application (HTML5/javascript)
 	 */
-	const APPLICATION = 0;
-	/**
-	 * @type int Indicates the package is a code/app hybrid
-	 */
-	const WEB_APPLICATION = 1;
+	const APPLICATION = 'dreamfactory-application';
 	/**
 	 * @type int Indicates the package is code/app hybrid
 	 */
-	const PLUGIN = 1;
-	/**
-	 * @type int Indicates the package is a DreamFactory JetPack(tm) code library
-	 */
-	const JETPACK = 2;
+	const PLUGIN = 'dreamfactory-plugin';
 	/**
 	 * @type int Indicates the package is a code library
 	 */
-	const LIBRARY = 2;
+	const LIBRARY = 'dreamfactory-library';
 }

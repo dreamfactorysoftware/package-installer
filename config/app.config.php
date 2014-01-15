@@ -18,38 +18,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Tools\Composer;
-
-use Kisma\Core\Enums\SeedEnum;
-
 /**
- * PackageTypeNames
- * Class/plug-in/library/jetpack installer
+ * This file can contain any runtime configuration settings for your plug-in.
+ * It must return an array of key/value pairs.
  */
-class PackageTypeNames extends SeedEnum
-{
-	//*************************************************************************
-	//* Constants
-	//*************************************************************************
-
-	/**
-	 * @type int Indicates the package is an application (HTML5/javascript)
-	 */
-	const APPLICATION = 'dreamfactory-application';
-	/**
-	 * @type int Indicates the package is a code/app hybrid
-	 */
-	const WEB_APPLICATION = 'dreamfactory-plugin';
-	/**
-	 * @type int Indicates the package is code/app hybrid
-	 */
-	const PLUGIN = 'dreamfactory-plugin';
-	/**
-	 * @type int Indicates the package is a DreamFactory JetPack(tm) code library
-	 */
-	const JETPACK = 'dreamfactory-jetpack';
-	/**
-	 * @type int Indicates the package is a code library
-	 */
-	const LIBRARY = 'dreamfactory-jetpack';
-}
+return array(
+	'example.key'         => 'value',
+	'example.another_key' => array(
+		'values' => array(
+			'value1',
+			'value2',
+			'value3',
+		),
+	),
+);
