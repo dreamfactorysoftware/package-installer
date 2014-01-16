@@ -390,6 +390,25 @@ class Installer extends LibraryInstaller
 	}
 
 	/**
+	 * @param array $link
+	 *
+	 * @return array
+	 */
+	protected function _normalizeLink( &$link )
+	{
+		//	Adjust relative directory to absolute
+		Option::set(
+			$link,
+			'target',
+			rtrim( $this->_baseInstallPath, '/' ) . '/' . trim( $this->_packageInstallPath, '/' ) . '/' . ltrim( Option::get( $_link, 'target' ), '/' )
+		);
+
+		Option::set( $link, 'link', trim( static::DEFAULT_PLUGIN_LINK_PATH, '/' ) . '/' . Option::get( $_link, 'link', $this->_packageSuffix ) );
+
+		return $link;
+	}
+
+	/**
 	 * @throws \Kisma\Core\Exceptions\FileSystemException
 	 */
 	protected function _createLinks( PackageInterface $package )
@@ -407,10 +426,7 @@ class Installer extends LibraryInstaller
 		foreach ( Option::clean( $_links ) as $_link )
 		{
 			//	Adjust relative directory to absolute
-			$_target = $this->_packageInstallPath . '/' . ltrim( Option::get( $_link, 'target' ), '/' );
-
-			//	Already linked?
-			$_linkName = trim( static::DEFAULT_PLUGIN_LINK_PATH, '/' ) . '/' . Option::get( $_link, 'link', $this->_packageSuffix );
+			list( $_target, $_linkName ) = $this->_normalizeLink( $_link );
 
 			if ( \is_link( $_linkName ) )
 			{
@@ -444,8 +460,8 @@ class Installer extends LibraryInstaller
 		//	Make the links
 		foreach ( Option::clean( $_links ) as $_link )
 		{
-			$_target = Option::get( $_link, 'target', $this->_packageInstallPath );
-			$_linkName = static::DEFAULT_PLUGIN_LINK_PATH . '/' . Option::get( $_link, 'link', $this->_packageSuffix );
+			//	Adjust relative directory to absolute
+			list( $_target, $_linkName ) = $this->_normalizeLink( $_link );
 
 			//	Already linked?
 			if ( !\is_link( $_linkName ) )
