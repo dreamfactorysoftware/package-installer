@@ -40,7 +40,7 @@ class Plugin implements PluginInterface
 	 */
 	public function activate( Composer $composer, IOInterface $io )
 	{
-		$_installer = new PackageInstaller( $io, $composer );
+		$_installer = new Installer( $io, $composer );
 		$composer->getInstallationManager()->addInstaller( $_installer );
 	}
 }
