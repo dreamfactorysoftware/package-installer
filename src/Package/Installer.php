@@ -272,8 +272,6 @@ class Installer extends LibraryInstaller
 				);
 			}
 		}
-
-		return $_validated = true;
 	}
 
 	/**
