@@ -1,35 +1,67 @@
 {
-	"name":              "dreamfactory/package-installer",
-	"description":       "DreamFactory Services Platform(tm) Package Installer",
-	"version":           "1.2.8",
-	"type":              "composer-plugin",
-	"keywords":          ["dreamfactory", "dsp", "cloud", "jetpack", "plug-in"],
-	"homepage":          "http://dreamfactorysoftware.github.io/",
-	"license":           ["Apache-2.0"],
+	"name":              "dreamfactory/portal-sandbox",
+	"description":       "DreamFactory Services Platform(tm) Portal Sandbox Application",
+	"homepage":          "http://dreamfactorysoftware.github.io/#oasys",
+	"version":           "1.1.20",
+	"keywords":          [
+		"dreamfactory", "oasys", "oauth", "authentication", "framework", "examples", "portal"
+	],
+	"type":              "dreamfactory-dsp-plugin",
+	"license":           [
+		"Apache-2.0"
+	],
 	"authors":           [
 		{
-			"name":  "Ablan, Jerry",
-			"email": "jerryablan@dreamfactory.com",
-			"role":  "Sr. Software Engineer"
+			"name":  "Jerry Ablan",
+			"email": "jerryablan@dreamfactory.com"
 		}
 	],
 	"support":           {
 		"email":  "support@dreamfactory.com",
-		"source": "https://github.com/dreamfactorysoftware/package-installer",
-		"issues": "https://github.com/dreamfactorysoftware/package-installer/issues"
+		"issues": "https://github.com/dreamfactorysoftware/portal-sandbox/issues",
+		"wiki":   "https://github.com/dreamfactorysoftware/portal-sandbox/wiki",
+		"source": "https://github.com/dreamfactorysoftware/portal-sandbox"
 	},
 	"minimum-stability": "dev",
+	"require":           {
+		"php":                            ">=5.3.18",
+		"kisma/kisma":                    "*",
+		"dreamfactory/package-installer": "~1.2.8"
+	},
 	"autoload":          {
-		"psr-4": {
-			"DreamFactory\\Tools\\Composer": "src/"
-		}
+		"files": ["autoload.php"]
 	},
 	"extra":             {
-		"class":           "DreamFactory\\Tools\\Composer\\Package\\Plugin",
-		"supported-types": ["dreamfactory-application", "dreamfactory-library", "dreamfactory-plugin"]
-	},
-	"require":           {
-		"kisma/kisma":         "*",
-		"composer-plugin-api": "1.0.0"
-	},
+		"type":              1,
+		"name":              "Portal Sandbox",
+		"api-name":          "pbox",
+		"description":       "A sample application that demonstrates the DSP's portal service.",
+		"start-url":         "/index.php",
+		"url-is-external":   false,
+		"import-url":        "https://github.com/dreamfactorysoftware/portal-sandbox/archive/master.zip",
+		"active":            true,
+		"fullscreen":        false,
+		"fullscreen-toggle": true,
+		"toggle-location":   "top",
+		"config":            "config/app.config.php",
+		"namespaces":        [
+			{
+				"namespace\\": "/path/to/code"
+			},
+			{
+				"namespace2\\": "/path/to/code2"
+			}
+		],
+		"links":             [
+			{
+				"target": null,
+				"link":   "pbox"
+			}
+		],
+		"routes":            [
+			{
+				"pattern": "actions"
+			}
+		]
+	}
 }
