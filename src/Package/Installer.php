@@ -204,6 +204,30 @@ class Installer extends LibraryInstaller
 	}
 
 	/**
+	 * {@inheritDoc}
+	 */
+	public function supports( $packageType )
+	{
+		return \array_key_exists( $packageType, $this->_supportedTypes );
+	}
+
+	/**
+	 * @param InstalledRepositoryInterface $repo
+	 * @param PackageInterface             $package
+	 *
+	 * @return bool
+	 */
+	public function isInstalled( InstalledRepositoryInterface $repo, PackageInterface $package )
+	{
+		if ( empty( $this->_packageInstallPath ) )
+		{
+			$this->_validatePackage( $package );
+		}
+
+		return is_dir( $this->_packageInstallPath . '/.git' );
+	}
+
+	/**
 	 * @param PackageInterface $package
 	 * @param PackageInterface $initial Initial package if operation was an update
 	 */
@@ -264,8 +288,8 @@ class Installer extends LibraryInstaller
 		//	Build the installation path...
 		$this->_buildInstallPath( $this->_packagePrefix, $this->_packageSuffix );
 
-		Log::debug( '  * Install type: ' . $package->getType() );
-		Log::debug( '  * Install path: ' . $this->_packageInstallPath );
+//		Log::debug( '  * Install type: ' . $package->getType() );
+//		Log::debug( '  * Install path: ' . $this->_packageInstallPath );
 
 		if ( null !== ( $_links = Option::get( $this->_config, 'links' ) ) )
 		{
@@ -389,29 +413,15 @@ class Installer extends LibraryInstaller
 	}
 
 	/**
-	 * {@inheritDoc}
-	 */
-	public function supports( $packageType )
-	{
-		return \array_key_exists( $packageType, $this->_supportedTypes );
-	}
-
-	/**
 	 * @param array $link
 	 *
 	 * @return array
 	 */
-	protected function _normalizeLink( &$link )
+	protected function _normalizeLink( $link )
 	{
 		//	Adjust relative directory to absolute
-		Option::set(
-			$link,
-			'target',
-			$_target =
-				rtrim( $this->_baseInstallPath, '/' ) . '/' . trim( $this->_packageInstallPath, '/' ) . '/' . ltrim( Option::get( $_link, 'target' ), '/' )
-		);
-
-		Option::set( $link, 'link', $_linkName = trim( static::DEFAULT_PLUGIN_LINK_PATH, '/' ) . '/' . Option::get( $_link, 'link', $this->_packageSuffix ) );
+		$_target = rtrim( $this->_baseInstallPath, '/' ) . '/' . trim( $this->_packageInstallPath, '/' ) . '/' . ltrim( Option::get( $_link, 'target' ), '/' );
+		$_linkName = trim( static::DEFAULT_PLUGIN_LINK_PATH, '/' ) . '/' . Option::get( $_link, 'link', $this->_packageSuffix );
 
 		return array( $_target, $_linkName );
 	}
@@ -488,18 +498,8 @@ class Installer extends LibraryInstaller
 	}
 
 	/**
-	 * @param InstalledRepositoryInterface $repo
-	 * @param PackageInterface             $package
-	 *
-	 * @return bool
+	 * Enables logging
 	 */
-	public function isInstalled( InstalledRepositoryInterface $repo, PackageInterface $package )
-	{
-		$this->_validatePackage( $package );
-
-		return is_dir( $this->_packageInstallPath . '/.git' );
-	}
-
 	protected function _enableLogging()
 	{
 		$_fs = new Filesystem();
