@@ -420,7 +420,13 @@ class Installer extends LibraryInstaller
 	protected function _normalizeLink( $link )
 	{
 		//	Adjust relative directory to absolute
-		$_target = rtrim( $this->_baseInstallPath, '/' ) . '/' . trim( $this->_packageInstallPath, '/' ) . '/' . ltrim( Option::get( $_link, 'target' ), '/' );
+		$_target =
+			rtrim( $this->_baseInstallPath, '/' ) .
+			'/' .
+			trim( $this->_packageInstallPath, '/' ) .
+			'/' .
+			ltrim( Option::get( $_link, 'target', $this->_packageSuffix ), '/' );
+
 		$_linkName = trim( static::DEFAULT_PLUGIN_LINK_PATH, '/' ) . '/' . Option::get( $_link, 'link', $this->_packageSuffix );
 
 		return array( $_target, $_linkName );
@@ -484,10 +490,11 @@ class Installer extends LibraryInstaller
 			//	Already linked?
 			if ( !\is_link( $_linkName ) )
 			{
-				Log::warning( '  * Package "' . $this->_packageName . '" link not found.' );
+				Log::warning( '  * Package "' . $this->_packageName . '" link not found: ' . $_linkName );
 				continue;
 			}
-			else if ( false === @\unlink( $_linkName ) )
+
+			if ( false === @\unlink( $_linkName ) )
 			{
 				Log::error( '  * File system error removing symlink "' . $_linkName . '".' );
 				throw new FileSystemException( 'Unable to remove symlink: ' . $_linkName );
