@@ -1,7 +1,7 @@
 {
 	"name":              "dreamfactory/package-installer",
 	"description":       "DreamFactory Services Platform(tm) Package Installer",
-	"version":           "1.2.13",
+	"version":           "1.2.14",
 	"type":              "composer-plugin",
 	"keywords":          ["dreamfactory", "dsp", "cloud", "jetpack", "plug-in"],
 	"homepage":          "http://dreamfactorysoftware.github.io/",
@@ -20,8 +20,8 @@
 	},
 	"minimum-stability": "dev",
 	"autoload":          {
-		"psr-0": {
-			"DreamFactory\\Tools\\Composer": "src/"
+		"psr-4": {
+			"DreamFactory\\Tools\\Composer\\": "src/"
 		}
 	},
 	"extra":             {
