@@ -24,7 +24,10 @@ use Composer\Composer;
 use Composer\Installer\LibraryInstaller;
 use Composer\IO\IOInterface;
 use Composer\Package\PackageInterface;
+use Composer\Plugin\PluginInterface;
 use Composer\Repository\InstalledRepositoryInterface;
+use Composer\Repository\RepositoryManager;
+use Composer\Util\Filesystem;
 use DreamFactory\Tools\Composer\Enums\PackageTypes;
 use Kisma\Core\Exceptions\FileSystemException;
 use Kisma\Core\Utility\Inflector;
@@ -61,6 +64,10 @@ class Installer extends LibraryInstaller
 	 * @var string
 	 */
 	const FABRIC_MARKER = '/var/www/.fabric_hosted';
+	/**
+	 * @type string The name of the log file
+	 */
+	const LOG_FILE_NAME = 'package-installer.log';
 
 	//*************************************************************************
 	//* Members
@@ -122,11 +129,6 @@ class Installer extends LibraryInstaller
 
 		$this->_fabricHosted = file_exists( static::FABRIC_MARKER );
 		$this->_baseInstallPath = \getcwd();
-
-		$_logDir = $this->_baseInstallPath . '/log';
-		@mkdir( $_logDir, 0777, true );
-
-		Log::setDefaultLog( $_logDir . '/package-installer.log' );
 	}
 
 	/**
@@ -224,9 +226,14 @@ class Installer extends LibraryInstaller
 	{
 		static $_validated = false;
 
+		$this->_enableLogging();
+
 		//	Don't do more than once...
 		if ( $_validated )
 		{
+			Log::info( 'DreamFactory Package Installer > ' . $this->_packageName . ' > Version ' . $package->getVersion() );
+			Log::info( '  * Prior validation respected.' );
+
 			return true;
 		}
 
@@ -469,6 +476,16 @@ class Installer extends LibraryInstaller
 		$this->_validatePackage( $package );
 
 		return is_dir( $this->_packageInstallPath );
+	}
+
+	protected function _enableLogging()
+	{
+		$_fs = new Filesystem();
+
+		$_logDir = $this->_baseInstallPath . '/log/';
+		$_fs->ensureDirectoryExists( $_logDir );
+
+		Log::setDefaultLog( $_logDir . '/' . static::LOG_FILE_NAME );
 	}
 
 }
