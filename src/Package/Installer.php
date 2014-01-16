@@ -111,6 +111,10 @@ class Installer extends LibraryInstaller
 	 * @var array
 	 */
 	protected $_config = array();
+	/**
+	 * @var IOInterface
+	 */
+	protected $_io;
 
 	//*************************************************************************
 	//* Methods
@@ -125,6 +129,7 @@ class Installer extends LibraryInstaller
 	{
 		parent::__construct( $io, $composer, $type );
 
+		$this->_io = $io;
 		$this->_fabricHosted = file_exists( static::FABRIC_MARKER );
 		$this->_baseInstallPath = \getcwd();
 
@@ -139,7 +144,7 @@ class Installer extends LibraryInstaller
 	{
 		$this->_validatePackage( $package );
 
-		Log::info( 'Installing package: ' . $this->_packageName . ' -- version ' . $package->getVersion() );
+		$this->_io->write( 'Installing package: ' . $this->_packageName . ' -- version ' . $package->getVersion() );
 
 		parent::install( $repo, $package );
 
