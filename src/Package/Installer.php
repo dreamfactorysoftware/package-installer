@@ -407,12 +407,13 @@ class Installer extends LibraryInstaller
 		Option::set(
 			$link,
 			'target',
-			rtrim( $this->_baseInstallPath, '/' ) . '/' . trim( $this->_packageInstallPath, '/' ) . '/' . ltrim( Option::get( $_link, 'target' ), '/' )
+			$_target =
+				rtrim( $this->_baseInstallPath, '/' ) . '/' . trim( $this->_packageInstallPath, '/' ) . '/' . ltrim( Option::get( $_link, 'target' ), '/' )
 		);
 
-		Option::set( $link, 'link', trim( static::DEFAULT_PLUGIN_LINK_PATH, '/' ) . '/' . Option::get( $_link, 'link', $this->_packageSuffix ) );
+		Option::set( $link, 'link', $_linkName = trim( static::DEFAULT_PLUGIN_LINK_PATH, '/' ) . '/' . Option::get( $_link, 'link', $this->_packageSuffix ) );
 
-		return $link;
+		return array( $_target, $_linkName );
 	}
 
 	/**
