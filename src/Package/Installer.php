@@ -471,7 +471,7 @@ class Installer extends LibraryInstaller
 	{
 		$this->_validatePackage( $package );
 
-		return is_dir( $this->_packageInstallPath );
+		return is_dir( $this->_packageInstallPath . '/.git' );
 	}
 
 	protected function _enableLogging()
