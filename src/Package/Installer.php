@@ -127,6 +127,8 @@ class Installer extends LibraryInstaller
 
 		$this->_fabricHosted = file_exists( static::FABRIC_MARKER );
 		$this->_baseInstallPath = \getcwd();
+
+		$this->_enableLogging();
 	}
 
 	/**
@@ -136,6 +138,8 @@ class Installer extends LibraryInstaller
 	public function install( InstalledRepositoryInterface $repo, PackageInterface $package )
 	{
 		$this->_validatePackage( $package );
+
+		Log::info( 'Installing package: ' . $this->_packageName . ' -- version ' . $package->getVersion() );
 
 		parent::install( $repo, $package );
 
@@ -154,6 +158,8 @@ class Installer extends LibraryInstaller
 	public function update( InstalledRepositoryInterface $repo, PackageInterface $initial, PackageInterface $target )
 	{
 		$this->_validatePackage( $initial );
+
+		Log::info( 'Updating package: ' . $this->_packageName . ' -- version ' . $package->getVersion() );
 
 		parent::update( $repo, $initial, $target );
 
@@ -175,6 +181,8 @@ class Installer extends LibraryInstaller
 	{
 		$this->_validatePackage( $package );
 
+		Log::info( 'Removing package: ' . $this->_packageName . ' -- version ' . $package->getVersion() );
+
 		parent::uninstall( $repo, $package );
 
 		$this->_deleteLinks( $package );
@@ -187,7 +195,10 @@ class Installer extends LibraryInstaller
 	 */
 	public function getInstallPath( PackageInterface $package )
 	{
-		$this->_validatePackage( $package );
+		if ( empty( $this->_packageInstallPath ) )
+		{
+			$this->_validatePackage( $package );
+		}
 
 		return $this->_packageInstallPath;
 	}
@@ -222,12 +233,10 @@ class Installer extends LibraryInstaller
 	 */
 	protected function _validatePackage( PackageInterface $package )
 	{
-		$this->_enableLogging();
-
 		//	Link path for plug-ins
 		$this->_parseConfiguration( $package );
 
-		Log::info( 'Validating package: DreamFactory Package Installer > ' . $this->_packageName . ' > Version ' . $package->getVersion() );
+		Log::info( 'Validating package: ' . $this->_packageName . ' -- version ' . $package->getVersion() );
 
 		//	Only install DreamFactory packages if not a plug-in
 		if ( static::ALLOWED_PACKAGE_PREFIX != $this->_packagePrefix )
@@ -328,17 +337,15 @@ class Installer extends LibraryInstaller
 		//	If no links found, create default for plugin
 		if ( empty( $_links ) && PackageTypeNames::PLUGIN == $this->_packageType )
 		{
-			$_links = array(
-				array(
-					'target' => null,
-					'link'   => Option::get( $_config, 'api_name', $this->_packageSuffix ),
-				),
+			$_link = array(
+				'target' => null,
+				'link'   => Option::get( $_config, 'api_name', $this->_packageSuffix )
 			);
 
-			$_config['links'] = $_links;
+			$_config['links'] = $_links = array( $this->_normalizeLink( $_link ) );
 		}
 
-		Log::debug( 'Config completed: ' . print_r( $_config, true ) );
+//		Log::debug( 'Config completed: ' . print_r( $_config, true ) );
 
 		return $this->_config = $_config;
 	}
