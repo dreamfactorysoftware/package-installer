@@ -222,18 +222,7 @@ class Installer extends LibraryInstaller
 	 */
 	protected function _validatePackage( PackageInterface $package )
 	{
-		static $_validated = false;
-
 		$this->_enableLogging();
-
-		//	Don't do more than once...
-		if ( $_validated )
-		{
-			Log::info( 'DreamFactory Package Installer > ' . $this->_packageName . ' > Version ' . $package->getVersion() );
-			Log::info( '  * Prior validation respected.' );
-
-			return true;
-		}
 
 		//	Link path for plug-ins
 		$this->_parseConfiguration( $package );
