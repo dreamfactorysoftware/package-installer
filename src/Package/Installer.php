@@ -227,7 +227,7 @@ class Installer extends LibraryInstaller
 		//	Link path for plug-ins
 		$this->_parseConfiguration( $package );
 
-		Log::info( 'DreamFactory Package Installer > ' . $this->_packageName . ' > Version ' . $package->getVersion() );
+		Log::info( 'Validating package: DreamFactory Package Installer > ' . $this->_packageName . ' > Version ' . $package->getVersion() );
 
 		//	Only install DreamFactory packages if not a plug-in
 		if ( static::ALLOWED_PACKAGE_PREFIX != $this->_packagePrefix )
@@ -411,9 +411,9 @@ class Installer extends LibraryInstaller
 			$_target = Option::get( $_link, 'target', $this->_packageInstallPath );
 
 			//	Adjust relative directory to absolute
-			if ( !is_dir( $_target ) && is_dir( $this->_packageInstallPath . $_target ) )
+			if ( !is_dir( $_target ) && is_dir( $this->_packageInstallPath . '/' . $_target ) )
 			{
-				$_target = $this->_packageInstallPath . $_target;
+				$_target = $this->_packageInstallPath . '/' . $_target;
 			}
 
 			//	Already linked?
