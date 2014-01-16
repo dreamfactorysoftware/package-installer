@@ -24,13 +24,10 @@ use Composer\Composer;
 use Composer\Installer\LibraryInstaller;
 use Composer\IO\IOInterface;
 use Composer\Package\PackageInterface;
-use Composer\Plugin\PluginInterface;
 use Composer\Repository\InstalledRepositoryInterface;
-use Composer\Repository\RepositoryManager;
 use Composer\Util\Filesystem;
 use DreamFactory\Tools\Composer\Enums\PackageTypeNames;
 use Kisma\Core\Exceptions\FileSystemException;
-use Kisma\Core\Utility\Inflector;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 
@@ -82,6 +79,7 @@ class Installer extends LibraryInstaller
 	 */
 	protected $_supportedTypes = array(
 		PackageTypeNames::APPLICATION => '/applications',
+		PackageTypeNames::JETPACK     => '/lib',
 		PackageTypeNames::LIBRARY     => '/lib',
 		PackageTypeNames::PLUGIN      => '/plugins',
 	);
@@ -313,16 +311,24 @@ class Installer extends LibraryInstaller
 		if ( !empty( $_extra ) )
 		{
 			//	Read configuration section. Can be an array or name of file to include
-			if ( null !== ( $_config = Option::get( $_extra, 'config' ) ) )
+			if ( null !== ( $_configFile = Option::get( $_extra, 'config' ) ) )
 			{
-				if ( !is_array( $_config ) && is_file( $_config ) && is_readable( $_config ) )
+				if ( !is_array( $_configFile ) && is_file( $_configFile ) && is_readable( $_configFile ) )
 				{
 					/** @noinspection PhpIncludeInspection */
-					if ( false === ( $_config = @include( $_config ) ) )
+					if ( false === ( $_config = @include( $_configFile ) ) )
 					{
-						Log::error( 'File system error reading package configuration file: ' . $_config );
+						Log::error( 'File system error reading package configuration file: ' . $_configFile );
 						$_config = array();
 					}
+
+					if ( !is_array( $_config ) )
+					{
+						Log::error( 'The "config" file specified in this package is invalid: ' . $_configFile );
+						throw new \InvalidArgumentException( 'The "config" file specified in this package is invalid.' );
+					}
+
+					$_config = array_merge( $_config, $_extra );
 				}
 			}
 		}
@@ -335,7 +341,10 @@ class Installer extends LibraryInstaller
 				'routes' => array(),
 			);
 		}
-		else if ( !isset( $_config['links'] ) || empty( $_config['links'] ) )
+
+		$_links = Option::get( $_config, 'links' );
+
+		if ( empty( $_links ) )
 		{
 			$_config['links'] = array(
 				array(
@@ -345,11 +354,10 @@ class Installer extends LibraryInstaller
 			);
 		}
 
-		Option::remove( $_extra, 'config' );
-		$_config = array_merge( $_extra, $_config );
-
 		//	Check the type...
-		$this->_packageType = $_config['type'] = $package->getType();
+		$this->_packageType = $package->getType();
+
+		Log::debug( 'Config completed: ' . print_r( $_config, true ) );
 
 		return $this->_config = $_config;
 	}
