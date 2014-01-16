@@ -418,7 +418,7 @@ class Installer extends LibraryInstaller
 		foreach ( Option::clean( $_links ) as $_link )
 		{
 			$_target = Option::get( $_link, 'target', $this->_packageInstallPath );
-			$_linkName = Option::get( $_link, 'link', static::DEFAULT_PLUGIN_LINK_PATH . '/' . $this->_packageSuffix );
+			$_linkName = static::DEFAULT_PLUGIN_LINK_PATH . '/' . Option::get( $_link, 'link', $this->_packageSuffix );
 
 			//	Already linked?
 			if ( \is_link( $_linkName ) )
@@ -454,7 +454,7 @@ class Installer extends LibraryInstaller
 		foreach ( Option::clean( $_links ) as $_link )
 		{
 			$_target = Option::get( $_link, 'target', $this->_packageInstallPath );
-			$_linkName = Option::get( $_link, 'link', static::DEFAULT_PLUGIN_LINK_PATH . '/' . $this->_packageSuffix );
+			$_linkName = static::DEFAULT_PLUGIN_LINK_PATH . '/' . Option::get( $_link, 'link', $this->_packageSuffix );
 
 			//	Already linked?
 			if ( !\is_link( $_linkName ) )
