@@ -28,7 +28,7 @@ use Composer\Plugin\PluginInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 use Composer\Repository\RepositoryManager;
 use Composer\Util\Filesystem;
-use DreamFactory\Tools\Composer\Enums\PackageTypes;
+use DreamFactory\Tools\Composer\Enums\PackageTypeNames;
 use Kisma\Core\Exceptions\FileSystemException;
 use Kisma\Core\Utility\Inflector;
 use Kisma\Core\Utility\Log;
@@ -59,7 +59,7 @@ class Installer extends LibraryInstaller
 	/**
 	 * @var int The default package type
 	 */
-	const DEFAULT_PACKAGE_TYPE = PackageTypes::APPLICATION;
+	const DEFAULT_PACKAGE_TYPE = PackageTypeNames::APPLICATION;
 	/**
 	 * @var string
 	 */
@@ -81,12 +81,12 @@ class Installer extends LibraryInstaller
 	 * @var array The types of packages I can install. Can be changed via composer.json:extra.supported-types[]
 	 */
 	protected $_supportedTypes = array(
-		PackageTypes::APPLICATION => '/applications',
-		PackageTypes::LIBRARY     => '/lib',
-		PackageTypes::PLUGIN      => '/plugins',
+		PackageTypeNames::APPLICATION => '/applications',
+		PackageTypeNames::LIBRARY     => '/lib',
+		PackageTypeNames::PLUGIN      => '/plugins',
 	);
 	/**
-	 * @var int The package type
+	 * @var int string package type
 	 */
 	protected $_packageType = self::DEFAULT_PACKAGE_TYPE;
 	/**
@@ -268,7 +268,7 @@ class Installer extends LibraryInstaller
 		//	Build the installation path...
 		$this->_buildInstallPath( $this->_packagePrefix, $this->_packageSuffix );
 
-		Log::debug( '  * Install type: ' . Inflector::display( PlatformTypes::nameOf( $this->_packageType ) ) );
+		Log::debug( '  * Install type: ' . $package->getType() );
 		Log::debug( '  * Install path: ' . $this->_packageInstallPath );
 
 		if ( null !== ( $_links = Option::get( $this->_config, 'links' ) ) )
@@ -345,8 +345,11 @@ class Installer extends LibraryInstaller
 			);
 		}
 
+		Option::remove( $_extra, 'config' );
+		$_config = array_merge( $_extra, $_config );
+
 		//	Check the type...
-		$this->_packageType = $_config['type'] = Option::get( $_config, 'type', static::DEFAULT_PACKAGE_TYPE );
+		$this->_packageType = $_config['type'] = $package->getType();
 
 		return $this->_config = $_config;
 	}
