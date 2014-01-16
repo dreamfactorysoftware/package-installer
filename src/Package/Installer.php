@@ -266,7 +266,9 @@ class Installer extends LibraryInstaller
 					'  *   Link found: ' .
 					Option::get( $_link, 'target', $this->_packageInstallPath ) .
 					' -> ' .
-					Option::get( $_link, 'link', static::DEFAULT_PLUGIN_LINK_PATH )
+					static::DEFAULT_PLUGIN_LINK_PATH .
+					'/' .
+					Option::get( $_link, 'link' )
 				);
 			}
 		}
