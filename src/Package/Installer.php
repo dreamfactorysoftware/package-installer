@@ -265,7 +265,10 @@ class Installer extends LibraryInstaller
 		//	Link path for plug-ins
 		$this->_parseConfiguration( $package );
 
-		Log::info( 'Validating package: ' . $this->_packageName . ' -- version ' . $package->getVersion() );
+		if ( $this->_io->isDebug() )
+		{
+			$this->_io->write( 'Validating package: ' . $this->_packageName . ' -- version ' . $package->getVersion() );
+		}
 
 		//	Only install DreamFactory packages if not a plug-in
 		if ( static::ALLOWED_PACKAGE_PREFIX != $this->_packagePrefix )
@@ -292,24 +295,6 @@ class Installer extends LibraryInstaller
 
 		//	Build the installation path...
 		$this->_buildInstallPath( $this->_packagePrefix, $this->_packageSuffix );
-
-//		Log::debug( '  * Install type: ' . $package->getType() );
-//		Log::debug( '  * Install path: ' . $this->_packageInstallPath );
-
-		if ( null !== ( $_links = Option::get( $this->_config, 'links' ) ) )
-		{
-			foreach ( $_links as $_link )
-			{
-				Log::debug(
-					'  *   Link found: ' .
-					Option::get( $_link, 'target', $this->_packageInstallPath ) .
-					' -> ' .
-					static::DEFAULT_PLUGIN_LINK_PATH .
-					'/' .
-					Option::get( $_link, 'link' )
-				);
-			}
-		}
 	}
 
 	/**
@@ -462,13 +447,14 @@ class Installer extends LibraryInstaller
 				Log::debug( '  * Package "' . $this->_packageName . '" already linked.' );
 				continue;
 			}
-			else if ( false === @\symlink( $_target, $_linkName ) )
+
+			if ( false === @\symlink( $_target, $_linkName ) )
 			{
 				Log::error( '  * File system error creating symlink "' . $_linkName . '".' );
 				throw new FileSystemException( 'Unable to create symlink: ' . $_linkName );
 			}
 
-			Log::debug( '  * Package "' . $this->_packageName . '" linked.', array( 'target' => $_target, 'link' => $_linkName ) );
+			Log::debug( '  * Package "' . $this->_packageName . '" linked: ' . $_linkName . ' <= ' . $_target );
 		}
 	}
 
@@ -505,7 +491,7 @@ class Installer extends LibraryInstaller
 				throw new FileSystemException( 'Unable to remove symlink: ' . $_linkName );
 			}
 
-			Log::debug( '  * Package "' . $this->_packageName . '" link removed.', array( 'target' => $_target, 'link' => $_linkName ) );
+			Log::debug( '  * Package "' . $this->_packageName . '" link removed: ' . $_linkName . ' <= ' . $_target );
 		}
 	}
 
