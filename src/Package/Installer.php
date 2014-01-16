@@ -24,13 +24,10 @@ use Composer\Composer;
 use Composer\Installer\LibraryInstaller;
 use Composer\IO\IOInterface;
 use Composer\Package\PackageInterface;
-use Composer\Plugin\PluginInterface;
 use Composer\Repository\InstalledRepositoryInterface;
-use Composer\Repository\RepositoryManager;
 use Composer\Util\Filesystem;
 use DreamFactory\Tools\Composer\Enums\PackageTypeNames;
 use Kisma\Core\Exceptions\FileSystemException;
-use Kisma\Core\Utility\Inflector;
 use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 
@@ -82,6 +79,7 @@ class Installer extends LibraryInstaller
 	 */
 	protected $_supportedTypes = array(
 		PackageTypeNames::APPLICATION => '/applications',
+		PackageTypeNames::JETPACK     => '/lib',
 		PackageTypeNames::LIBRARY     => '/lib',
 		PackageTypeNames::PLUGIN      => '/plugins',
 	);
@@ -113,6 +111,10 @@ class Installer extends LibraryInstaller
 	 * @var array
 	 */
 	protected $_config = array();
+	/**
+	 * @var IOInterface
+	 */
+	protected $_io;
 
 	//*************************************************************************
 	//* Methods
@@ -127,8 +129,11 @@ class Installer extends LibraryInstaller
 	{
 		parent::__construct( $io, $composer, $type );
 
+		$this->_io = $io;
 		$this->_fabricHosted = file_exists( static::FABRIC_MARKER );
 		$this->_baseInstallPath = \getcwd();
+
+		$this->_enableLogging();
 	}
 
 	/**
@@ -138,6 +143,8 @@ class Installer extends LibraryInstaller
 	public function install( InstalledRepositoryInterface $repo, PackageInterface $package )
 	{
 		$this->_validatePackage( $package );
+
+		$this->_io->write( 'Installing package: ' . $this->_packageName . ' -- version ' . $package->getVersion() );
 
 		parent::install( $repo, $package );
 
@@ -156,6 +163,8 @@ class Installer extends LibraryInstaller
 	public function update( InstalledRepositoryInterface $repo, PackageInterface $initial, PackageInterface $target )
 	{
 		$this->_validatePackage( $initial );
+
+		Log::info( 'Updating package: ' . $this->_packageName . ' -- version ' . $initial->getVersion() . ' => ' . $target->getVersion() );
 
 		parent::update( $repo, $initial, $target );
 
@@ -177,6 +186,8 @@ class Installer extends LibraryInstaller
 	{
 		$this->_validatePackage( $package );
 
+		Log::info( 'Removing package: ' . $this->_packageName . ' -- version ' . $package->getVersion() );
+
 		parent::uninstall( $repo, $package );
 
 		$this->_deleteLinks( $package );
@@ -189,9 +200,36 @@ class Installer extends LibraryInstaller
 	 */
 	public function getInstallPath( PackageInterface $package )
 	{
-		$this->_validatePackage( $package );
+		if ( empty( $this->_packageInstallPath ) )
+		{
+			$this->_validatePackage( $package );
+		}
 
 		return $this->_packageInstallPath;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function supports( $packageType )
+	{
+		return \array_key_exists( $packageType, $this->_supportedTypes );
+	}
+
+	/**
+	 * @param InstalledRepositoryInterface $repo
+	 * @param PackageInterface             $package
+	 *
+	 * @return bool
+	 */
+	public function isInstalled( InstalledRepositoryInterface $repo, PackageInterface $package )
+	{
+		if ( empty( $this->_packageInstallPath ) )
+		{
+			$this->_validatePackage( $package );
+		}
+
+		return is_dir( $this->_packageInstallPath . '/.git' );
 	}
 
 	/**
@@ -224,23 +262,13 @@ class Installer extends LibraryInstaller
 	 */
 	protected function _validatePackage( PackageInterface $package )
 	{
-		static $_validated = false;
-
-		$this->_enableLogging();
-
-		//	Don't do more than once...
-		if ( $_validated )
-		{
-			Log::info( 'DreamFactory Package Installer > ' . $this->_packageName . ' > Version ' . $package->getVersion() );
-			Log::info( '  * Prior validation respected.' );
-
-			return true;
-		}
-
 		//	Link path for plug-ins
 		$this->_parseConfiguration( $package );
 
-		Log::info( 'DreamFactory Package Installer > ' . $this->_packageName . ' > Version ' . $package->getVersion() );
+		if ( $this->_io->isDebug() )
+		{
+			$this->_io->write( 'Validating package: ' . $this->_packageName . ' -- version ' . $package->getVersion() );
+		}
 
 		//	Only install DreamFactory packages if not a plug-in
 		if ( static::ALLOWED_PACKAGE_PREFIX != $this->_packagePrefix )
@@ -267,24 +295,6 @@ class Installer extends LibraryInstaller
 
 		//	Build the installation path...
 		$this->_buildInstallPath( $this->_packagePrefix, $this->_packageSuffix );
-
-		Log::debug( '  * Install type: ' . $package->getType() );
-		Log::debug( '  * Install path: ' . $this->_packageInstallPath );
-
-		if ( null !== ( $_links = Option::get( $this->_config, 'links' ) ) )
-		{
-			foreach ( $_links as $_link )
-			{
-				Log::debug(
-					'  *   Link found: ' .
-					Option::get( $_link, 'target', $this->_packageInstallPath ) .
-					' -> ' .
-					Option::get( $_link, 'link', static::DEFAULT_PLUGIN_LINK_PATH )
-				);
-			}
-		}
-
-		return $_validated = true;
 	}
 
 	/**
@@ -306,50 +316,50 @@ class Installer extends LibraryInstaller
 
 		$this->_packagePrefix = $_parts[0];
 		$this->_packageSuffix = $_parts[1];
-
-		$_extra = Option::clean( $package->getExtra() );
+		$this->_packageType = $package->getType();
 
 		//	Get the extra stuff
-		if ( !empty( $_extra ) )
+		$_extra = Option::clean( $package->getExtra() );
+		$_config = array();
+
+		//	Read configuration section. Can be an array or name of file to include
+		if ( null !== ( $_configFile = Option::get( $_extra, 'config' ) ) )
 		{
-			//	Read configuration section. Can be an array or name of file to include
-			if ( null !== ( $_config = Option::get( $_extra, 'config' ) ) )
+			if ( is_string( $_configFile ) && is_file( $_configFile ) && is_readable( $_configFile ) )
 			{
-				if ( !is_array( $_config ) && is_file( $_config ) && is_readable( $_config ) )
+				/** @noinspection PhpIncludeInspection */
+				if ( false === ( $_config = @include( $_configFile ) ) )
 				{
-					/** @noinspection PhpIncludeInspection */
-					if ( false === ( $_config = @include( $_config ) ) )
-					{
-						Log::error( 'File system error reading package configuration file: ' . $_config );
-						$_config = array();
-					}
+					Log::error( 'File system error reading package configuration file: ' . $_configFile );
+					$_config = array();
+				}
+
+				if ( !is_array( $_config ) )
+				{
+					Log::error( 'The "config" file specified in this package is invalid: ' . $_configFile );
+					throw new \InvalidArgumentException( 'The "config" file specified in this package is invalid.' );
 				}
 			}
 		}
 
-		if ( empty( $_config ) )
-		{
-			$_config = array(
-				'name'   => $this->_packageSuffix,
-				'links'  => array(),
-				'routes' => array(),
-			);
-		}
-		else if ( !isset( $_config['links'] ) || empty( $_config['links'] ) )
-		{
-			$_config['links'] = array(
-				array(
-					'target' => null,
-					'link'   => $this->_packageSuffix,
-				),
-			);
-		}
-
-		Option::remove( $_extra, 'config' );
+		//	Merge any config with the extra data
 		$_config = array_merge( $_extra, $_config );
 
-		//	Check the type...
-		$this->_packageType = $_config['type'] = $package->getType();
+		//	Pull out the links
+		$_links = Option::get( $_config, 'links' );
+
+		//	If no links found, create default for plugin
+		if ( empty( $_links ) && PackageTypeNames::PLUGIN == $this->_packageType )
+		{
+			$_link = array(
+				'target' => null,
+				'link'   => Option::get( $_config, 'api_name', $this->_packageSuffix )
+			);
+
+			$_config['links'] = $_links = array( $this->_normalizeLink( $_link ) );
+		}
+
+//		Log::debug( 'Config completed: ' . print_r( $_config, true ) );
 
 		return $this->_config = $_config;
 	}
@@ -393,11 +403,23 @@ class Installer extends LibraryInstaller
 	}
 
 	/**
-	 * {@inheritDoc}
+	 * @param array $link
+	 *
+	 * @return array
 	 */
-	public function supports( $packageType )
+	protected function _normalizeLink( $link )
 	{
-		return \array_key_exists( $packageType, $this->_supportedTypes );
+		//	Adjust relative directory to absolute
+		$_target =
+			rtrim( $this->_baseInstallPath, '/' ) .
+			'/' .
+			trim( $this->_packageInstallPath, '/' ) .
+			'/' .
+			ltrim( Option::get( $link, 'target', $this->_packageSuffix ), '/' );
+
+		$_linkName = trim( static::DEFAULT_PLUGIN_LINK_PATH, '/' ) . '/' . Option::get( $link, 'link', $this->_packageSuffix );
+
+		return array( $_target, $_linkName );
 	}
 
 	/**
@@ -407,6 +429,8 @@ class Installer extends LibraryInstaller
 	{
 		if ( null === ( $_links = Option::get( $this->_config, 'links' ) ) )
 		{
+			Log::debug( '  * No links in package to create' );
+
 			return;
 		}
 
@@ -415,22 +439,22 @@ class Installer extends LibraryInstaller
 		//	Make the links
 		foreach ( Option::clean( $_links ) as $_link )
 		{
-			$_target = Option::get( $_link, 'target', $this->_packageInstallPath );
-			$_linkName = Option::get( $_link, 'link', static::DEFAULT_PLUGIN_LINK_PATH . '/' . $this->_packageSuffix );
+			//	Adjust relative directory to absolute
+			list( $_target, $_linkName ) = $this->_normalizeLink( $_link );
 
-			//	Already linked?
 			if ( \is_link( $_linkName ) )
 			{
 				Log::debug( '  * Package "' . $this->_packageName . '" already linked.' );
 				continue;
 			}
-			else if ( false === @\symlink( $_target, $_linkName ) )
+
+			if ( false === @\symlink( $_target, $_linkName ) )
 			{
 				Log::error( '  * File system error creating symlink "' . $_linkName . '".' );
 				throw new FileSystemException( 'Unable to create symlink: ' . $_linkName );
 			}
 
-			Log::debug( '  * Package "' . $this->_packageName . '" linked.', array( 'target' => $_target, 'link' => $_linkName ) );
+			Log::debug( '  * Package "' . $this->_packageName . '" linked: ' . $_linkName . ' <= ' . $_target );
 		}
 	}
 
@@ -441,6 +465,8 @@ class Installer extends LibraryInstaller
 	{
 		if ( null === ( $_links = Option::get( $this->_config, 'links' ) ) )
 		{
+			Log::debug( '  * No links in package to remove' );
+
 			return;
 		}
 
@@ -449,38 +475,29 @@ class Installer extends LibraryInstaller
 		//	Make the links
 		foreach ( Option::clean( $_links ) as $_link )
 		{
-			$_target = Option::get( $_link, 'target', $this->_packageInstallPath );
-			$_linkName = Option::get( $_link, 'link', static::DEFAULT_PLUGIN_LINK_PATH . '/' . $this->_packageSuffix );
+			//	Adjust relative directory to absolute
+			list( $_target, $_linkName ) = $this->_normalizeLink( $_link );
 
 			//	Already linked?
 			if ( !\is_link( $_linkName ) )
 			{
-				Log::warning( '  * Package "' . $this->_packageName . '" link not found.' );
+				Log::warning( '  * Package "' . $this->_packageName . '" link not found: ' . $_linkName );
 				continue;
 			}
-			else if ( false === @\unlink( $_linkName ) )
+
+			if ( false === @\unlink( $_linkName ) )
 			{
 				Log::error( '  * File system error removing symlink "' . $_linkName . '".' );
 				throw new FileSystemException( 'Unable to remove symlink: ' . $_linkName );
 			}
 
-			Log::debug( '  * Package "' . $this->_packageName . '" link removed.', array( 'target' => $_target, 'link' => $_linkName ) );
+			Log::debug( '  * Package "' . $this->_packageName . '" link removed: ' . $_linkName . ' <= ' . $_target );
 		}
 	}
 
 	/**
-	 * @param InstalledRepositoryInterface $repo
-	 * @param PackageInterface             $package
-	 *
-	 * @return bool
+	 * Enables logging
 	 */
-	public function isInstalled( InstalledRepositoryInterface $repo, PackageInterface $package )
-	{
-		$this->_validatePackage( $package );
-
-		return is_dir( $this->_packageInstallPath );
-	}
-
 	protected function _enableLogging()
 	{
 		$_fs = new Filesystem();

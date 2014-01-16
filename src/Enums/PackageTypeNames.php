@@ -44,4 +44,8 @@ class PackageTypeNames extends SeedEnum
 	 * @type int Indicates the package is a code library
 	 */
 	const LIBRARY = 'dreamfactory-library';
+	/**
+	 * @type int Indicates the package is a JetPack
+	 */
+	const JETPACK = 'dreamfactory-jetpack';
 }
