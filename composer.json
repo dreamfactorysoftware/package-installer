@@ -1,7 +1,7 @@
 {
 	"name":              "dreamfactory/package-installer",
 	"description":       "DreamFactory Services Platform(tm) Package Installer",
-	"version":           "1.2.10",
+	"version":           "1.2.11",
 	"type":              "composer-plugin",
 	"keywords":          ["dreamfactory", "dsp", "cloud", "jetpack", "plug-in"],
 	"homepage":          "http://dreamfactorysoftware.github.io/",
