@@ -304,58 +304,50 @@ class Installer extends LibraryInstaller
 
 		$this->_packagePrefix = $_parts[0];
 		$this->_packageSuffix = $_parts[1];
-
-		$_extra = Option::clean( $package->getExtra() );
+		$this->_packageType = $package->getType();
 
 		//	Get the extra stuff
-		if ( !empty( $_extra ) )
+		$_extra = Option::clean( $package->getExtra() );
+		$_config = array();
+
+		//	Read configuration section. Can be an array or name of file to include
+		if ( null !== ( $_configFile = Option::get( $_extra, 'config' ) ) )
 		{
-			//	Read configuration section. Can be an array or name of file to include
-			if ( null !== ( $_configFile = Option::get( $_extra, 'config' ) ) )
+			if ( is_string( $_configFile ) && is_file( $_configFile ) && is_readable( $_configFile ) )
 			{
-				if ( !is_array( $_configFile ) && is_file( $_configFile ) && is_readable( $_configFile ) )
+				/** @noinspection PhpIncludeInspection */
+				if ( false === ( $_config = @include( $_configFile ) ) )
 				{
-					/** @noinspection PhpIncludeInspection */
-					if ( false === ( $_config = @include( $_configFile ) ) )
-					{
-						Log::error( 'File system error reading package configuration file: ' . $_configFile );
-						$_config = array();
-					}
+					Log::error( 'File system error reading package configuration file: ' . $_configFile );
+					$_config = array();
+				}
 
-					if ( !is_array( $_config ) )
-					{
-						Log::error( 'The "config" file specified in this package is invalid: ' . $_configFile );
-						throw new \InvalidArgumentException( 'The "config" file specified in this package is invalid.' );
-					}
-
-					$_config = array_merge( $_config, $_extra );
+				if ( !is_array( $_config ) )
+				{
+					Log::error( 'The "config" file specified in this package is invalid: ' . $_configFile );
+					throw new \InvalidArgumentException( 'The "config" file specified in this package is invalid.' );
 				}
 			}
 		}
 
-		if ( empty( $_config ) )
-		{
-			$_config = array();
-		}
+		//	Merge any config with the extra data
+		$_config = array_merge( $_extra, $_config );
 
+		//	Pull out the links
 		$_links = Option::get( $_config, 'links' );
 
-		if ( empty( $_links ) )
+		//	If no links found, create default for plugin
+		if ( empty( $_links ) && PackageTypeNames::PLUGIN == $this->_packageType )
 		{
-			Option::set(
-				$_config,
-				'links',
+			$_links = array(
 				array(
-					array(
-						'target' => null,
-						'link'   => $this->_packageSuffix,
-					),
-				)
+					'target' => null,
+					'link'   => Option::get( $_config, 'api_name', $this->_packageSuffix ),
+				),
 			);
-		}
 
-		//	Check the type...
-		$this->_packageType = $package->getType();
+			$_config['links'] = $_links;
+		}
 
 		Log::debug( 'Config completed: ' . print_r( $_config, true ) );
 
@@ -415,6 +407,8 @@ class Installer extends LibraryInstaller
 	{
 		if ( null === ( $_links = Option::get( $this->_config, 'links' ) ) )
 		{
+			Log::debug( '  * No links in package to create' );
+
 			return;
 		}
 
@@ -449,6 +443,8 @@ class Installer extends LibraryInstaller
 	{
 		if ( null === ( $_links = Option::get( $this->_config, 'links' ) ) )
 		{
+			Log::debug( '  * No links in package to remove' );
+
 			return;
 		}
 
