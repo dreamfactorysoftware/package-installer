@@ -333,24 +333,19 @@ class Installer extends LibraryInstaller
 			}
 		}
 
-		if ( empty( $_config ) )
-		{
-			$_config = array(
-				'name'   => $this->_packageSuffix,
-				'links'  => array(),
-				'routes' => array(),
-			);
-		}
-
 		$_links = Option::get( $_config, 'links' );
 
 		if ( empty( $_links ) )
 		{
-			$_config['links'] = array(
+			Option::set(
+				$_config,
+				'links',
 				array(
-					'target' => null,
-					'link'   => $this->_packageSuffix,
-				),
+					array(
+						'target' => null,
+						'link'   => $this->_packageSuffix,
+					),
+				)
 			);
 		}
 
