@@ -25,10 +25,10 @@ use Composer\IO\IOInterface;
 use Composer\Plugin\PluginInterface;
 
 /**
- * PackageInstallerPlugin
- * DreamFactory Services Platform plug-in
+ * Plugin
+ * DreamFactory Services Platform installer injection plug-in
  */
-class PackageInstallerPlugin implements PluginInterface
+class Plugin implements PluginInterface
 {
 	//*************************************************************************
 	//	Methods
