@@ -333,6 +333,11 @@ class Installer extends LibraryInstaller
 			}
 		}
 
+		if ( empty( $_config ) )
+		{
+			$_config = array();
+		}
+
 		$_links = Option::get( $_config, 'links' );
 
 		if ( empty( $_links ) )
