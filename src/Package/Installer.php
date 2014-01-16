@@ -159,7 +159,7 @@ class Installer extends LibraryInstaller
 	{
 		$this->_validatePackage( $initial );
 
-		Log::info( 'Updating package: ' . $this->_packageName . ' -- version ' . $package->getVersion() );
+		Log::info( 'Updating package: ' . $this->_packageName . ' -- version ' . $initial->getVersion() . ' => ' . $target->getVersion() );
 
 		parent::update( $repo, $initial, $target );
 
