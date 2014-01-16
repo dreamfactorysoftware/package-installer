@@ -122,8 +122,7 @@ class Package extends Seed
 		$this->_parseConfiguration( $package );
 
 		Log::info(
-			'DreamFactory Package Installer > ' . $this->_packageName .
-			' > Version ' . $package->getVersion()
+			'DreamFactory Package Installer > ' . $this->_packageName . ' > Version ' . $package->getVersion()
 		);
 
 		//	Only install DreamFactory packages if not a plug-in
@@ -131,13 +130,13 @@ class Package extends Seed
 		{
 			Log::error( '  * Invalid package type' );
 			throw new \InvalidArgumentException( 'This package is not one that can be installed by this installer.' .
-												 PHP_EOL . '  * Name: ' .
+												 PHP_EOL .
+												 '  * Name: ' .
 												 $this->_packageName );
 		}
 
 		//	Get supported types
-		if ( null !==
-			 ( $_types = Option::get( $this->_config, 'supported-types' ) )
+		if ( null !== ( $_types = Option::get( $this->_config, 'supported-types' ) )
 		)
 		{
 			foreach ( $_types as $_type => $_path )
@@ -157,8 +156,7 @@ class Package extends Seed
 		);
 
 		Log::debug(
-			'  * Install type: ' .
-			Inflector::display( PlatformTypes::nameOf( $this->_packageType ) )
+			'  * Install type: ' . Inflector::display( PlatformTypes::nameOf( $this->_packageType ) )
 		);
 		Log::debug( '  * Install path: ' . $this->_packageInstallPath );
 
@@ -193,14 +191,11 @@ class Package extends Seed
 	 */
 	protected function _parseConfiguration( PackageInterface $package )
 	{
-		$_parts =
-			explode( '/', $this->_packageName = $package->getPrettyName(), 2 );
+		$_parts = explode( '/', $this->_packageName = $package->getPrettyName(), 2 );
 
 		if ( 2 != count( $_parts ) )
 		{
-			throw new \InvalidArgumentException( 'The package "' .
-												 $this->_packageName .
-												 '" package name is malformed or cannot be parsed.' );
+			throw new \InvalidArgumentException( 'The package "' . $this->_packageName . '" package name is malformed or cannot be parsed.' );
 		}
 
 		$this->_packagePrefix = $_parts[0];
@@ -214,16 +209,14 @@ class Package extends Seed
 			//	Read configuration section. Can be an array or name of file to include
 			if ( null !== ( $_config = Option::get( $_extra, 'config' ) ) )
 			{
-				if ( !is_array( $_config ) && is_file( $_config ) &&
-					 is_readable( $_config )
+				if ( !is_array( $_config ) && is_file( $_config ) && is_readable( $_config )
 				)
 				{
 					/** @noinspection PhpIncludeInspection */
 					if ( false === ( $_config = @include( $_config ) ) )
 					{
 						Log::error(
-							'File system error reading package configuration file: ' .
-							$_config
+							'File system error reading package configuration file: ' . $_config
 						);
 						$_config = array();
 					}
@@ -250,9 +243,7 @@ class Package extends Seed
 		}
 
 		//	Check the type...
-		$this->_packageType =
-		$_config['type'] =
-			Option::get( $_config, 'type', static::DEFAULT_PACKAGE_TYPE );
+		$this->_packageType = $_config['type'] = Option::get( $_config, 'type', static::DEFAULT_PACKAGE_TYPE );
 
 		return $this->_config = $_config;
 	}
@@ -290,13 +281,10 @@ class Package extends Seed
 
 		if ( $createIfMissing && !is_dir( $_basePath . '/' . $_installPath ) )
 		{
-			if ( false ===
-				 @mkdir( $_basePath . '/' . $_installPath, 0775, true )
+			if ( false === @mkdir( $_basePath . '/' . $_installPath, 0775, true )
 			)
 			{
-				throw new FileSystemException( 'Unable to create installation path "' .
-											   $_basePath . '/' .
-											   $_installPath . '"' );
+				throw new FileSystemException( 'Unable to create installation path "' . $_basePath . '/' . $_installPath . '"' );
 			}
 		}
 
@@ -322,15 +310,13 @@ class Package extends Seed
 		}
 
 		Log::info(
-			'  * Creating links for package "' . $package->getPrettyName() .
-			' ' . $package->getVersion()
+			'  * Creating links for package "' . $package->getPrettyName() . ' ' . $package->getVersion()
 		);
 
 		//	Make the links
 		foreach ( Option::clean( $_links ) as $_link )
 		{
-			$_target =
-				Option::get( $_link, 'target', $this->_packageInstallPath );
+			$_target = Option::get( $_link, 'target', $this->_packageInstallPath );
 			$_linkName = Option::get(
 				$_link,
 				'link',
@@ -348,11 +334,9 @@ class Package extends Seed
 			else if ( false === @\symlink( $_target, $_linkName ) )
 			{
 				Log::error(
-					'  * File system error creating symlink "' . $_linkName .
-					'".'
+					'  * File system error creating symlink "' . $_linkName . '".'
 				);
-				throw new FileSystemException( 'Unable to create symlink: ' .
-											   $_linkName );
+				throw new FileSystemException( 'Unable to create symlink: ' . $_linkName );
 			}
 
 			Log::debug(
@@ -373,15 +357,13 @@ class Package extends Seed
 		}
 
 		Log::info(
-			'  * Removing links for package "' . $package->getPrettyName() .
-			' ' . $package->getVersion()
+			'  * Removing links for package "' . $package->getPrettyName() . ' ' . $package->getVersion()
 		);
 
 		//	Make the links
 		foreach ( Option::clean( $_links ) as $_link )
 		{
-			$_target =
-				Option::get( $_link, 'target', $this->_packageInstallPath );
+			$_target = Option::get( $_link, 'target', $this->_packageInstallPath );
 			$_linkName = Option::get(
 				$_link,
 				'link',
@@ -399,11 +381,9 @@ class Package extends Seed
 			else if ( false === @\unlink( $_linkName ) )
 			{
 				Log::error(
-					'  * File system error removing symlink "' . $_linkName .
-					'".'
+					'  * File system error removing symlink "' . $_linkName . '".'
 				);
-				throw new FileSystemException( 'Unable to remove symlink: ' .
-											   $_linkName );
+				throw new FileSystemException( 'Unable to remove symlink: ' . $_linkName );
 			}
 
 			Log::debug(
