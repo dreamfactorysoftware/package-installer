@@ -409,9 +409,16 @@ class Installer extends LibraryInstaller
 		foreach ( Option::clean( $_links ) as $_link )
 		{
 			$_target = Option::get( $_link, 'target', $this->_packageInstallPath );
-			$_linkName = static::DEFAULT_PLUGIN_LINK_PATH . '/' . Option::get( $_link, 'link', $this->_packageSuffix );
+
+			//	Adjust relative directory to absolute
+			if ( !is_dir( $_target ) && is_dir( $this->_packageInstallPath . $_target ) )
+			{
+				$_target = $this->_packageInstallPath . $_target;
+			}
 
 			//	Already linked?
+			$_linkName = trim( static::DEFAULT_PLUGIN_LINK_PATH, '/' ) . '/' . Option::get( $_link, 'link', $this->_packageSuffix );
+
 			if ( \is_link( $_linkName ) )
 			{
 				Log::debug( '  * Package "' . $this->_packageName . '" already linked.' );
