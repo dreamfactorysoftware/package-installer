@@ -425,9 +425,9 @@ class Installer extends LibraryInstaller
 			'/' .
 			trim( $this->_packageInstallPath, '/' ) .
 			'/' .
-			ltrim( Option::get( $_link, 'target', $this->_packageSuffix ), '/' );
+			ltrim( Option::get( $link, 'target', $this->_packageSuffix ), '/' );
 
-		$_linkName = trim( static::DEFAULT_PLUGIN_LINK_PATH, '/' ) . '/' . Option::get( $_link, 'link', $this->_packageSuffix );
+		$_linkName = trim( static::DEFAULT_PLUGIN_LINK_PATH, '/' ) . '/' . Option::get( $link, 'link', $this->_packageSuffix );
 
 		return array( $_target, $_linkName );
 	}
