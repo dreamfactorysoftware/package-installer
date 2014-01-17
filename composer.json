@@ -35,8 +35,9 @@
 		}
 	},
 	"require":           {
-		"kisma/kisma":                          "*",
 		"composer-plugin-api":                  "1.0.0",
+		"kisma/kisma":                          "*",
+		"twig/twig":                            "1.*",
 		"dreamfactory/lib-php-common-platform": "dev-develop as dev-master"
 	}
 }

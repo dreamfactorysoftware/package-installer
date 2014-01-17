@@ -23,10 +23,10 @@ namespace DreamFactory\Tools\Composer\Enums;
 use Kisma\Core\Enums\SeedEnum;
 
 /**
- * PackageTypeNames
+ * PackageTypes
  * Class/plug-in/library/jetpack installer
  */
-class PackageTypeNames extends SeedEnum
+class PackageTypes extends SeedEnum
 {
 	//*************************************************************************
 	//* Constants

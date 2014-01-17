@@ -27,7 +27,7 @@ use Composer\Package\Dumper\ArrayDumper;
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 use Composer\Util\Filesystem;
-use DreamFactory\Tools\Composer\Enums\PackageTypeNames;
+use DreamFactory\Tools\Composer\Enums\PackageTypes;
 use Kisma\Core\Exceptions\DataStoreException;
 use Kisma\Core\Exceptions\FileSystemException;
 use Kisma\Core\Utility\Option;
@@ -60,7 +60,7 @@ class Installer extends LibraryInstaller
 	/**
 	 * @var int The default package type
 	 */
-	const DEFAULT_PACKAGE_TYPE = PackageTypeNames::APPLICATION;
+	const DEFAULT_PACKAGE_TYPE = PackageTypes::APPLICATION;
 	/**
 	 * @var string
 	 */
@@ -82,10 +82,10 @@ class Installer extends LibraryInstaller
 	 * @var array The types of packages I can install. Can be changed via composer.json:extra.supported-types[]
 	 */
 	protected $_supportedTypes = array(
-		PackageTypeNames::APPLICATION => '/applications',
-		PackageTypeNames::JETPACK     => '/lib',
-		PackageTypeNames::LIBRARY     => '/lib',
-		PackageTypeNames::PLUGIN      => '/plugins',
+		PackageTypes::APPLICATION => '/applications',
+		PackageTypes::JETPACK     => '/lib',
+		PackageTypes::LIBRARY     => '/lib',
+		PackageTypes::PLUGIN      => '/plugins',
 	);
 	/**
 	 * @var int string package type
@@ -175,6 +175,7 @@ class Installer extends LibraryInstaller
 		$this->_deleteApplication( $initial );
 		$this->_deleteLinks( $initial );
 		$this->_removeManifest( $initial );
+		$this->_runPackageScripts( $initial );
 
 		//	In with the new...
 		$this->_addApplication( $target );
@@ -305,6 +306,8 @@ class Installer extends LibraryInstaller
 
 	/**
 	 * @param PackageInterface $package
+	 *
+	 * @return bool
 	 */
 	protected function _addApplication( PackageInterface $package )
 	{
@@ -314,9 +317,6 @@ class Installer extends LibraryInstaller
 
 			return;
 		}
-
-		/** @noinspection PhpIncludeInspection */
-		$_dbConfig = require( 'config/database.config.php' );
 
 		$_sql = <<<SQL
 INSERT INTO df_sys_app (
@@ -363,23 +363,39 @@ SQL;
 			':requires_plugin'         => 1,
 		);
 
-		Sql::setConnectionString(
-			Option::get( $_dbConfig, 'connectionString' ),
-			Option::get( $_dbConfig, 'username' ),
-			Option::get( $_dbConfig, 'password' )
-		);
-
-		if ( false === ( $_result = Sql::execute( $_sql, $_data ) ) )
+		try
 		{
-			$this->_io->write( '  - <error>Error storing application to database: </error>' . print_r( $_data, true ) );
-			throw new DataStoreException( 'Error saving application row: ' . print_r( $_data, true ), 500 );
+			/** @noinspection PhpIncludeInspection */
+			$_dbConfig = require( 'config/database.config.php' );
+
+			Sql::setConnectionString(
+				Option::get( $_dbConfig, 'connectionString' ),
+				Option::get( $_dbConfig, 'username' ),
+				Option::get( $_dbConfig, 'password' )
+			);
+
+			if ( false === ( $_result = Sql::execute( $_sql, $_data ) ) )
+			{
+				$this->_io->write( '  - <error>Error storing application to database: </error>' . print_r( $_data, true ) );
+				throw new DataStoreException( 'Error saving application row: ' . print_r( $_data, true ), 500 );
+			}
+		}
+		catch ( Exception $_ex )
+		{
+			$this->_io->write( '  - <error>Error registering package. Manual registration required.' );
+
+			return false;
 		}
 
 		$this->_io->write( '  - <info>Package registered as "' . $_apiName . '" with DSP.</info>' );
+
+		return true;
 	}
 
 	/**
 	 * @param PackageInterface $package
+	 *
+	 * @return bool
 	 */
 	protected function _deleteApplication( PackageInterface $package )
 	{
@@ -402,19 +418,33 @@ SQL;
 			':is_active' => 0
 		);
 
-		Sql::setConnectionString(
-			Option::get( $_dbConfig, 'connectionString' ),
-			Option::get( $_dbConfig, 'username' ),
-			Option::get( $_dbConfig, 'password' )
-		);
-
-		if ( false === ( $_result = Sql::execute( $_sql, $_data ) ) )
+		try
 		{
-			$this->_io->write( '  - <error>Error storing application to database: </error>' . print_r( $_data, true ) );
-			throw new DataStoreException( 'Error saving application row: ' . print_r( $_data, true ), 500 );
+			/** @noinspection PhpIncludeInspection */
+			$_dbConfig = require( 'config/database.config.php' );
+
+			Sql::setConnectionString(
+				Option::get( $_dbConfig, 'connectionString' ),
+				Option::get( $_dbConfig, 'username' ),
+				Option::get( $_dbConfig, 'password' )
+			);
+
+			if ( false === ( $_result = Sql::execute( $_sql, $_data ) ) )
+			{
+				$this->_io->write( '  - <error>Error storing application to database: </error>' . print_r( $_data, true ) );
+				throw new DataStoreException( 'Error saving application row: ' . print_r( $_data, true ), 500 );
+			}
+		}
+		catch ( Exception $_ex )
+		{
+			$this->_io->write( '  - <error>Error unregistering package. Manual unregistration required.</error>' );
+
+			return false;
 		}
 
 		$this->_io->write( '  - <info>Package unregistered as "' . $_apiName . '" from DSP.</info>' );
+
+		return true;
 	}
 
 	/**
@@ -444,10 +474,7 @@ SQL;
 		if ( static::ALLOWED_PACKAGE_PREFIX != $this->_packagePrefix )
 		{
 			$this->_io->write( '  - <error>Package type "' . $this->_packagePrefix . '" invalid</error>' );
-			throw new \InvalidArgumentException( 'This package is not one that can be installed by this installer.' .
-												 PHP_EOL .
-												 '  * Name: ' .
-												 $this->_packageName );
+			throw new \InvalidArgumentException( 'This package is not one that can be installed by this installer.' . PHP_EOL . '  * Name: ' . $this->_packageName );
 		}
 
 		//	Get supported types
@@ -519,7 +546,7 @@ SQL;
 		$_links = Option::get( $_config, 'links' );
 
 		//	If no links found, create default for plugin
-		if ( empty( $_links ) && PackageTypeNames::PLUGIN == $this->_packageType )
+		if ( empty( $_links ) && PackageTypes::PLUGIN == $this->_packageType )
 		{
 			$_link = array(
 				'target' => null,
@@ -579,11 +606,7 @@ SQL;
 	{
 		//	Adjust relative directory to absolute
 		$_target =
-			rtrim( $this->_baseInstallPath, '/' ) .
-			'/' .
-			trim( $this->_packageInstallPath, '/' ) .
-			'/' .
-			ltrim( Option::get( $link, 'target', $this->_packageSuffix ), '/' );
+			rtrim( $this->_baseInstallPath, '/' ) . '/' . trim( $this->_packageInstallPath, '/' ) . '/' . ltrim( Option::get( $link, 'target', $this->_packageSuffix ), '/' );
 
 		$_linkName = trim( static::DEFAULT_PLUGIN_LINK_PATH, '/' ) . '/' . Option::get( $link, 'link', $this->_packageSuffix );
 
@@ -679,18 +702,100 @@ SQL;
 	 */
 	protected function _getManifestName( PackageInterface $package, &$fs = null )
 	{
-		$_subPath = Option::get( $this->_supportedTypes, $this->_packageType );
-		$_fullPath = $this->_baseInstallPath . $_subPath . $this->_manifestPath;
+		$_fullPath = $this->_baseInstallPath . Option::get( $this->_supportedTypes, $this->_packageType ) . $this->_manifestPath;
 
 		$fs = $_fs = $fs ? : new Filesystem();
 		$_fs->ensureDirectoryExists( $_fullPath );
 
-		return
-			$this->_baseInstallPath .
-			$this->_manifestPath .
-			'/' .
-			str_replace( array( ' ', '/', '\\', '[', ']' ), '_', $package->getUniqueName() ) .
-			'.manifest.json';
+		return $_fullPath . '/' . str_replace( array( ' ', '/', '\\', '[', ']' ), '_', $package->getUniqueName() ) . '.json';
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getBaseInstallPath()
+	{
+		return $this->_baseInstallPath;
+	}
+
+	/**
+	 * @return array
+	 */
+	public function getConfig()
+	{
+		return $this->_config;
+	}
+
+	/**
+	 * @return boolean
+	 */
+	public function getFabricHosted()
+	{
+		return $this->_fabricHosted;
+	}
+
+	/**
+	 * @return \Composer\IO\IOInterface
+	 */
+	public function getIo()
+	{
+		return $this->_io;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getManifestPath()
+	{
+		return $this->_manifestPath;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getPackageInstallPath()
+	{
+		return $this->_packageInstallPath;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getPackageName()
+	{
+		return $this->_packageName;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getPackagePrefix()
+	{
+		return $this->_packagePrefix;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getPackageSuffix()
+	{
+		return $this->_packageSuffix;
+	}
+
+	/**
+	 * @return int
+	 */
+	public function getPackageType()
+	{
+		return $this->_packageType;
+	}
+
+	/**
+	 * @return array
+	 */
+	public function getSupportedTypes()
+	{
+		return $this->_supportedTypes;
 	}
 
 }
