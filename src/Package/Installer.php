@@ -28,6 +28,7 @@ use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 use Composer\Util\Filesystem;
 use DreamFactory\Tools\Composer\Enums\PackageTypes;
+use Kisma\Core\Enums\GlobFlags;
 use Kisma\Core\Exceptions\DataStoreException;
 use Kisma\Core\Exceptions\FileSystemException;
 use Kisma\Core\Utility\Option;
@@ -261,28 +262,28 @@ class Installer extends LibraryInstaller
 	protected function _getInstalledPackagesByType( $type )
 	{
 		$_packages = array();
+		$_pattern = '/((.+)*\$(.+)*)\.manifest\.json/';
 
 		$_path = $this->_getManifestName( $type );
+
+		\Kisma\Core\Utility\FileSystem::glob( $_pattern, GlobFlags::GLOB_NODOTS );
 
 		if ( false !== ( $_files = scandir( $_path ) ) && !empty( $_files ) )
 		{
 			foreach ( $_files as $_file )
 			{
-				if ( '.' == $_file || '..' == $_file )
+				if ( false === stripos( $_file, '.manifest.json' ) )
 				{
 					continue;
 				}
 
-				if ( false !== stripos( $_file, '.manifest.json' ) )
+				if ( false === ( $_json = json_decode( file_get_contents( $_path . '/' . $_file ) ) ) )
 				{
-					if ( false === ( $_json = json_decode( file_get_contents( $_path . '/' . $_file ) ) ) )
-					{
-						$this->_io->write( '  - <error>Unable to retrieve package manifest: ' . $_file );
-						continue;
-					}
-
-					$_packages[$type . '!' . $_json->name] = $_json;
+					$this->_io->write( '  - <error>Unable to retrieve package manifest: ' . $_file );
+					continue;
 				}
+
+				$_packages[$_json->name] = $_json;
 			}
 		}
 
@@ -331,6 +332,7 @@ JSON;
 		if ( false === @file_put_contents( $_fileName, $_json ) )
 		{
 			$this->_io->write( '  - <error>Error while writing installed packages manifest.</error>' );
+
 			return false;
 		}
 
@@ -806,7 +808,11 @@ SQL;
 			return $_fullPath;
 		}
 
-		return $_fullPath . '/' . str_replace( array( ' ', '/', '\\', '[', ']' ), '_', $package->getUniqueName() ) . '.manifest.json';
+		return $_fullPath . '/' . str_replace(
+			array( ' ', '\\', '[', ']', '/' ),
+			array( '_', '_', '_', '_', '$' ),
+			$package->getUniqueName()
+		) . '.manifest.json';
 	}
 
 	/**
