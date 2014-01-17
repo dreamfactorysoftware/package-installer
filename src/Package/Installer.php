@@ -276,7 +276,7 @@ class Installer extends LibraryInstaller
 			throw new Exception( 'Failure encoding manifest data: ' . print_r( $_packageData, true ) );
 		}
 
-		if ( false === \file_put_contents( $this->_baseInstallPath . $this->_manifestPath . '/' . $_fileName, $_data ) )
+		if ( false === \file_put_contents( $_fileName, $_data ) )
 		{
 			throw new \Composer\Downloader\FilesystemException( 'File system error writing manifest file: ' . $_fileName );
 		}
