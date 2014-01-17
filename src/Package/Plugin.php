@@ -23,6 +23,8 @@ namespace DreamFactory\Tools\Composer\Package;
 use Composer\Composer;
 use Composer\IO\IOInterface;
 use Composer\Plugin\PluginInterface;
+use Composer\Script\Event;
+use Composer\Script\ScriptEvents;
 
 /**
  * Plugin
@@ -42,5 +44,30 @@ class Plugin implements PluginInterface
 	{
 		$_installer = new Installer( $io, $composer );
 		$composer->getInstallationManager()->addInstaller( $_installer );
+	}
+
+	/**
+	 * @return array
+	 */
+	public static function getSubscribedEvents()
+	{
+		return array(
+			ScriptEvents::POST_AUTOLOAD_DUMP => array(
+				array( 'onPostAutoloadDump', 0 )
+			),
+		);
+	}
+
+	/**
+	 * @param \Composer\Script\Event $event
+	 */
+	public function onPostAutoloadDump( Event $event )
+	{
+		$_installer = new Installer( $event->getIO(), $event->getComposer() );
+
+		if ( $_installer->generateComposerJson() )
+		{
+			$event->getIO()->write( '  - DSP installation manifest created.' );
+		}
 	}
 }

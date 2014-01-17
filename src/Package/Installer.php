@@ -54,6 +54,10 @@ class Installer extends LibraryInstaller
 	 */
 	const DEFAULT_INSTALL_PATH = '/storage';
 	/**
+	 * @var string The base installation path
+	 */
+	const DYNAMIC_COMPOSER_PATH = '/storage/.private/packages.json';
+	/**
 	 * @var string
 	 */
 	const DEFAULT_PLUGIN_LINK_PATH = '/web';
@@ -155,7 +159,6 @@ class Installer extends LibraryInstaller
 		$this->_addApplication( $package );
 		$this->_createLinks( $package );
 		$this->_addManifest( $package );
-		$this->_runPackageScripts( $package );
 	}
 
 	/**
@@ -175,13 +178,11 @@ class Installer extends LibraryInstaller
 		$this->_deleteApplication( $initial );
 		$this->_deleteLinks( $initial );
 		$this->_removeManifest( $initial );
-		$this->_runPackageScripts( $initial );
 
 		//	In with the new...
 		$this->_addApplication( $target );
 		$this->_createLinks( $target );
 		$this->_addManifest( $target );
-		$this->_runPackageScripts( $target );
 	}
 
 	/**
@@ -197,7 +198,6 @@ class Installer extends LibraryInstaller
 		$this->_deleteApplication( $package );
 		$this->_deleteLinks( $package );
 		$this->_removeManifest( $package );
-		$this->_runPackageScripts( $package );
 	}
 
 	/**
@@ -238,6 +238,106 @@ class Installer extends LibraryInstaller
 	}
 
 	/**
+	 * @return array
+	 */
+	protected function _getInstalledPackages()
+	{
+		$_packages = array_merge(
+			$_apps = $this->_getInstalledPackagesByType( PackageTypes::APPLICATION ),
+			$_libs = $this->_getInstalledPackagesByType( PackageTypes::LIBRARY ),
+			$_pins = $this->_getInstalledPackagesByType( PackageTypes::PLUGIN )
+		);
+
+		return $_packages;
+	}
+
+	/**
+	 * Returns all installed packages by type
+	 *
+	 * @param string $type
+	 *
+	 * @return array
+	 */
+	protected function _getInstalledPackagesByType( $type )
+	{
+		$_packages = array();
+
+		$_path = $this->_getManifestName( $type );
+
+		if ( false !== ( $_files = scandir( $_path ) ) && !empty( $_files ) )
+		{
+			foreach ( $_files as $_file )
+			{
+				if ( '.' == $_file || '..' == $_file )
+				{
+					continue;
+				}
+
+				if ( false !== stripos( $_file, '.manifest.json' ) )
+				{
+					if ( false === ( $_json = json_decode( file_get_contents( $_path . '/' . $_file ) ) ) )
+					{
+						$this->_io->write( '  - <error>Unable to retrieve package manifest: ' . $_file );
+						continue;
+					}
+
+					$_packages[$type . '!' . $_json->name] = $_json;
+				}
+			}
+		}
+
+		return $_packages;
+	}
+
+	/**
+	 * Generates a composer.json file for the packages installed on the DSP
+	 */
+	public function generateComposerJson()
+	{
+		$_requires = null;
+		$_fileName = $this->_baseInstallPath . static::DYNAMIC_COMPOSER_PATH;
+
+		if ( file_exists( $_fileName ) )
+		{
+			if ( false === @rename( $_fileName, $_fileName . '.backup' ) )
+			{
+				$this->_io->write( '  - <error>Error backing up original packages.json file</error>' );
+			}
+		}
+
+		$_packages = $this->_getInstalledPackages();
+
+		foreach ( $_packages as $_name => $_package )
+		{
+			$_requires .= '		"' . $_name . '": "' . $_package->version . '",' . PHP_EOL;
+		}
+
+		//	Remove last comma
+		$_requires = rtrim( $_requires, ',' );
+
+		$_json = <<<JSON
+{
+	"name":					"dsp.local/installed-packages",
+	"type":					"metapackage",
+	"description":			"Packages installed on this DSP",
+	"version":				"1.0.0",
+	"minimum-stability":	"dev",
+	"require":           {
+{$_requires}
+	}
+}
+JSON;
+
+		if ( false === @file_put_contents( $_fileName, $_json ) )
+		{
+			$this->_io->write( '  - <error>Error while writing installed packages manifest.</error>' );
+			return false;
+		}
+
+		return $_json;
+	}
+
+	/**
 	 * @param PackageInterface $package
 	 *
 	 * @throws Exception
@@ -245,7 +345,7 @@ class Installer extends LibraryInstaller
 	 */
 	protected function _addManifest( PackageInterface $package )
 	{
-		$_fileName = $this->_getManifestName( $package );
+		$_fileName = $this->_getManifestName( $this->_packageType, $package );
 		$_manifest = $this->_buildManifest( $package );
 
 		if ( false === \file_put_contents( $_fileName, $_manifest ) )
@@ -264,7 +364,7 @@ class Installer extends LibraryInstaller
 	protected function _removeManifest( PackageInterface $package )
 	{
 		/** @var Filesystem $_fs */
-		$_fileName = $this->_getManifestName( $package, $_fs );
+		$_fileName = $this->_getManifestName( $this->_packageType, $package, $_fs );
 
 		if ( file_exists( $_fileName ) && false === $_fs->remove( $_fileName ) )
 		{
@@ -449,13 +549,6 @@ SQL;
 
 	/**
 	 * @param PackageInterface $package
-	 */
-	protected function _runPackageScripts( PackageInterface $package )
-	{
-	}
-
-	/**
-	 * @param PackageInterface $package
 	 *
 	 * @throws \InvalidArgumentException
 	 * @return bool
@@ -474,7 +567,7 @@ SQL;
 		if ( static::ALLOWED_PACKAGE_PREFIX != $this->_packagePrefix )
 		{
 			$this->_io->write( '  - <error>Package type "' . $this->_packagePrefix . '" invalid</error>' );
-			throw new \InvalidArgumentException( 'This package is not one that can be installed by this installer.' . PHP_EOL . '  * Name: ' . $this->_packageName );
+			throw new \InvalidArgumentException( 'The package "' . $this->_packageName . '" cannot be installed by this installer.' );
 		}
 
 		//	Get supported types
@@ -695,19 +788,35 @@ SQL;
 	/**
 	 * Creates a manifest file name
 	 *
-	 * @param PackageInterface $package
-	 * @param Filesystem       $fs
+	 * @param string                             $type
+	 * @param \Composer\Package\PackageInterface $package
+	 * @param Filesystem                         $fs
 	 *
 	 * @return string
 	 */
-	protected function _getManifestName( PackageInterface $package, &$fs = null )
+	protected function _getManifestName( $type, PackageInterface $package = null, &$fs = null )
 	{
-		$_fullPath = $this->_baseInstallPath . Option::get( $this->_supportedTypes, $this->_packageType ) . $this->_manifestPath;
+		$_fullPath = $this->_baseInstallPath . $this->_getPackageTypeSubPath( $type ? : $this->_packageType ) . $this->_manifestPath;
 
 		$fs = $_fs = $fs ? : new Filesystem();
 		$_fs->ensureDirectoryExists( $_fullPath );
 
-		return $_fullPath . '/' . str_replace( array( ' ', '/', '\\', '[', ']' ), '_', $package->getUniqueName() ) . '.json';
+		if ( null === $package )
+		{
+			return $_fullPath;
+		}
+
+		return $_fullPath . '/' . str_replace( array( ' ', '/', '\\', '[', ']' ), '_', $package->getUniqueName() ) . '.manifest.json';
+	}
+
+	/**
+	 * @param string $type
+	 *
+	 * @return string
+	 */
+	protected function _getPackageTypeSubPath( $type = null )
+	{
+		return Option::get( $this->_supportedTypes, $type ? : $this->_packageType );
 	}
 
 	/**
