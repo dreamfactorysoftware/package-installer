@@ -254,7 +254,7 @@ class Installer extends LibraryInstaller
 	{
 		$_fs = new Filesystem();
 		$_fs->ensureDirectoryExists( $this->_baseInstallPath . $this->_manifestPath );
-		$_fileName = str_replace( array( ' ', '/', '\\', '[', ']' ), '_', $package->getUniqueName() ) . '.manifest.json';
+		$_fileName = $this->_baseInstallPath . $this->_manifestPath . '/' . $this->_getManifestName( $package );
 
 		$_options = null;
 		$_dumper = new ArrayDumper();
@@ -276,7 +276,7 @@ class Installer extends LibraryInstaller
 			throw new Exception( 'Failure encoding manifest data: ' . print_r( $_packageData, true ) );
 		}
 
-		if ( false === \file_put_contents( $_fileName, $_data ) )
+		if ( false === \file_put_contents( $this->_baseInstallPath . $this->_manifestPath . '/' . $_fileName, $_data ) )
 		{
 			throw new \Composer\Downloader\FilesystemException( 'File system error writing manifest file: ' . $_fileName );
 		}
@@ -290,16 +290,11 @@ class Installer extends LibraryInstaller
 	 */
 	protected function _removeFromManifest( PackageInterface $package )
 	{
-		if ( !is_dir( $this->_baseInstallPath . $this->_manifestPath ) )
-		{
-			return;
-		}
-
-		$_fileName = $this->_packageName . '$' . $package->getVersion() . '$' . $package->getUniqueName() . '.manifest.json';
-
 		$_fs = new Filesystem();
+		$_fs->ensureDirectoryExists( $this->_baseInstallPath . $this->_manifestPath );
+		$_fileName = $this->_baseInstallPath . $this->_manifestPath . '/' . $this->_getManifestName( $package );
 
-		if ( false === $_fs->remove( $_fileName ) )
+		if ( file_exists( $_fileName ) && false === $_fs->remove( $_fileName ) )
 		{
 			$this->_io->write( '<error>File system error while removing manifest entry: ' . $_fileName . '</error>' );
 		}
@@ -564,6 +559,18 @@ class Installer extends LibraryInstaller
 		$_fs->ensureDirectoryExists( $_logDir );
 
 		Log::setDefaultLog( $_logDir . '/' . static::LOG_FILE_NAME );
+	}
+
+	/**
+	 * Creates a manifest file name
+	 *
+	 * @param PackageInterface $package
+	 *
+	 * @return string
+	 */
+	protected function _getManifestName( PackageInterface $package )
+	{
+		return str_replace( array( ' ', '/', '\\', '[', ']' ), '_', $package->getUniqueName() ) . '.manifest.json';
 	}
 
 }
