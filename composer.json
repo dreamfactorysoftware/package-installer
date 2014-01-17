@@ -27,6 +27,7 @@
 	"extra":             {
 		"class":             "DreamFactory\\Tools\\Composer\\Package\\Plugin",
 		"base-install-path": "/storage",
+		"manifest-path":     "/.private/manifest",
 		"supported-types":   {
 			"dreamfactory-application": "/applications",
 			"dreamfactory-library":     "/lib",
