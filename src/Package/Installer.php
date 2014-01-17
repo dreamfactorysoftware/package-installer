@@ -30,6 +30,7 @@ use Composer\Util\Filesystem;
 use DreamFactory\Tools\Composer\Enums\PackageTypeNames;
 use Kisma\Core\Exceptions\FileSystemException;
 use Kisma\Core\Utility\Option;
+use Kisma\Core\Utility\Sql;
 
 /**
  * Installer
@@ -146,10 +147,9 @@ class Installer extends LibraryInstaller
 	{
 		$this->_validatePackage( $package );
 
-		$this->_io->write( '<comment>Installing package</comment>: <info>' . $this->_packageName . '@' . $package->getVersion() . '</info>' );
-
 		parent::install( $repo, $package );
 
+		$this->_addService( $package );
 		$this->_createLinks( $package );
 		$this->_addToManifest( $package );
 		$this->_runPackageScripts( $package );
@@ -166,17 +166,15 @@ class Installer extends LibraryInstaller
 	{
 		$this->_validatePackage( $initial );
 
-		$this->_io->write(
-			'<comment>Updating package</comment>: <info>' . $this->_packageName . '@' . $initial->getVersion() . ' -> ' . $target->getVersion() . '</info>'
-		);
-
 		parent::update( $repo, $initial, $target );
 
 		//	Out with the old...
+		$this->_deleteService( $initial );
 		$this->_deleteLinks( $initial );
 		$this->_removeFromManifest( $initial );
 
 		//	In with the new...
+		$this->_addService( $target );
 		$this->_createLinks( $target );
 		$this->_addToManifest( $target );
 		$this->_runPackageScripts( $target );
@@ -190,10 +188,9 @@ class Installer extends LibraryInstaller
 	{
 		$this->_validatePackage( $package );
 
-		$this->_io->write( '<comment>Removing package</comment>: <info>' . $this->_packageName . '@' . $package->getVersion() . '</info>' );
-
 		parent::uninstall( $repo, $package );
 
+		$this->_deleteService( $package );
 		$this->_deleteLinks( $package );
 		$this->_removeFromManifest( $package );
 		$this->_runPackageScripts( $package );
@@ -289,7 +286,33 @@ class Installer extends LibraryInstaller
 
 		if ( file_exists( $_fileName ) && false === $_fs->remove( $_fileName ) )
 		{
-			$this->_io->write( '<error>File system error while removing manifest entry: ' . $_fileName . '</error>' );
+			$this->_io->write( '  - <error>File system error while removing manifest entry: ' . $_fileName . '</error>' );
+		}
+	}
+
+	/**
+	 * @param PackageInterface $package
+	 */
+	protected function _addService( PackageInterface $package )
+	{
+		if ( true !== Option::get( $this->_config, 'create-service', false ) )
+		{
+			$this->_io->write( '  - <info>No service creation requested</info>' );
+
+			return;
+		}
+	}
+
+	/**
+	 * @param PackageInterface $package
+	 */
+	protected function _deleteService( PackageInterface $package )
+	{
+		if ( true !== Option::get( $this->_config, 'create-service', false ) )
+		{
+			$this->_io->write( '  - <info>No service creation requested</info>' );
+
+			return;
 		}
 	}
 
@@ -313,7 +336,7 @@ class Installer extends LibraryInstaller
 
 		if ( $this->_io->isDebug() )
 		{
-			$this->_io->write( 'Validating package: ' . $this->_packageName . ' -- version ' . $package->getVersion() );
+			$this->_io->write( '  - Validating package payload' );
 		}
 
 		//	Only install DreamFactory packages if not a plug-in
