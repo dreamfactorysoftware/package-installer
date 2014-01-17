@@ -259,19 +259,19 @@ class Installer extends LibraryInstaller
 		$_options = null;
 		$_dumper = new ArrayDumper();
 
-		if ( defined( \JSON_PRETTY_PRINT ) )
-		{
-			$_options |= \JSON_PRETTY_PRINT;
-		}
-
 		if ( defined( \JSON_UNESCAPED_SLASHES ) )
 		{
-			$_options |= \JSON_UNESCAPED_SLASHES;
+			$_options += \JSON_UNESCAPED_SLASHES;
 		}
 
-		$_packageData = $_dumper->dump( $package, $_options );
+		if ( defined( \JSON_PRETTY_PRINT ) )
+		{
+			$_options += \JSON_PRETTY_PRINT;
+		}
 
-		if ( false === ( $_data = json_encode( $_packageData ) ) )
+		$_packageData = $_dumper->dump( $package );
+
+		if ( false === ( $_data = json_encode( $_packageData, $_options ) ) )
 		{
 			throw new Exception( 'Failure encoding manifest data: ' . print_r( $_packageData, true ) );
 		}
