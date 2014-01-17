@@ -23,6 +23,7 @@ namespace DreamFactory\Tools\Composer\Package;
 use Composer\Composer;
 use Composer\Installer\LibraryInstaller;
 use Composer\IO\IOInterface;
+use Composer\Package\Dumper\ArrayDumper;
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 use Composer\Util\Filesystem;
@@ -65,6 +66,10 @@ class Installer extends LibraryInstaller
 	 * @type string The name of the log file
 	 */
 	const LOG_FILE_NAME = 'package-installer.log';
+	/**
+	 * @var string
+	 */
+	const DEFAULT_MANIFEST_PATH = '/storage/.private/manifest';
 
 	//*************************************************************************
 	//* Members
@@ -112,6 +117,10 @@ class Installer extends LibraryInstaller
 	 */
 	protected $_config = array();
 	/**
+	 * @var string
+	 */
+	protected $_manifestPath = self::DEFAULT_MANIFEST_PATH;
+	/**
 	 * @var IOInterface
 	 */
 	protected $_io;
@@ -144,7 +153,7 @@ class Installer extends LibraryInstaller
 	{
 		$this->_validatePackage( $package );
 
-		$this->_io->write( 'Installing package: ' . $this->_packageName . ' -- version ' . $package->getVersion() );
+		$this->_io->write( '<comment>Installing package</comment>: <info>' . $this->_packageName . '@' . $package->getVersion() . '</info>' );
 
 		parent::install( $repo, $package );
 
@@ -164,7 +173,9 @@ class Installer extends LibraryInstaller
 	{
 		$this->_validatePackage( $initial );
 
-		Log::info( 'Updating package: ' . $this->_packageName . ' -- version ' . $initial->getVersion() . ' => ' . $target->getVersion() );
+		$this->_io->write(
+			'<comment>Updating package</comment>: <info>' . $this->_packageName . '@' . $initial->getVersion() . ' -> ' . $target->getVersion() . '</info>'
+		);
 
 		parent::update( $repo, $initial, $target );
 
@@ -186,7 +197,7 @@ class Installer extends LibraryInstaller
 	{
 		$this->_validatePackage( $package );
 
-		Log::info( 'Removing package: ' . $this->_packageName . ' -- version ' . $package->getVersion() );
+		$this->_io->write( '<comment>Removing package</comment>: <info>' . $this->_packageName . '@' . $package->getVersion() . '</info>' );
 
 		parent::uninstall( $repo, $package );
 
@@ -235,16 +246,63 @@ class Installer extends LibraryInstaller
 	/**
 	 * @param PackageInterface $package
 	 * @param PackageInterface $initial Initial package if operation was an update
+	 *
+	 * @throws Exception
+	 * @throws \Composer\Downloader\FilesystemException
 	 */
 	protected function _addToManifest( PackageInterface $package, PackageInterface $initial = null )
 	{
+		$_fs = new Filesystem();
+		$_fs->ensureDirectoryExists( $this->_baseInstallPath . $this->_manifestPath );
+		$_fileName = $this->_packageName . '$' . $package->getVersion() . '$' . $package->getUniqueName() . '.manifest.json';
+
+		$_options = null;
+		$_dumper = new ArrayDumper();
+
+		if ( defined( \JSON_PRETTY_PRINT ) )
+		{
+			$_options |= \JSON_PRETTY_PRINT;
+		}
+
+		if ( defined( \JSON_UNESCAPED_SLASHES ) )
+		{
+			$_options |= \JSON_UNESCAPED_SLASHES;
+		}
+
+		$_packageData = $_dumper->dump( $package, $_options );
+
+		if ( false === ( $_data = json_encode( $_packageData ) ) )
+		{
+			throw new Exception( 'Failure encoding manifest data: ' . print_r( $_packageData, true ) );
+		}
+
+		if ( false === \file_put_contents( $_fileName, $_data ) )
+		{
+			throw new \Composer\Downloader\FilesystemException( 'File system error writing manifest file: ' . $_fileName );
+		}
 	}
 
 	/**
 	 * @param PackageInterface $package
+	 *
+	 * @throws Exception
+	 * @throws \Composer\Downloader\FilesystemException
 	 */
 	protected function _removeFromManifest( PackageInterface $package )
 	{
+		if ( !is_dir( $this->_baseInstallPath . $this->_manifestPath ) )
+		{
+			return;
+		}
+
+		$_fileName = $this->_packageName . '$' . $package->getVersion() . '$' . $package->getUniqueName() . '.manifest.json';
+
+		$_fs = new Filesystem();
+
+		if ( false === $_fs->remove( $_fileName ) )
+		{
+			$this->_io->write( '<error>File system error while removing manifest entry: ' . $_fileName . '</error>' );
+		}
 	}
 
 	/**
