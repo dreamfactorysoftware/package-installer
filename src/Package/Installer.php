@@ -254,7 +254,7 @@ class Installer extends LibraryInstaller
 	{
 		$_fs = new Filesystem();
 		$_fs->ensureDirectoryExists( $this->_baseInstallPath . $this->_manifestPath );
-		$_fileName = $this->_packageName . '$' . $package->getVersion() . '$' . $package->getUniqueName() . '.manifest.json';
+		$_fileName = str_replace( array( ' ', '/', '\\', '[', ']' ), '_', $package->getUniqueName() ) . '.manifest.json';
 
 		$_options = null;
 		$_dumper = new ArrayDumper();
