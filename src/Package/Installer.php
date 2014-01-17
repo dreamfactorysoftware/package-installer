@@ -29,7 +29,6 @@ use Composer\Repository\InstalledRepositoryInterface;
 use Composer\Util\Filesystem;
 use DreamFactory\Tools\Composer\Enums\PackageTypeNames;
 use Kisma\Core\Exceptions\FileSystemException;
-use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Option;
 
 /**
@@ -62,10 +61,6 @@ class Installer extends LibraryInstaller
 	 * @var string
 	 */
 	const FABRIC_MARKER = '/var/www/.fabric_hosted';
-	/**
-	 * @type string The name of the log file
-	 */
-	const LOG_FILE_NAME = 'package-installer.log';
 	/**
 	 * @var string
 	 */
@@ -141,8 +136,6 @@ class Installer extends LibraryInstaller
 		$this->_io = $io;
 		$this->_fabricHosted = file_exists( static::FABRIC_MARKER );
 		$this->_baseInstallPath = \getcwd();
-
-		$this->_enableLogging();
 	}
 
 	/**
@@ -326,7 +319,7 @@ class Installer extends LibraryInstaller
 		//	Only install DreamFactory packages if not a plug-in
 		if ( static::ALLOWED_PACKAGE_PREFIX != $this->_packagePrefix )
 		{
-			Log::error( '  * Invalid package type' );
+			$this->_io->write( '  - <error>Package type "' . $this->_packagePrefix . '" invalid</error>' );
 			throw new \InvalidArgumentException( 'This package is not one that can be installed by this installer.' .
 												 PHP_EOL .
 												 '  * Name: ' .
@@ -341,7 +334,7 @@ class Installer extends LibraryInstaller
 				if ( !array_key_exists( $_type, $this->_supportedTypes ) )
 				{
 					$this->_supportedTypes[$_type] = $_path;
-					Log::debug( '  * Added package type "' . $_type . '"' );
+					$this->_io->write( '  - <info>Added support for package type "' . $_type . '"</info>' );
 				}
 			}
 		}
@@ -383,13 +376,13 @@ class Installer extends LibraryInstaller
 				/** @noinspection PhpIncludeInspection */
 				if ( false === ( $_config = @include( $_configFile ) ) )
 				{
-					Log::error( 'File system error reading package configuration file: ' . $_configFile );
+					$this->_io->write( '  - <error>File system error reading package configuration file: ' . $_configFile . '</error>' );
 					$_config = array();
 				}
 
 				if ( !is_array( $_config ) )
 				{
-					Log::error( 'The "config" file specified in this package is invalid: ' . $_configFile );
+					$this->_io->write( '  - <error>The "config" file specified in this package is invalid: ' . $_configFile . '</error>' );
 					throw new \InvalidArgumentException( 'The "config" file specified in this package is invalid.' );
 				}
 			}
@@ -411,8 +404,6 @@ class Installer extends LibraryInstaller
 
 			$_config['links'] = $_links = array( $this->_normalizeLink( $_link ) );
 		}
-
-//		Log::debug( 'Config completed: ' . print_r( $_config, true ) );
 
 		return $this->_config = $_config;
 	}
@@ -482,12 +473,15 @@ class Installer extends LibraryInstaller
 	{
 		if ( null === ( $_links = Option::get( $this->_config, 'links' ) ) )
 		{
-			Log::debug( '  * No links in package to create' );
+			if ( $this->_io->isDebug() )
+			{
+				$this->_io->write( '  - <info>Package contains no links</info>' );
+			}
 
 			return;
 		}
 
-		Log::info( '  * Creating links for package "' . $package->getPrettyName() . ' ' . $package->getVersion() );
+		$this->_io->write( '  - Creating package symlinks' );
 
 		//	Make the links
 		foreach ( Option::clean( $_links ) as $_link )
@@ -497,17 +491,17 @@ class Installer extends LibraryInstaller
 
 			if ( \is_link( $_linkName ) )
 			{
-				Log::debug( '  * Package "' . $this->_packageName . '" already linked.' );
+				$this->_io->write( '  - <info>Package already linked</info>' );
 				continue;
 			}
 
 			if ( false === @\symlink( $_target, $_linkName ) )
 			{
-				Log::error( '  * File system error creating symlink "' . $_linkName . '".' );
+				$this->_io->write( '  - <error>File system error creating symlink: ' . $_linkName . '</error>' );
 				throw new FileSystemException( 'Unable to create symlink: ' . $_linkName );
 			}
 
-			Log::debug( '  * Package "' . $this->_packageName . '" linked: ' . $_linkName . ' <= ' . $_target );
+			$this->_io->write( '  - <info>Package links created</info>' );
 		}
 	}
 
@@ -518,12 +512,15 @@ class Installer extends LibraryInstaller
 	{
 		if ( null === ( $_links = Option::get( $this->_config, 'links' ) ) )
 		{
-			Log::debug( '  * No links in package to remove' );
+			if ( $this->_io->isDebug() )
+			{
+				$this->_io->write( '  - <info>Package contains no links</info>' );
+			}
 
 			return;
 		}
 
-		Log::info( '  * Removing links for package "' . $package->getPrettyName() . ' ' . $package->getVersion() );
+		$this->_io->write( '  - Removing package symlinks' );
 
 		//	Make the links
 		foreach ( Option::clean( $_links ) as $_link )
@@ -534,31 +531,18 @@ class Installer extends LibraryInstaller
 			//	Already linked?
 			if ( !\is_link( $_linkName ) )
 			{
-				Log::warning( '  * Package "' . $this->_packageName . '" link not found: ' . $_linkName );
+				$this->_io->write( '  - <warning>Package link not found to remove:</warning> <info>' . $_linkName . '</info>' );
 				continue;
 			}
 
 			if ( false === @\unlink( $_linkName ) )
 			{
-				Log::error( '  * File system error removing symlink "' . $_linkName . '".' );
+				$this->_io->write( '  - <error>File system error removing symlink: ' . $_linkName . '</error>' );
 				throw new FileSystemException( 'Unable to remove symlink: ' . $_linkName );
 			}
 
-			Log::debug( '  * Package "' . $this->_packageName . '" link removed: ' . $_linkName . ' <= ' . $_target );
+			$this->_io->write( '  - <info>Package links removed</info>' );
 		}
-	}
-
-	/**
-	 * Enables logging
-	 */
-	protected function _enableLogging()
-	{
-		$_fs = new Filesystem();
-
-		$_logDir = $this->_baseInstallPath . '/log/';
-		$_fs->ensureDirectoryExists( $_logDir );
-
-		Log::setDefaultLog( $_logDir . '/' . static::LOG_FILE_NAME );
 	}
 
 	/**
