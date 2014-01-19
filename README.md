@@ -21,7 +21,7 @@ See [https://getcomposer.org/](https://getcomposer.org/) for more information an
 ### Installation and Usage
 
 No installation is required. To have the DFPI install your package,
-you need to set the `composer.json` property [`type`](http://getcomposer.org/doc/04-schema.md#type) to one of the
+you need to set the `composer.json` property [type](http://getcomposer.org/doc/04-schema.md#type) to one of the
 following types:
 
  * `dreamfactory-application`
@@ -33,16 +33,10 @@ following types:
 Applications are DSP applications that consist of only client-side code. These are installed to your
 DSP's `/storage/applications` directory.
 
-#### Libraries
+#### Plugins/Libraries
 
-Libraries are DSP extensions and code libraries that have no
-client-side code. These are installed to your
-DSP's `/storage/lib` directory.
-
-#### Plugins
-
-Plug-ins are libraries with client-side code. These are installed to your
-DSP's `/storage/plugin` directory.
+Plugins, or libraries are DSP extensions that consist of code or code and UI components. These are installed to your
+DSP's `/storage/plugins` directory.
 
 ### Specifying Your Package Details
 

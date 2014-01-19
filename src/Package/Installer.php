@@ -27,7 +27,9 @@ use Composer\Package\Dumper\ArrayDumper;
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 use Composer\Util\Filesystem;
-use DreamFactory\Tools\Composer\Enums\PackageTypeNames;
+use DreamFactory\Tools\Composer\Enums\PackageTypes;
+use Kisma\Core\Enums\GlobFlags;
+use Kisma\Core\Exceptions\DataStoreException;
 use Kisma\Core\Exceptions\FileSystemException;
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;
@@ -36,6 +38,8 @@ use Kisma\Core\Utility\Sql;
  * Installer
  * Class/plug-in/library/jetpack installer
  */
+
+/** @noinspection PhpDocMissingThrowsInspection */
 class Installer extends LibraryInstaller
 {
 	//*************************************************************************
@@ -51,13 +55,17 @@ class Installer extends LibraryInstaller
 	 */
 	const DEFAULT_INSTALL_PATH = '/storage';
 	/**
+	 * @var string The base installation path
+	 */
+	const DYNAMIC_COMPOSER_PATH = '/storage/.private/packages.json';
+	/**
 	 * @var string
 	 */
 	const DEFAULT_PLUGIN_LINK_PATH = '/web';
 	/**
 	 * @var int The default package type
 	 */
-	const DEFAULT_PACKAGE_TYPE = PackageTypeNames::APPLICATION;
+	const DEFAULT_PACKAGE_TYPE = PackageTypes::APPLICATION;
 	/**
 	 * @var string
 	 */
@@ -65,7 +73,7 @@ class Installer extends LibraryInstaller
 	/**
 	 * @var string
 	 */
-	const DEFAULT_MANIFEST_PATH = '/storage/.private/manifest';
+	const DEFAULT_MANIFEST_PATH = '/.manifest';
 
 	//*************************************************************************
 	//* Members
@@ -79,10 +87,10 @@ class Installer extends LibraryInstaller
 	 * @var array The types of packages I can install. Can be changed via composer.json:extra.supported-types[]
 	 */
 	protected $_supportedTypes = array(
-		PackageTypeNames::APPLICATION => '/applications',
-		PackageTypeNames::JETPACK     => '/lib',
-		PackageTypeNames::LIBRARY     => '/lib',
-		PackageTypeNames::PLUGIN      => '/plugins',
+		PackageTypes::APPLICATION => '/applications',
+		PackageTypes::JETPACK     => '/lib',
+		PackageTypes::LIBRARY     => '/lib',
+		PackageTypes::PLUGIN      => '/plugins',
 	);
 	/**
 	 * @var int string package type
@@ -149,10 +157,9 @@ class Installer extends LibraryInstaller
 
 		parent::install( $repo, $package );
 
-		$this->_addService( $package );
+		$this->_addApplication( $package );
 		$this->_createLinks( $package );
-		$this->_addToManifest( $package );
-		$this->_runPackageScripts( $package );
+		$this->_addManifest( $package );
 	}
 
 	/**
@@ -169,15 +176,14 @@ class Installer extends LibraryInstaller
 		parent::update( $repo, $initial, $target );
 
 		//	Out with the old...
-		$this->_deleteService( $initial );
+		$this->_deleteApplication( $initial );
 		$this->_deleteLinks( $initial );
-		$this->_removeFromManifest( $initial );
+		$this->_removeManifest( $initial );
 
 		//	In with the new...
-		$this->_addService( $target );
+		$this->_addApplication( $target );
 		$this->_createLinks( $target );
-		$this->_addToManifest( $target );
-		$this->_runPackageScripts( $target );
+		$this->_addManifest( $target );
 	}
 
 	/**
@@ -190,10 +196,9 @@ class Installer extends LibraryInstaller
 
 		parent::uninstall( $repo, $package );
 
-		$this->_deleteService( $package );
+		$this->_deleteApplication( $package );
 		$this->_deleteLinks( $package );
-		$this->_removeFromManifest( $package );
-		$this->_runPackageScripts( $package );
+		$this->_removeManifest( $package );
 	}
 
 	/**
@@ -234,20 +239,150 @@ class Installer extends LibraryInstaller
 	}
 
 	/**
+	 * @return array
+	 */
+	protected function _getInstalledPackages()
+	{
+		$_packages = array_merge(
+			$_apps = $this->_getInstalledPackagesByType( PackageTypes::APPLICATION ),
+			$_libs = $this->_getInstalledPackagesByType( PackageTypes::LIBRARY ),
+			$_pins = $this->_getInstalledPackagesByType( PackageTypes::PLUGIN )
+		);
+
+		return $_packages;
+	}
+
+	/**
+	 * Returns all installed packages by type
+	 *
+	 * @param string $type
+	 *
+	 * @return array
+	 */
+	protected function _getInstalledPackagesByType( $type )
+	{
+		$_packages = array();
+		$_pattern = '/((.+)*\$(.+)*)\.manifest\.json/';
+
+		$_path = $this->_getManifestName( $type );
+
+		\Kisma\Core\Utility\FileSystem::glob( $_pattern, GlobFlags::GLOB_NODOTS );
+
+		if ( false !== ( $_files = scandir( $_path ) ) && !empty( $_files ) )
+		{
+			foreach ( $_files as $_file )
+			{
+				if ( false === stripos( $_file, '.manifest.json' ) )
+				{
+					continue;
+				}
+
+				if ( false === ( $_json = json_decode( file_get_contents( $_path . '/' . $_file ) ) ) )
+				{
+					$this->_io->write( '  - <error>Unable to retrieve package manifest: ' . $_file );
+					continue;
+				}
+
+				$_packages[$_json->name] = $_json;
+			}
+		}
+
+		return $_packages;
+	}
+
+	/**
+	 * Generates a composer.json file for the packages installed on the DSP
+	 */
+	public function generateComposerJson()
+	{
+		$_requires = null;
+		$_fileName = $this->_baseInstallPath . static::DYNAMIC_COMPOSER_PATH;
+
+		if ( file_exists( $_fileName ) )
+		{
+			if ( false === @rename( $_fileName, $_fileName . '.backup' ) )
+			{
+				$this->_io->write( '  - <error>Error backing up original packages.json file</error>' );
+			}
+		}
+
+		$_packages = $this->_getInstalledPackages();
+
+		foreach ( $_packages as $_name => $_package )
+		{
+			$_requires .= '		"' . $_name . '": "' . $_package->version . '",' . PHP_EOL;
+		}
+
+		//	Remove last comma
+		$_requires = rtrim( $_requires, ',' );
+
+		$_json = <<<JSON
+{
+	"name":					"dsp.local/installed-packages",
+	"type":					"metapackage",
+	"description":			"Packages installed on this DSP",
+	"version":				"1.0.0",
+	"minimum-stability":	"dev",
+	"require":           {
+{$_requires}
+	}
+}
+JSON;
+
+		if ( false === @file_put_contents( $_fileName, $_json ) )
+		{
+			$this->_io->write( '  - <error>Error while writing installed packages manifest.</error>' );
+
+			return false;
+		}
+
+		return $_json;
+	}
+
+	/**
 	 * @param PackageInterface $package
-	 * @param PackageInterface $initial Initial package if operation was an update
 	 *
 	 * @throws Exception
 	 * @throws \Composer\Downloader\FilesystemException
 	 */
-	protected function _addToManifest( PackageInterface $package, PackageInterface $initial = null )
+	protected function _addManifest( PackageInterface $package )
 	{
-		$_fs = new Filesystem();
-		$_fs->ensureDirectoryExists( $this->_baseInstallPath . $this->_manifestPath );
-		$_fileName = $this->_baseInstallPath . $this->_manifestPath . '/' . $this->_getManifestName( $package );
+		$_fileName = $this->_getManifestName( $this->_packageType, $package );
+		$_manifest = $this->_buildManifest( $package );
 
-		$_options = null;
-		$_dumper = new ArrayDumper();
+		if ( false === \file_put_contents( $_fileName, $_manifest ) )
+		{
+			$this->_io->write( '  - <error>File system error writing manifest file</error>' );
+			throw new \Composer\Downloader\FilesystemException( 'File system error writing manifest file: ' . $_fileName );
+		}
+	}
+
+	/**
+	 * @param PackageInterface $package
+	 *
+	 * @throws Exception
+	 * @throws \Composer\Downloader\FilesystemException
+	 */
+	protected function _removeManifest( PackageInterface $package )
+	{
+		/** @var Filesystem $_fs */
+		$_fileName = $this->_getManifestName( $this->_packageType, $package, $_fs );
+
+		if ( file_exists( $_fileName ) && false === $_fs->remove( $_fileName ) )
+		{
+			$this->_io->write( '  - <error>File system error while removing manifest entry: ' . $_fileName . '</error>' );
+		}
+	}
+
+	/**
+	 * @param PackageInterface $package
+	 *
+	 * @throws \Exception
+	 * @return string
+	 */
+	protected function _buildManifest( PackageInterface $package )
+	{
+		$_options = 0;
 
 		if ( defined( \JSON_UNESCAPED_SLASHES ) )
 		{
@@ -259,68 +394,159 @@ class Installer extends LibraryInstaller
 			$_options += \JSON_PRETTY_PRINT;
 		}
 
-		$_packageData = $_dumper->dump( $package );
+		$_dumper = new ArrayDumper();
+		$_dumpData = $_dumper->dump( $package );
 
-		if ( false === ( $_data = json_encode( $_packageData, $_options ) ) )
+		if ( false === ( $_jsonData = json_encode( $_dumpData, $_options ) ) )
 		{
-			throw new Exception( 'Failure encoding manifest data: ' . print_r( $_packageData, true ) );
+			$this->_io->write( '  - <error>Failure while encoding manifest data</error>' );
+			throw new \Exception( 'Failure encoding manifest data: ' . print_r( $_dumpData, true ) );
 		}
 
-		if ( false === \file_put_contents( $_fileName, $_data ) )
-		{
-			throw new \Composer\Downloader\FilesystemException( 'File system error writing manifest file: ' . $_fileName );
-		}
+		return $_jsonData;
 	}
 
 	/**
 	 * @param PackageInterface $package
 	 *
-	 * @throws Exception
-	 * @throws \Composer\Downloader\FilesystemException
+	 * @return bool
 	 */
-	protected function _removeFromManifest( PackageInterface $package )
+	protected function _addApplication( PackageInterface $package )
 	{
-		$_fs = new Filesystem();
-		$_fs->ensureDirectoryExists( $this->_baseInstallPath . $this->_manifestPath );
-		$_fileName = $this->_baseInstallPath . $this->_manifestPath . '/' . $this->_getManifestName( $package );
-
-		if ( file_exists( $_fileName ) && false === $_fs->remove( $_fileName ) )
+		if ( null !== ( $_app = Option::get( $this->_config, 'application' ) ) )
 		{
-			$this->_io->write( '  - <error>File system error while removing manifest entry: ' . $_fileName . '</error>' );
-		}
-	}
-
-	/**
-	 * @param PackageInterface $package
-	 */
-	protected function _addService( PackageInterface $package )
-	{
-		if ( true !== Option::get( $this->_config, 'create-service', false ) )
-		{
-			$this->_io->write( '  - <info>No service creation requested</info>' );
+			$this->_io->write( '  - <info>No registration requested</info>' );
 
 			return;
 		}
+
+		$_sql = <<<SQL
+INSERT INTO df_sys_app (
+  `api_name`,
+  `name`,
+  `description`,
+  `is_active`,
+  `url`,
+  `is_url_external`,
+  `import_url`,
+  `storage_service_id`,
+  `storage_container`,
+  `requires_fullscreen`,
+  `allow_fullscreen_toggle`,
+  `toggle_location`,
+  `requires_plugin`
+) VALUES (
+  :api_name,
+  :name,
+  :description,
+  :is_active,
+  :url,
+  :is_url_external,
+  :import_url,
+  :storage_service_id,
+  :storage_container,
+  :requires_fullscreen,
+  :allow_fullscreen_toggle,
+  :toggle_location,
+  :requires_plugin
+)
+SQL;
+		$_data = array(
+			':api_name'                => $_apiName = Option::get( $_app, 'api-name', $this->_packageSuffix ),
+			':name'                    => Option::get( $_app, 'name', $this->_packageSuffix ),
+			':description'             => Option::get( $_app, 'description' ),
+			':is_active'               => Option::getBool( $_app, 'is-active' ),
+			':url'                     => Option::get( $_app, 'url' ),
+			':is_url_external'         => Option::getBool( $_app, 'is-url-external' ),
+			':import_url'              => Option::get( $_app, 'import-url' ),
+			':requires_fullscreen'     => Option::getBool( $_app, 'requires-fullscreen' ),
+			':allow_fullscreen_toggle' => Option::getBool( $_app, 'allow-fullscreen-toggle' ),
+			':toggle_location'         => Option::get( $_app, 'toggle-location' ),
+			':requires_plugin'         => 1,
+		);
+
+		try
+		{
+			/** @noinspection PhpIncludeInspection */
+			$_dbConfig = require( 'config/database.config.php' );
+
+			Sql::setConnectionString(
+				Option::get( $_dbConfig, 'connectionString' ),
+				Option::get( $_dbConfig, 'username' ),
+				Option::get( $_dbConfig, 'password' )
+			);
+
+			if ( false === ( $_result = Sql::execute( $_sql, $_data ) ) )
+			{
+				$this->_io->write( '  - <error>Error storing application to database: </error>' . print_r( $_data, true ) );
+				throw new DataStoreException( 'Error saving application row: ' . print_r( $_data, true ), 500 );
+			}
+		}
+		catch ( Exception $_ex )
+		{
+			$this->_io->write( '  - <error>Error registering package. Manual registration required.' );
+
+			return false;
+		}
+
+		$this->_io->write( '  - <info>Package registered as "' . $_apiName . '" with DSP.</info>' );
+
+		return true;
 	}
 
 	/**
 	 * @param PackageInterface $package
+	 *
+	 * @return bool
 	 */
-	protected function _deleteService( PackageInterface $package )
+	protected function _deleteApplication( PackageInterface $package )
 	{
-		if ( true !== Option::get( $this->_config, 'create-service', false ) )
+		if ( null === ( $_app = Option::get( $this->_config, 'application' ) ) )
 		{
-			$this->_io->write( '  - <info>No service creation requested</info>' );
+			$this->_io->write( '  - <info>No registration requested</info>' );
 
 			return;
 		}
-	}
 
-	/**
-	 * @param PackageInterface $package
-	 */
-	protected function _runPackageScripts( PackageInterface $package )
-	{
+		$_sql = <<<SQL
+UPDATE df_sys_app SET
+	`is_active` = :is_active
+WHERE
+	`api_name` = :api_name
+SQL;
+
+		$_data = array(
+			':api_name'  => $_apiName = Option::get( $_app, 'api-name', $this->_packageSuffix ),
+			':is_active' => 0
+		);
+
+		try
+		{
+			/** @noinspection PhpIncludeInspection */
+			$_dbConfig = require( 'config/database.config.php' );
+
+			Sql::setConnectionString(
+				Option::get( $_dbConfig, 'connectionString' ),
+				Option::get( $_dbConfig, 'username' ),
+				Option::get( $_dbConfig, 'password' )
+			);
+
+			if ( false === ( $_result = Sql::execute( $_sql, $_data ) ) )
+			{
+				$this->_io->write( '  - <error>Error storing application to database: </error>' . print_r( $_data, true ) );
+				throw new DataStoreException( 'Error saving application row: ' . print_r( $_data, true ), 500 );
+			}
+		}
+		catch ( Exception $_ex )
+		{
+			$this->_io->write( '  - <error>Error unregistering package. Manual unregistration required.</error>' );
+
+			return false;
+		}
+
+		$this->_io->write( '  - <info>Package unregistered as "' . $_apiName . '" from DSP.</info>' );
+
+		return true;
 	}
 
 	/**
@@ -343,10 +569,7 @@ class Installer extends LibraryInstaller
 		if ( static::ALLOWED_PACKAGE_PREFIX != $this->_packagePrefix )
 		{
 			$this->_io->write( '  - <error>Package type "' . $this->_packagePrefix . '" invalid</error>' );
-			throw new \InvalidArgumentException( 'This package is not one that can be installed by this installer.' .
-												 PHP_EOL .
-												 '  * Name: ' .
-												 $this->_packageName );
+			throw new \InvalidArgumentException( 'The package "' . $this->_packageName . '" cannot be installed by this installer.' );
 		}
 
 		//	Get supported types
@@ -418,7 +641,7 @@ class Installer extends LibraryInstaller
 		$_links = Option::get( $_config, 'links' );
 
 		//	If no links found, create default for plugin
-		if ( empty( $_links ) && PackageTypeNames::PLUGIN == $this->_packageType )
+		if ( empty( $_links ) && PackageTypes::PLUGIN == $this->_packageType )
 		{
 			$_link = array(
 				'target' => null,
@@ -478,11 +701,7 @@ class Installer extends LibraryInstaller
 	{
 		//	Adjust relative directory to absolute
 		$_target =
-			rtrim( $this->_baseInstallPath, '/' ) .
-			'/' .
-			trim( $this->_packageInstallPath, '/' ) .
-			'/' .
-			ltrim( Option::get( $link, 'target', $this->_packageSuffix ), '/' );
+			rtrim( $this->_baseInstallPath, '/' ) . '/' . trim( $this->_packageInstallPath, '/' ) . '/' . ltrim( Option::get( $link, 'target', $this->_packageSuffix ), '/' );
 
 		$_linkName = trim( static::DEFAULT_PLUGIN_LINK_PATH, '/' ) . '/' . Option::get( $link, 'link', $this->_packageSuffix );
 
@@ -571,13 +790,127 @@ class Installer extends LibraryInstaller
 	/**
 	 * Creates a manifest file name
 	 *
-	 * @param PackageInterface $package
+	 * @param string                             $type
+	 * @param \Composer\Package\PackageInterface $package
+	 * @param Filesystem                         $fs
 	 *
 	 * @return string
 	 */
-	protected function _getManifestName( PackageInterface $package )
+	protected function _getManifestName( $type, PackageInterface $package = null, &$fs = null )
 	{
-		return str_replace( array( ' ', '/', '\\', '[', ']' ), '_', $package->getUniqueName() ) . '.manifest.json';
+		$_fullPath = $this->_baseInstallPath . $this->_getPackageTypeSubPath( $type ? : $this->_packageType ) . $this->_manifestPath;
+
+		$fs = $_fs = $fs ? : new Filesystem();
+		$_fs->ensureDirectoryExists( $_fullPath );
+
+		if ( null === $package )
+		{
+			return $_fullPath;
+		}
+
+		return $_fullPath . '/' . str_replace(
+			array( ' ', '\\', '[', ']', '/' ),
+			array( '_', '_', '_', '_', '$' ),
+			$package->getUniqueName()
+		) . '.manifest.json';
+	}
+
+	/**
+	 * @param string $type
+	 *
+	 * @return string
+	 */
+	protected function _getPackageTypeSubPath( $type = null )
+	{
+		return Option::get( $this->_supportedTypes, $type ? : $this->_packageType );
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getBaseInstallPath()
+	{
+		return $this->_baseInstallPath;
+	}
+
+	/**
+	 * @return array
+	 */
+	public function getConfig()
+	{
+		return $this->_config;
+	}
+
+	/**
+	 * @return boolean
+	 */
+	public function getFabricHosted()
+	{
+		return $this->_fabricHosted;
+	}
+
+	/**
+	 * @return \Composer\IO\IOInterface
+	 */
+	public function getIo()
+	{
+		return $this->_io;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getManifestPath()
+	{
+		return $this->_manifestPath;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getPackageInstallPath()
+	{
+		return $this->_packageInstallPath;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getPackageName()
+	{
+		return $this->_packageName;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getPackagePrefix()
+	{
+		return $this->_packagePrefix;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getPackageSuffix()
+	{
+		return $this->_packageSuffix;
+	}
+
+	/**
+	 * @return int
+	 */
+	public function getPackageType()
+	{
+		return $this->_packageType;
+	}
+
+	/**
+	 * @return array
+	 */
+	public function getSupportedTypes()
+	{
+		return $this->_supportedTypes;
 	}
 
 }
