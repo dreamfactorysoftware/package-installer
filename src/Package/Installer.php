@@ -36,10 +36,8 @@ use Kisma\Core\Utility\Sql;
 
 /**
  * Installer
- * Class/plug-in/library/jetpack installer
+ * DreamFactory Package Installer
  */
-
-/** @noinspection PhpDocMissingThrowsInspection */
 class Installer extends LibraryInstaller
 {
 	//*************************************************************************
@@ -57,7 +55,7 @@ class Installer extends LibraryInstaller
 	/**
 	 * @var string The base installation path
 	 */
-	const DYNAMIC_COMPOSER_PATH = '/storage/.private/packages.json';
+	const DYNAMIC_COMPOSER_PATH = '/storage/.private/composer.json';
 	/**
 	 * @var string
 	 */
@@ -409,6 +407,7 @@ JSON;
 	/**
 	 * @param PackageInterface $package
 	 *
+	 * @throws \Kisma\Core\Exceptions\DataStoreException
 	 * @return bool
 	 */
 	protected function _addApplication( PackageInterface $package )
@@ -701,11 +700,7 @@ SQL;
 	{
 		//	Adjust relative directory to absolute
 		$_target =
-			rtrim( $this->_baseInstallPath, '/' ) .
-			'/' .
-			trim( $this->_packageInstallPath, '/' ) .
-			'/' .
-			ltrim( Option::get( $link, 'target', $this->_packageSuffix ), '/' );
+			rtrim( $this->_baseInstallPath, '/' ) . '/' . trim( $this->_packageInstallPath, '/' ) . '/' . ltrim( Option::get( $link, 'target', $this->_packageSuffix ), '/' );
 
 		$_linkName = trim( static::DEFAULT_PLUGIN_LINK_PATH, '/' ) . '/' . Option::get( $link, 'link', $this->_packageSuffix );
 
@@ -827,6 +822,28 @@ SQL;
 	protected function _getPackageTypeSubPath( $type = null )
 	{
 		return Option::get( $this->_supportedTypes, $type ? : $this->_packageType );
+	}
+
+	protected function _findPlatformBasePath()
+	{
+		$_path = dirname( __DIR__ );
+
+		while ( true )
+		{
+			if ( file_exists( $_path . '/config/schema/system_schema.json' ) && is_dir( $_path . '/storage/.private' ) )
+			{
+				if ( file_exists( static::FABRIC_MARKER ) )
+				{
+					throw new Exception( 'Packages cannot be installed on a free-hosted DSP.' );
+				}
+
+				break;
+			}
+
+			$_path = dirname( $_path );
+		}
+
+		return $_path;
 	}
 
 	/**

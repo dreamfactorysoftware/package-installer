@@ -1,0 +1,14 @@
+{
+	"config":  {
+		"home":            "./",
+		"cache-dir":       "./../../.composer/cache",
+		"vendor-dir":      "../",
+		"discard-changes": true,
+		"exclude":         [".idea"]
+	},
+	"require": {
+		"php":                            ">=5.3.18",
+		"kisma/kisma":                    ">=0.2.7",
+		"dreamfactory/package-installer": "*"
+	}
+}
