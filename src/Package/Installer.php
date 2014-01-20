@@ -88,8 +88,8 @@ class Installer extends LibraryInstaller
 	 */
 	protected $_supportedTypes = array(
 		PackageTypes::APPLICATION => '/applications',
-		PackageTypes::JETPACK     => '/lib',
-		PackageTypes::LIBRARY     => '/lib',
+		PackageTypes::JETPACK     => '/plugins',
+		PackageTypes::LIBRARY     => '/plugins',
 		PackageTypes::PLUGIN      => '/plugins',
 	);
 	/**
@@ -701,7 +701,11 @@ SQL;
 	{
 		//	Adjust relative directory to absolute
 		$_target =
-			rtrim( $this->_baseInstallPath, '/' ) . '/' . trim( $this->_packageInstallPath, '/' ) . '/' . ltrim( Option::get( $link, 'target', $this->_packageSuffix ), '/' );
+			rtrim( $this->_baseInstallPath, '/' ) .
+			'/' .
+			trim( $this->_packageInstallPath, '/' ) .
+			'/' .
+			ltrim( Option::get( $link, 'target', $this->_packageSuffix ), '/' );
 
 		$_linkName = trim( static::DEFAULT_PLUGIN_LINK_PATH, '/' ) . '/' . Option::get( $link, 'link', $this->_packageSuffix );
 
