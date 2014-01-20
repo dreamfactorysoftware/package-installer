@@ -154,7 +154,7 @@ class Installer extends LibraryInstaller
 
 		parent::install( $repo, $package );
 
-		$this->_addApplication( $package );
+//		$this->_addApplication( $package );
 		$this->_createLinks( $package );
 	}
 
@@ -170,14 +170,14 @@ class Installer extends LibraryInstaller
 		$this->_validatePackage( $initial );
 
 		//	Out with the old...
-		$this->_deleteApplication( $initial );
+//		$this->_deleteApplication( $initial );
 		$this->_deleteLinks( $initial );
 
 		parent::update( $repo, $initial, $target );
 
 		//	In with the new...
 		$this->_validatePackage( $target );
-		$this->_addApplication( $target );
+//		$this->_addApplication( $target );
 		$this->_createLinks( $target );
 	}
 
@@ -191,7 +191,7 @@ class Installer extends LibraryInstaller
 
 		parent::uninstall( $repo, $package );
 
-		$this->_deleteApplication( $package );
+//		$this->_deleteApplication( $package );
 		$this->_deleteLinks( $package );
 	}
 
