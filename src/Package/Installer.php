@@ -502,24 +502,23 @@ SQL;
 				'link'   => Option::get( $_config, 'api_name', $this->_packageSuffix )
 			);
 
-			$_config['links'] = $_links = array( $this->_normalizeLink( $_link ) );
+			$_config['links'] = $_links = array( $this->_normalizeLink( $package, $_link ) );
 		}
 
 		return $this->_config = $_config;
 	}
 
 	/**
-	 * @param array $link
+	 * @param \Composer\Package\PackageInterface $package
+	 * @param array                              $link
 	 *
 	 * @return array
 	 */
-	protected function _normalizeLink( $link )
+	protected function _normalizeLink( PackageInterface $package, $link )
 	{
 		//	Adjust relative directory to absolute
-		$_target =
-			rtrim( $this->_baseInstallPath, '/' ) . '/' . trim( $this->_packageInstallPath, '/' ) . '/' . ltrim( Option::get( $link, 'target', $this->_packageSuffix ), '/' );
-
-		$_linkName = trim( static::DEFAULT_PLUGIN_LINK_PATH, '/' ) . '/' . Option::get( $link, 'link', $this->_packageSuffix );
+		$_target = $this->getInstallPath( $package ) . '/' . Option::get( $link, 'target' );
+		$_linkName = $this->_platformBasePath . static::DEFAULT_PLUGIN_LINK_PATH . '/' . Option::get( $link, 'link', $this->_packageSuffix );
 
 		return array( $_target, $_linkName );
 	}
@@ -545,7 +544,7 @@ SQL;
 		foreach ( Option::clean( $_links ) as $_link )
 		{
 			//	Adjust relative directory to absolute
-			list( $_target, $_linkName ) = $this->_normalizeLink( $_link );
+			list( $_target, $_linkName ) = $this->_normalizeLink( $package, $_link );
 
 			if ( \is_link( $_linkName ) )
 			{
@@ -584,7 +583,7 @@ SQL;
 		foreach ( Option::clean( $_links ) as $_link )
 		{
 			//	Adjust relative directory to absolute
-			list( $_target, $_linkName ) = $this->_normalizeLink( $_link );
+			list( $_target, $_linkName ) = $this->_normalizeLink( $package, $_link );
 
 			//	Already linked?
 			if ( !\is_link( $_linkName ) )
