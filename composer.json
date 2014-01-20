@@ -25,7 +25,6 @@
 	},
 	"extra":             {
 		"class":             "DreamFactory\\Tools\\Composer\\Package\\Plugin",
-		"base-install-path": "/storage",
 		"supported-types":   {
 			"dreamfactory-application": "/applications",
 			"dreamfactory-library":     "/plugins",

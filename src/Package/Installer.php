@@ -37,6 +37,12 @@ use Kisma\Core\Utility\Sql;
 /**
  * Installer
  * DreamFactory Package Installer
+ *
+ * Under each DSP installation lies a /storage directory. This plug-in installs DreamFactory DSP packages into this space
+ *
+ * /storage/plugins                                    Installation base (plug-in vendors)
+ * /storage/plugins/.manifest/composer.json            Main config file
+ *
  */
 class Installer extends LibraryInstaller
 {
@@ -49,13 +55,9 @@ class Installer extends LibraryInstaller
 	 */
 	const ALLOWED_PACKAGE_PREFIX = 'dreamfactory';
 	/**
-	 * @var string The base installation path
+	 * @var string
 	 */
-	const DEFAULT_INSTALL_PATH = '/storage';
-	/**
-	 * @var string The base installation path
-	 */
-	const DYNAMIC_COMPOSER_PATH = '/storage/.private/composer.json';
+	const DEFAULT_DATABASE_CONFIG_FILE = '/config/database.config.php';
 	/**
 	 * @var string
 	 */
@@ -68,10 +70,6 @@ class Installer extends LibraryInstaller
 	 * @var string
 	 */
 	const FABRIC_MARKER = '/var/www/.fabric_hosted';
-	/**
-	 * @var string
-	 */
-	const DEFAULT_MANIFEST_PATH = '/.manifest';
 
 	//*************************************************************************
 	//* Members
@@ -107,21 +105,21 @@ class Installer extends LibraryInstaller
 	 */
 	protected $_packageSuffix;
 	/**
+	 * @var string The base directory of the DSP installation
+	 */
+	protected $_platformBasePath = '../../../';
+	/**
 	 * @var string The base installation path, where composer.json lives
 	 */
-	protected $_baseInstallPath;
+	protected $_baseInstallPath = './';
 	/**
-	 * @var string The path of the install relative to $installBasePath, i.e. /storage/[.private/library|applications]/full-package-name
+	 * @var string The path of the install relative to $installBasePath, i.e. ../[applications|plugins]/vendor/package-name
 	 */
-	protected $_packageInstallPath;
+	protected $_packageInstallPath = '../';
 	/**
 	 * @var array
 	 */
 	protected $_config = array();
-	/**
-	 * @var string
-	 */
-	protected $_manifestPath = self::DEFAULT_MANIFEST_PATH;
 	/**
 	 * @var IOInterface
 	 */
@@ -143,6 +141,7 @@ class Installer extends LibraryInstaller
 		$this->_io = $io;
 		$this->_fabricHosted = file_exists( static::FABRIC_MARKER );
 		$this->_baseInstallPath = \getcwd();
+		$this->_platformBasePath = $this->_findPlatformBasePath();
 	}
 
 	/**
@@ -157,7 +156,6 @@ class Installer extends LibraryInstaller
 
 		$this->_addApplication( $package );
 		$this->_createLinks( $package );
-		$this->_addManifest( $package );
 	}
 
 	/**
@@ -171,17 +169,16 @@ class Installer extends LibraryInstaller
 	{
 		$this->_validatePackage( $initial );
 
-		parent::update( $repo, $initial, $target );
-
 		//	Out with the old...
 		$this->_deleteApplication( $initial );
 		$this->_deleteLinks( $initial );
-		$this->_removeManifest( $initial );
+
+		parent::update( $repo, $initial, $target );
 
 		//	In with the new...
+		$this->_validatePackage( $target );
 		$this->_addApplication( $target );
 		$this->_createLinks( $target );
-		$this->_addManifest( $target );
 	}
 
 	/**
@@ -196,7 +193,6 @@ class Installer extends LibraryInstaller
 
 		$this->_deleteApplication( $package );
 		$this->_deleteLinks( $package );
-		$this->_removeManifest( $package );
 	}
 
 	/**
@@ -209,7 +205,7 @@ class Installer extends LibraryInstaller
 			$this->_validatePackage( $package );
 		}
 
-		return $this->_packageInstallPath;
+		return parent::getInstallPath( $package );
 	}
 
 	/**
@@ -233,175 +229,26 @@ class Installer extends LibraryInstaller
 			$this->_validatePackage( $package );
 		}
 
-		return is_dir( $this->_packageInstallPath . '/.git' );
+		return parent::isInstalled( $repo, $package );
 	}
 
 	/**
-	 * @return array
-	 */
-	protected function _getInstalledPackages()
-	{
-		$_packages = array_merge(
-			$_apps = $this->_getInstalledPackagesByType( PackageTypes::APPLICATION ),
-			$_libs = $this->_getInstalledPackagesByType( PackageTypes::LIBRARY ),
-			$_pins = $this->_getInstalledPackagesByType( PackageTypes::PLUGIN )
-		);
-
-		return $_packages;
-	}
-
-	/**
-	 * Returns all installed packages by type
+	 * @param string $basePath
 	 *
-	 * @param string $type
-	 *
-	 * @return array
+	 * @return bool|string
 	 */
-	protected function _getInstalledPackagesByType( $type )
+	protected function _getDatabaseConfig( $basePath = null )
 	{
-		$_packages = array();
-		$_pattern = '/((.+)*\$(.+)*)\.manifest\.json/';
+		$_configFile = ( $basePath ? : $this->_platformBasePath ) . static::DEFAULT_DATABASE_CONFIG_FILE;
 
-		$_path = $this->_getManifestName( $type );
-
-		\Kisma\Core\Utility\FileSystem::glob( $_pattern, GlobFlags::GLOB_NODOTS );
-
-		if ( false !== ( $_files = scandir( $_path ) ) && !empty( $_files ) )
+		if ( !file_exists( $_configFile ) )
 		{
-			foreach ( $_files as $_file )
-			{
-				if ( false === stripos( $_file, '.manifest.json' ) )
-				{
-					continue;
-				}
-
-				if ( false === ( $_json = json_decode( file_get_contents( $_path . '/' . $_file ) ) ) )
-				{
-					$this->_io->write( '  - <error>Unable to retrieve package manifest: ' . $_file );
-					continue;
-				}
-
-				$_packages[$_json->name] = $_json;
-			}
-		}
-
-		return $_packages;
-	}
-
-	/**
-	 * Generates a composer.json file for the packages installed on the DSP
-	 */
-	public function generateComposerJson()
-	{
-		$_requires = null;
-		$_fileName = $this->_baseInstallPath . static::DYNAMIC_COMPOSER_PATH;
-
-		if ( file_exists( $_fileName ) )
-		{
-			if ( false === @rename( $_fileName, $_fileName . '.backup' ) )
-			{
-				$this->_io->write( '  - <error>Error backing up original packages.json file</error>' );
-			}
-		}
-
-		$_packages = $this->_getInstalledPackages();
-
-		foreach ( $_packages as $_name => $_package )
-		{
-			$_requires .= '		"' . $_name . '": "' . $_package->version . '",' . PHP_EOL;
-		}
-
-		//	Remove last comma
-		$_requires = rtrim( $_requires, ',' );
-
-		$_json = <<<JSON
-{
-	"name":					"dsp.local/installed-packages",
-	"type":					"metapackage",
-	"description":			"Packages installed on this DSP",
-	"version":				"1.0.0",
-	"minimum-stability":	"dev",
-	"require":           {
-{$_requires}
-	}
-}
-JSON;
-
-		if ( false === @file_put_contents( $_fileName, $_json ) )
-		{
-			$this->_io->write( '  - <error>Error while writing installed packages manifest.</error>' );
+			$this->_io->write( '  - <info>No database configuration found. Registration not complete.</info>' );
 
 			return false;
 		}
 
-		return $_json;
-	}
-
-	/**
-	 * @param PackageInterface $package
-	 *
-	 * @throws Exception
-	 * @throws \Composer\Downloader\FilesystemException
-	 */
-	protected function _addManifest( PackageInterface $package )
-	{
-		$_fileName = $this->_getManifestName( $this->_packageType, $package );
-		$_manifest = $this->_buildManifest( $package );
-
-		if ( false === \file_put_contents( $_fileName, $_manifest ) )
-		{
-			$this->_io->write( '  - <error>File system error writing manifest file</error>' );
-			throw new \Composer\Downloader\FilesystemException( 'File system error writing manifest file: ' . $_fileName );
-		}
-	}
-
-	/**
-	 * @param PackageInterface $package
-	 *
-	 * @throws Exception
-	 * @throws \Composer\Downloader\FilesystemException
-	 */
-	protected function _removeManifest( PackageInterface $package )
-	{
-		/** @var Filesystem $_fs */
-		$_fileName = $this->_getManifestName( $this->_packageType, $package, $_fs );
-
-		if ( file_exists( $_fileName ) && false === $_fs->remove( $_fileName ) )
-		{
-			$this->_io->write( '  - <error>File system error while removing manifest entry: ' . $_fileName . '</error>' );
-		}
-	}
-
-	/**
-	 * @param PackageInterface $package
-	 *
-	 * @throws \Exception
-	 * @return string
-	 */
-	protected function _buildManifest( PackageInterface $package )
-	{
-		$_options = 0;
-
-		if ( defined( \JSON_UNESCAPED_SLASHES ) )
-		{
-			$_options += \JSON_UNESCAPED_SLASHES;
-		}
-
-		if ( defined( \JSON_PRETTY_PRINT ) )
-		{
-			$_options += \JSON_PRETTY_PRINT;
-		}
-
-		$_dumper = new ArrayDumper();
-		$_dumpData = $_dumper->dump( $package );
-
-		if ( false === ( $_jsonData = json_encode( $_dumpData, $_options ) ) )
-		{
-			$this->_io->write( '  - <error>Failure while encoding manifest data</error>' );
-			throw new \Exception( 'Failure encoding manifest data: ' . print_r( $_dumpData, true ) );
-		}
-
-		return $_jsonData;
+		return $_configFile;
 	}
 
 	/**
@@ -412,11 +259,16 @@ JSON;
 	 */
 	protected function _addApplication( PackageInterface $package )
 	{
+		if ( false === ( $_configFile = $this->_getDatabaseConfig() ) )
+		{
+			return false;
+		}
+
 		if ( null !== ( $_app = Option::get( $this->_config, 'application' ) ) )
 		{
 			$this->_io->write( '  - <info>No registration requested</info>' );
 
-			return;
+			return true;
 		}
 
 		$_sql = <<<SQL
@@ -467,7 +319,7 @@ SQL;
 		try
 		{
 			/** @noinspection PhpIncludeInspection */
-			$_dbConfig = require( 'config/database.config.php' );
+			$_dbConfig = require( $_configFile );
 
 			Sql::setConnectionString(
 				Option::get( $_dbConfig, 'connectionString' ),
@@ -496,15 +348,21 @@ SQL;
 	/**
 	 * @param PackageInterface $package
 	 *
+	 * @throws \Kisma\Core\Exceptions\DataStoreException
 	 * @return bool
 	 */
 	protected function _deleteApplication( PackageInterface $package )
 	{
-		if ( null === ( $_app = Option::get( $this->_config, 'application' ) ) )
+		if ( false === ( $_configFile = $this->_getDatabaseConfig() ) )
+		{
+			return false;
+		}
+
+		if ( null !== ( $_app = Option::get( $this->_config, 'application' ) ) )
 		{
 			$this->_io->write( '  - <info>No registration requested</info>' );
 
-			return;
+			return true;
 		}
 
 		$_sql = <<<SQL
@@ -583,9 +441,6 @@ SQL;
 				}
 			}
 		}
-
-		//	Build the installation path...
-		$this->_buildInstallPath( $this->_packagePrefix, $this->_packageSuffix );
 	}
 
 	/**
@@ -651,44 +506,6 @@ SQL;
 		}
 
 		return $this->_config = $_config;
-	}
-
-	/**
-	 * Build the install path
-	 *
-	 * User libraries are installed into /storage/.private/library/<vendor>/<package>
-	 * Applications   are installed into /storage/applications/<vendor>/<package>
-	 *
-	 * @param string $vendor
-	 * @param string $package
-	 * @param bool   $createIfMissing
-	 *
-	 * @throws \InvalidArgumentException
-	 * @throws \Kisma\Core\Exceptions\FileSystemException
-	 * @return string
-	 */
-	protected function _buildInstallPath( $vendor, $package, $createIfMissing = true )
-	{
-		//	Build path
-		$_basePath = \realpath( getcwd() );
-		$_subPath = Option::get( $this->_supportedTypes, $this->_packageType );
-
-		//	Construct relative install path (base + sub + package name = /storage/[sub]/vendor/package-name). Remove leading/trailing slashes and spaces
-		$_installPath = trim(
-			Option::get( $this->_config, 'base-install-path', static::DEFAULT_INSTALL_PATH ) . $_subPath . '/' . $vendor . '/' . $package,
-			' /'
-		/** intentional space */
-		);
-
-		if ( $createIfMissing && !is_dir( $_basePath . '/' . $_installPath ) )
-		{
-			if ( false === @mkdir( $_basePath . '/' . $_installPath, 0775, true ) )
-			{
-				throw new FileSystemException( 'Unable to create installation path "' . $_basePath . '/' . $_installPath . '"' );
-			}
-		}
-
-		return $this->_packageInstallPath = $_installPath;
 	}
 
 	/**
@@ -787,34 +604,6 @@ SQL;
 	}
 
 	/**
-	 * Creates a manifest file name
-	 *
-	 * @param string                             $type
-	 * @param \Composer\Package\PackageInterface $package
-	 * @param Filesystem                         $fs
-	 *
-	 * @return string
-	 */
-	protected function _getManifestName( $type, PackageInterface $package = null, &$fs = null )
-	{
-		$_fullPath = $this->_baseInstallPath . $this->_getPackageTypeSubPath( $type ? : $this->_packageType ) . $this->_manifestPath;
-
-		$fs = $_fs = $fs ? : new Filesystem();
-		$_fs->ensureDirectoryExists( $_fullPath );
-
-		if ( null === $package )
-		{
-			return $_fullPath;
-		}
-
-		return $_fullPath . '/' . str_replace(
-			array( ' ', '\\', '[', ']', '/' ),
-			array( '_', '_', '_', '_', '$' ),
-			$package->getUniqueName()
-		) . '.manifest.json';
-	}
-
-	/**
 	 * @param string $type
 	 *
 	 * @return string
@@ -824,6 +613,12 @@ SQL;
 		return Option::get( $this->_supportedTypes, $type ? : $this->_packageType );
 	}
 
+	/**
+	 * Locates the installed DSP's base directory
+	 *
+	 * @return string
+	 * @throws Exception
+	 */
 	protected function _findPlatformBasePath()
 	{
 		$_path = dirname( __DIR__ );
@@ -844,94 +639,6 @@ SQL;
 		}
 
 		return $_path;
-	}
-
-	/**
-	 * @return string
-	 */
-	public function getBaseInstallPath()
-	{
-		return $this->_baseInstallPath;
-	}
-
-	/**
-	 * @return array
-	 */
-	public function getConfig()
-	{
-		return $this->_config;
-	}
-
-	/**
-	 * @return boolean
-	 */
-	public function getFabricHosted()
-	{
-		return $this->_fabricHosted;
-	}
-
-	/**
-	 * @return \Composer\IO\IOInterface
-	 */
-	public function getIo()
-	{
-		return $this->_io;
-	}
-
-	/**
-	 * @return string
-	 */
-	public function getManifestPath()
-	{
-		return $this->_manifestPath;
-	}
-
-	/**
-	 * @return string
-	 */
-	public function getPackageInstallPath()
-	{
-		return $this->_packageInstallPath;
-	}
-
-	/**
-	 * @return string
-	 */
-	public function getPackageName()
-	{
-		return $this->_packageName;
-	}
-
-	/**
-	 * @return string
-	 */
-	public function getPackagePrefix()
-	{
-		return $this->_packagePrefix;
-	}
-
-	/**
-	 * @return string
-	 */
-	public function getPackageSuffix()
-	{
-		return $this->_packageSuffix;
-	}
-
-	/**
-	 * @return int
-	 */
-	public function getPackageType()
-	{
-		return $this->_packageType;
-	}
-
-	/**
-	 * @return array
-	 */
-	public function getSupportedTypes()
-	{
-		return $this->_supportedTypes;
 	}
 
 }
