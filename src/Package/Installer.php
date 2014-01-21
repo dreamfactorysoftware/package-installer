@@ -23,13 +23,10 @@ namespace DreamFactory\Tools\Composer\Package;
 use Composer\Composer;
 use Composer\Installer\LibraryInstaller;
 use Composer\IO\IOInterface;
-use Composer\Package\Dumper\ArrayDumper;
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 use Composer\Util\Filesystem;
 use DreamFactory\Tools\Composer\Enums\PackageTypes;
-use Kisma\Core\Enums\GlobFlags;
-use Kisma\Core\Exceptions\DataStoreException;
 use Kisma\Core\Exceptions\FileSystemException;
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;
@@ -141,7 +138,9 @@ class Installer extends LibraryInstaller
 		$this->_io = $io;
 		$this->_fabricHosted = file_exists( static::FABRIC_MARKER );
 		$this->_baseInstallPath = \getcwd();
-		$this->_platformBasePath = $this->_findPlatformBasePath();
+
+		//	Make sure proper storage paths are available
+		$this->_validateInstallationTree( $io, $composer );
 	}
 
 	/**
@@ -154,8 +153,7 @@ class Installer extends LibraryInstaller
 
 		parent::install( $repo, $package );
 
-		$this->_addApplication( $package );
-		$this->_createLinks( $package );
+		$this->_addApplication();
 	}
 
 	/**
@@ -172,13 +170,11 @@ class Installer extends LibraryInstaller
 		parent::update( $repo, $initial, $target );
 
 		//	Out with the old...
-		$this->_deleteApplication( $initial );
-		$this->_deleteLinks( $initial );
+		$this->_deleteApplication();
 
 		//	In with the new...
 		$this->_validatePackage( $target );
-		$this->_addApplication( $target );
-		$this->_createLinks( $target );
+		$this->_addApplication();
 	}
 
 	/**
@@ -191,8 +187,7 @@ class Installer extends LibraryInstaller
 
 		parent::uninstall( $repo, $package );
 
-		$this->_deleteApplication( $package );
-		$this->_deleteLinks( $package );
+		$this->_deleteApplication();
 	}
 
 	/**
@@ -201,6 +196,24 @@ class Installer extends LibraryInstaller
 	public function supports( $packageType )
 	{
 		return \array_key_exists( $packageType, $this->_supportedTypes );
+	}
+
+	/**
+	 * @param PackageInterface $package
+	 */
+	protected function installBinaries( PackageInterface $package )
+	{
+		parent::installBinaries( $package );
+		$this->_createLinks( $package );
+	}
+
+	/**
+	 * @param PackageInterface $package
+	 */
+	protected function removeBinaries( PackageInterface $package )
+	{
+		parent::removeBinaries( $package );
+		$this->_deleteLinks( $package );
 	}
 
 	/**
@@ -237,12 +250,10 @@ class Installer extends LibraryInstaller
 	}
 
 	/**
-	 * @param PackageInterface $package
-	 *
 	 * @throws \Kisma\Core\Exceptions\DataStoreException
 	 * @return bool
 	 */
-	protected function _addApplication( PackageInterface $package )
+	protected function _addApplication()
 	{
 		if ( null !== ( $_app = Option::get( $this->_config, 'application' ) ) || !$this->_checkDatabase() )
 		{
@@ -284,12 +295,25 @@ INSERT INTO df_sys_app (
   :toggle_location,
   :requires_plugin
 )
+ON DUPLICATE KEY UPDATE
+  `description` = VALUES(`description`),
+  `is_active` = VALUES(`is_active`),
+  `url` = VALUES(`url`),
+  `is_url_external` = VALUES(`is_url_external`),
+  `import_url` = VALUES(`import_url`),
+  `storage_service_id` = VALUES(`storage_service_id`),
+  `storage_container` = VALUES(`storage_container`),
+  `requires_fullscreen` = VALUES(`requires_fullscreen`),
+  `allow_fullscreen_toggle` = VALUES(`allow_fullscreen_toggle`),
+  `toggle_location` = VALUES(`toggle_location`),
+  `requires_plugin` = VALUES(`require_plugin`)
 SQL;
+
 		$_data = array(
 			':api_name'                => $_apiName = Option::get( $_app, 'api-name', $this->_packageSuffix ),
 			':name'                    => Option::get( $_app, 'name', $this->_packageSuffix ),
 			':description'             => Option::get( $_app, 'description' ),
-			':is_active'               => Option::getBool( $_app, 'is-active' ),
+			':is_active'               => Option::getBool( $_app, 'is-active', false ),
 			':url'                     => Option::get( $_app, 'url' ),
 			':is_url_external'         => Option::getBool( $_app, 'is-url-external' ),
 			':import_url'              => Option::get( $_app, 'import-url' ),
@@ -303,7 +327,9 @@ SQL;
 		{
 			if ( false === ( $_result = Sql::execute( $_sql, $_data ) ) )
 			{
-				$_message = ( null === ( $_statement = Sql::getStatement() ) ? 'Unknown database error' : 'Database error: ' . print_r( $_statement->errorInfo(), true ) );
+				$_message =
+					( null === ( $_statement = Sql::getStatement() )
+						? 'Unknown database error' : 'Database error: ' . print_r( $_statement->errorInfo(), true ) );
 
 				throw new \Exception( $_message );
 			}
@@ -321,12 +347,12 @@ SQL;
 	}
 
 	/**
-	 * @param PackageInterface $package
+	 * Soft-deletes a registered package
 	 *
 	 * @throws \Kisma\Core\Exceptions\DataStoreException
 	 * @return bool
 	 */
-	protected function _deleteApplication( PackageInterface $package )
+	protected function _deleteApplication()
 	{
 		if ( null !== ( $_app = Option::get( $this->_config, 'application' ) ) || !$this->_checkDatabase() )
 		{
@@ -354,7 +380,9 @@ SQL;
 		{
 			if ( false === ( $_result = Sql::execute( $_sql, $_data ) ) )
 			{
-				$_message = ( null === ( $_statement = Sql::getStatement() ) ? 'Unknown database error' : 'Database error: ' . print_r( $_statement->errorInfo(), true ) );
+				$_message =
+					( null === ( $_statement = Sql::getStatement() )
+						? 'Unknown database error' : 'Database error: ' . print_r( $_statement->errorInfo(), true ) );
 
 				throw new \Exception( $_message );
 			}
@@ -366,24 +394,7 @@ SQL;
 			return false;
 		}
 
-		$this->_io->write( '  - <info>Package registered as "' . $_apiName . '" with DSP.</info>' );
-
-		return true;
-
-			if ( false === ( $_result = Sql::execute( $_sql, $_data ) ) )
-			{
-				$this->_io->write( '  - <error>Error storing application to database: </error>' . print_r( $_data, true ) );
-				throw new DataStoreException( 'Error saving application row: ' . print_r( $_data, true ), 500 );
-			}
-		}
-		catch ( Exception $_ex )
-		{
-			$this->_io->write( '  - <error>Error unregistering package. Manual unregistration required.</error>' );
-
-			return false;
-		}
-
-		$this->_io->write( '  - <info>Package unregistered as "' . $_apiName . '" from DSP.</info>' );
+		$this->_io->write( '  - <info>Package "' . $_apiName . '" unregistered from DSP.</info>' );
 
 		return true;
 	}
@@ -620,6 +631,26 @@ SQL;
 		}
 
 		return $_path;
+	}
+
+	/**
+	 * @param IOInterface $io
+	 * @param Composer    $composer
+	 *
+	 * @throws \Kisma\Core\Exceptions\FileSystemException
+	 */
+	protected function _validateInstallationTree( IOInterface $io, Composer $composer )
+	{
+		if ( file_exists( static::FABRIC_MARKER ) )
+		{
+			$this->io->write( '  - <warning>This installer is not available for DreamFactory-hosted DSPs</warning>' );
+			throw new FileSystemException( 'Installation not possible on hosted DSPs.' );
+		}
+
+		$_fs = new Filesystem();
+
+		$_basePath = realpath( $this->_platformBasePath = $this->_findPlatformBasePath() );
+		$_fs->ensureDirectoryExists( $_basePath . '/storage/plugins/.manifest' );
 	}
 
 }
