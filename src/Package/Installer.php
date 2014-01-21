@@ -268,7 +268,12 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		$this->_log( 'Installer::getPackageBasePath called.', true );
 		$this->_validatePackage( $package );
 
-		return $this->_packageInstallPath . $this->_getPackageTypeSubPath( $package->getType() ) . '/' . $package->getPrettyName();
+		return
+			rtrim( $this->_packageInstallPath, '/' ) .
+			'/' .
+			trim( $this->_getPackageTypeSubPath( $package->getType() ), '/' ) .
+			'/' .
+			$package->getPrettyName();
 	}
 
 	/**
