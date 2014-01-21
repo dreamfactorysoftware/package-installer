@@ -83,6 +83,11 @@ class Plugin implements PluginInterface, EventSubscriberInterface
 			static::$_platformBasePath = static::_findPlatformBasePath( $event->getIO(), \getcwd() );
 			$event->getIO()->write( '  - <info>Production installation: ' . static::$_platformBasePath . '</info>' );
 		}
+		else
+		{
+			$event->getIO()->write( '  - <info>Development installation: ' . static::$_platformBasePath . '</info>' );
+		}
+
 	}
 
 	/**
