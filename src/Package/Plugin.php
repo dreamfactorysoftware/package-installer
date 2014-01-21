@@ -30,17 +30,8 @@ use Composer\Plugin\PluginInterface;
  * Plugin
  * DreamFactory Services Platform installer injection plug-in
  */
-class Plugin implements PluginInterface, EventSubscriberInterface
+class Plugin implements PluginInterface
 {
-	/**
-	 * @var bool False if "--no-dev" is specified
-	 */
-	protected static $_devMode = true;
-	/**
-	 * @var string The base directory of the DSP installation
-	 */
-	protected static $_platformBasePath = '../../../';
-
 	//*************************************************************************
 	//	Methods
 	//*************************************************************************
@@ -54,72 +45,4 @@ class Plugin implements PluginInterface, EventSubscriberInterface
 		$_installer = new Installer( $io, $composer );
 		$composer->getInstallationManager()->addInstaller( $_installer );
 	}
-
-	/**
-	 * {@InheritDoc}
-	 */
-	public static function getSubscribedEvents()
-	{
-		return array(
-			PluginEvents::COMMAND => array( array( 'onCommand', 0 ) ),
-		);
-	}
-
-	/**
-	 * @param \Composer\Script\CommandEvent $event
-	 */
-	public static function onCommand( $event )
-	{
-		static $_commands = array( 'update', 'install' );
-
-		if ( !in_array( $event->getCommandName(), $_commands ) )
-		{
-			return;
-		}
-
-		if ( true !== ( static::$_devMode = !$event->isDevMode() ) )
-		{
-			static::$_platformBasePath = static::_findPlatformBasePath( $event->getIO(), \getcwd() );
-			$event->getIO()->write( '  - <info>Production installation: ' . static::$_platformBasePath . '</info>' );
-		}
-		else
-		{
-			$event->getIO()->write( '  - <info>Development installation: ' . static::$_platformBasePath . '</info>' );
-		}
-
-	}
-
-	/**
-	 * Locates the installed DSP's base directory
-	 *
-	 * @param \Composer\IO\IOInterface $io
-	 * @param string                   $startPath
-	 *
-	 * @throws \ErrorException
-	 * @return string
-	 */
-	protected static function _findPlatformBasePath( IOInterface $io, $startPath = null )
-	{
-		$_path = $startPath ? : dirname( __DIR__ );
-
-		while ( true )
-		{
-			if ( file_exists( $_path . '/config/schema/system_schema.json' ) && is_dir( $_path . '/storage/.private' ) )
-			{
-				break;
-			}
-
-			//	If we get to the root, ain't no DSP...
-			if ( '/' == ( $_path = dirname( $_path ) ) )
-			{
-				$io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
-				throw new \ErrorException( 'Unable to find the DSP installation directory.' );
-
-				break;
-			}
-		}
-
-		return $_path;
-	}
-
 }

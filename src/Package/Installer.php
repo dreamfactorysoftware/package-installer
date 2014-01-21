@@ -22,6 +22,7 @@ namespace DreamFactory\Tools\Composer\Package;
 
 use Composer\Composer;
 use Composer\EventDispatcher\EventSubscriberInterface;
+use Composer\Installer\InstallationManager;
 use Composer\Installer\LibraryInstaller;
 use Composer\IO\IOInterface;
 use Composer\Package\PackageInterface;
@@ -104,10 +105,6 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	protected $_packageSuffix;
 	/**
-	 * @var string The base directory of the DSP installation
-	 */
-	protected $_platformBasePath = '../../../';
-	/**
 	 * @var string The base installation path, where composer.json lives
 	 */
 	protected $_baseInstallPath = './';
@@ -123,6 +120,10 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 * @var bool True if this install was started with "require-dev", false if "no-dev"
 	 */
 	protected static $_devMode = false;
+	/**
+	 * @var string The base directory of the DSP installation
+	 */
+	protected static $_platformBasePath = '../../../';
 
 	//*************************************************************************
 	//* Methods
@@ -162,7 +163,13 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	public static function onOperation( Event $event, $devMode )
 	{
 		$event->getIO()->write( '  - <info>Operation event fired</info>' );
+
 		static::$_devMode = $devMode;
+		static::$_platformBasePath = static::_findPlatformBasePath( $event->getIO(), \getcwd() );
+
+		$event->getIO()->write(
+			'  - ' . ( static::$_devMode ? 'Development' : 'Production' ) . ' installation: ' . static::$_platformBasePath
+		);
 	}
 
 	/**
@@ -262,7 +269,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 
 		if ( !file_exists( $_configFile ) )
 		{
-			$this->io->write( '  - <info>No database configuration found. Registration not complete.</info>' );
+			$this->io->write( '  - No database configuration found. Registration not complete.</info>' );
 
 			return false;
 		}
