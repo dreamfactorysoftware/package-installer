@@ -23,17 +23,18 @@
 			"DreamFactory\\Tools\\Composer\\": "src/"
 		}
 	},
+	"require":           {
+		"composer-plugin-api": "1.0.0",
+		"kisma/kisma":         "*"
+	},
 	"extra":             {
-		"class":           "DreamFactory\\Tools\\Composer\\Package\\Plugin",
-		"supported-types": {
+		"class":                    "DreamFactory\\Tools\\Composer\\Package\\Plugin",
+		"_comment.supported-types": "supported-types provides a way to extend the types of plug-ins to install and their location.",
+		"supported-types":          {
 			"dreamfactory-application": "/applications",
 			"dreamfactory-jetpack":     "/plugins",
 			"dreamfactory-library":     "/plugins",
 			"dreamfactory-plugin":      "/plugins"
 		}
-	},
-	"require":           {
-		"composer-plugin-api": "1.0.0",
-		"kisma/kisma":         "*"
 	}
 }
