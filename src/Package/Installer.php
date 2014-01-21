@@ -118,7 +118,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	/**
 	 * @var bool True if this install was started with "require-dev", false if "no-dev"
 	 */
-	protected static $_devMode = false;
+	protected static $_devMode = true;
 	/**
 	 * @var string The base directory of the DSP installation
 	 */
@@ -276,20 +276,44 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	}
 
 	/**
+	 * @return bool|mixed
+	 */
+	protected function _getRegistrationInfo()
+	{
+		if ( null === ( $_app = Option::get( $this->_config, 'application' ) ) )
+		{
+			$this->io->write( '  - No registration requested' );
+
+			return false;
+		}
+
+		if ( !$this->_checkDatabase() )
+		{
+			if ( $this->io->isDebug() )
+			{
+				$this->io->write( '  - Registration requested, but <warning>no database connection available</warning>.' );
+
+				return false;
+			}
+		}
+
+		return $_app;
+	}
+
+	/**
 	 * @throws \Kisma\Core\Exceptions\DataStoreException
 	 * @return bool
 	 */
 	protected function _addApplication()
 	{
-		if ( null !== ( $_app = Option::get( $this->_config, 'application' ) ) || !$this->_checkDatabase() )
+		$this->io->write('_addApplication');
+		if ( false === ( $_app = $this->_getRegistrationInfo() ) )
 		{
-			if ( null === $_app )
-			{
-				$this->io->write( '  - <info>No registration requested</info>' );
-			}
-
+		$this->io->write('_addApplication: nope');
 			return false;
 		}
+
+		$this->io->write('_addApplication: yep');
 
 		$_sql = <<<SQL
 INSERT INTO df_sys_app (
@@ -362,12 +386,12 @@ SQL;
 		}
 		catch ( \Exception $_ex )
 		{
-			$this->io->write( '  - <error>Package registration error with payload: ' . $_ex->getMessage() );
+			$this->io->write( '  - Package registration error with payload: ' . $_ex->getMessage() );
 
 			return false;
 		}
 
-		$this->io->write( '  - <info>Package registered as "' . $_apiName . '" with DSP.</info>' );
+		$this->io->write( '  - Package registered as "<info>' . $_apiName . '</info>" with DSP.' );
 
 		return true;
 	}
@@ -380,13 +404,8 @@ SQL;
 	 */
 	protected function _deleteApplication()
 	{
-		if ( null !== ( $_app = Option::get( $this->_config, 'application' ) ) || !$this->_checkDatabase() )
+		if ( false === ( $_app = $this->_getRegistrationInfo() ) )
 		{
-			if ( null === $_app )
-			{
-				$this->io->write( '  - <info>No registration requested</info>' );
-			}
-
 			return false;
 		}
 
@@ -415,12 +434,12 @@ SQL;
 		}
 		catch ( \Exception $_ex )
 		{
-			$this->io->write( '  - <error>Package registration error with payload: ' . $_ex->getMessage() );
+			$this->io->write( '  - Package registration error with payload: ' . $_ex->getMessage() );
 
 			return false;
 		}
 
-		$this->io->write( '  - <info>Package "' . $_apiName . '" unregistered from DSP.</info>' );
+		$this->io->write( '  - Package "<info>' . $_apiName . '</info>" unregistered from DSP.' );
 
 		return true;
 	}
@@ -434,7 +453,7 @@ SQL;
 		{
 			if ( $this->io->isDebug() )
 			{
-				$this->io->write( '  - <info>Package contains no links</info>' );
+				$this->io->write( '  - Package contains no links' );
 			}
 
 			return;
@@ -450,17 +469,23 @@ SQL;
 
 			if ( \is_link( $_linkName ) )
 			{
-				$this->io->write( '  - <info>Package already linked</info>' );
+				if ( $_target == ( $_priorTarget = readlink( $_linkName ) ) )
+				{
+					$this->io->write( '  - Package link exists: <info>' . $_linkName . '</info>' );
+					continue;
+				}
+
+				$this->io->write( '  - Link exists but target "<error>' . $_priorTarget . '</error>" is incorrect. Package links not created.' );
 				continue;
 			}
 
 			if ( false === @\symlink( $_target, $_linkName ) )
 			{
-				$this->io->write( '  - <error>File system error creating symlink: ' . $_linkName . '</error>' );
+				$this->io->write( '  - File system error creating symlink: <error>' . $_linkName . '</error>' );
 				throw new FileSystemException( 'Unable to create symlink: ' . $_linkName );
 			}
 
-			$this->io->write( '  - <info>Package links created</info>' );
+			$this->io->write( '  - Package linked to "<info>' . $_linkName . '</info>"' );
 		}
 	}
 
@@ -473,7 +498,7 @@ SQL;
 		{
 			if ( $this->io->isDebug() )
 			{
-				$this->io->write( '  - <info>Package contains no links</info>' );
+				$this->io->write( '  - Package contains no links' );
 			}
 
 			return;
@@ -490,17 +515,19 @@ SQL;
 			//	Already linked?
 			if ( !\is_link( $_linkName ) )
 			{
-				$this->io->write( '  - <warning>Package link not found to remove:</warning> <info>' . $_linkName . '</info>' );
+				$this->io->write(
+					'  - Expected link "<warning>' . $_linkName . '</warning>" not found. Ignoring.Package link <warning>' . $_linkName . '</warning>'
+				);
 				continue;
 			}
 
 			if ( false === @\unlink( $_linkName ) )
 			{
-				$this->io->write( '  - <error>File system error removing symlink: ' . $_linkName . '</error>' );
+				$this->io->write( '  - File system error removing symlink: <error>' . $_linkName . '</error>' );
 				throw new FileSystemException( 'Unable to remove symlink: ' . $_linkName );
 			}
 
-			$this->io->write( '  - <info>Package links removed</info>' );
+			$this->io->write( '  - Package links removed' );
 		}
 	}
 
@@ -520,10 +547,14 @@ SQL;
 			$this->io->write( '  - Validating package payload' );
 		}
 
+		$this->io->write(
+			'  - ' . ( static::$_devMode ? 'Development' : 'Production' ) . ' installation: ' . static::$_platformBasePath
+		);
+
 		//	Only install DreamFactory packages if not a plug-in
 		if ( static::ALLOWED_PACKAGE_PREFIX != $this->_packagePrefix )
 		{
-			$this->io->write( '  - <error>Package type "' . $this->_packagePrefix . '" invalid</error>' );
+			$this->io->write( '  - Package type "<error>' . $this->_packagePrefix . '</error>" invalid' );
 			throw new \InvalidArgumentException( 'The package "' . $this->_packageName . '" cannot be installed by this installer.' );
 		}
 
@@ -684,6 +715,14 @@ SQL;
 
 		$_basePath = realpath( static::$_platformBasePath = static::_findPlatformBasePath( $io ) );
 		$this->filesystem->ensureDirectoryExists( $_basePath . '/storage/plugins/.manifest' );
+	}
+
+	/**
+	 * @param boolean $devMode
+	 */
+	public static function setDevMode( $devMode )
+	{
+		static::$_devMode = $devMode;
 	}
 
 }
