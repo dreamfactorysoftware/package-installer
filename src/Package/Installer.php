@@ -265,7 +265,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	protected function _checkDatabase( $basePath = null )
 	{
-		$_configFile = ( $basePath ? : $this->_platformBasePath ) . static::DEFAULT_DATABASE_CONFIG_FILE;
+		$_configFile = ( $basePath ? : static::$_platformBasePath ) . static::DEFAULT_DATABASE_CONFIG_FILE;
 
 		if ( !file_exists( $_configFile ) )
 		{
@@ -632,7 +632,7 @@ SQL;
 	{
 		//	Adjust relative directory to absolute
 		$_target = $this->getInstallPath( $package ) . '/' . Option::get( $link, 'target' );
-		$_linkName = $this->_platformBasePath . static::DEFAULT_PLUGIN_LINK_PATH . '/' . Option::get( $link, 'link', $this->_packageSuffix );
+		$_linkName = static::$_platformBasePath . static::DEFAULT_PLUGIN_LINK_PATH . '/' . Option::get( $link, 'link', $this->_packageSuffix );
 
 		return array( $_target, $_linkName );
 	}
@@ -653,33 +653,33 @@ SQL;
 	 * @throws \Kisma\Core\Exceptions\FileSystemException
 	 * @return string
 	 */
-	protected function _findPlatformBasePath()
+protected staic function _findPlatformBasePath()
+{
+	$_path = dirname( __DIR__ );
+
+	while ( true )
 	{
-		$_path = dirname( __DIR__ );
-
-		while ( true )
+		if ( file_exists( $_path . '/config/schema/system_schema.json' ) && is_dir( $_path . '/storage/.private' ) )
 		{
-			if ( file_exists( $_path . '/config/schema/system_schema.json' ) && is_dir( $_path . '/storage/.private' ) )
-			{
-				break;
-			}
-
-			//	If we get to the root, ain't no DSP...
-			if ( '/' == ( $_path = dirname( $_path ) ) )
-			{
-				$this->io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
-
-				if ( !static::$_devMode )
-				{
-					throw new FileSystemException( 'Unable to find the DSP installation directory.' );
-				}
-			}
-
 			break;
 		}
 
-		return $_path;
+		//	If we get to the root, ain't no DSP...
+		if ( '/' == ( $_path = dirname( $_path ) ) )
+		{
+			$this->io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
+
+			if ( !static::$_devMode )
+			{
+				throw new FileSystemException( 'Unable to find the DSP installation directory.' );
+			}
+		}
+
+		break;
 	}
+
+	return $_path;
+}
 
 	/**
 	 * @param IOInterface $io
@@ -695,7 +695,7 @@ SQL;
 			throw new FileSystemException( 'Installation not possible on hosted DSPs.' );
 		}
 
-		$_basePath = realpath( $this->_platformBasePath = $this->_findPlatformBasePath() );
+		$_basePath = realpath( static::$_platformBasePath = static::_findPlatformBasePath() );
 		$this->filesystem->ensureDirectoryExists( $_basePath . '/storage/plugins/.manifest' );
 	}
 
