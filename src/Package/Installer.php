@@ -236,7 +236,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	protected static function _findPlatformBasePath( IOInterface $io, $startPath = null )
 	{
-		$_path = $startPath ? : dirname( __DIR__ );
+		$_path = $startPath ? : __DIR__;
 
 		while ( true )
 		{
@@ -299,9 +299,9 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		}
 
 		/** @noinspection PhpIncludeInspection */
-//		if ( false === ( $_dbConfig = @require( $_configFile ) ) )
+		if ( false === ( $_dbConfig = @require( $_configFile ) ) )
 		{
-			$this->_log( '<error>Unable to read database configuration file. Registration not complete.</error>' );
+			$this->_log( 'Not registered. Unable to read database configuration file: <error>' . $_configFile . '</error></error>' );
 
 			return false;
 		}
