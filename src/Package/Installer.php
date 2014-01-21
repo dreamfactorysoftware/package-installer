@@ -22,7 +22,6 @@ namespace DreamFactory\Tools\Composer\Package;
 
 use Composer\Composer;
 use Composer\EventDispatcher\EventSubscriberInterface;
-use Composer\Installer\InstallationManager;
 use Composer\Installer\LibraryInstaller;
 use Composer\IO\IOInterface;
 use Composer\Package\PackageInterface;
@@ -653,7 +652,7 @@ SQL;
 	 * @param \Composer\IO\IOInterface $io
 	 * @param string                   $startPath
 	 *
-	 * @throws \ErrorException
+	 * @throws \Kisma\Core\Exceptions\FileSystemException
 	 * @return string
 	 */
 	protected static function _findPlatformBasePath( IOInterface $io, $startPath = null )
@@ -671,7 +670,7 @@ SQL;
 			if ( '/' == ( $_path = dirname( $_path ) ) )
 			{
 				$io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
-				
+
 				if ( !static::$_devMode )
 				{
 					throw new FileSystemException( 'Unable to find the DSP installation directory.' );
@@ -698,7 +697,7 @@ SQL;
 			throw new FileSystemException( 'Installation not possible on hosted DSPs.' );
 		}
 
-		$_basePath = realpath( static::$_platformBasePath = static::_findPlatformBasePath() );
+		$_basePath = realpath( static::$_platformBasePath = static::_findPlatformBasePath( $io ) );
 		$this->filesystem->ensureDirectoryExists( $_basePath . '/storage/plugins/.manifest' );
 	}
 
