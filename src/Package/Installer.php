@@ -75,10 +75,6 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	//*************************************************************************
 
 	/**
-	 * @var bool
-	 */
-	protected $_fabricHosted = false;
-	/**
 	 * @var array The types of packages I can install. Can be changed via composer.json:extra.supported-types[]
 	 */
 	protected $_supportedTypes = array(
@@ -128,12 +124,18 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 * @param IOInterface $io
 	 * @param Composer    $composer
 	 * @param string      $type
+	 *
+	 * @throws \Exception
 	 */
 	public function __construct( IOInterface $io, Composer $composer, $type = 'library' )
 	{
 		parent::__construct( $io, $composer, $type );
 
-		$this->_fabricHosted = file_exists( static::FABRIC_MARKER );
+		if ( file_exists( static::FABRIC_MARKER ) )
+		{
+			throw new \Exception( 'This installer cannot be used on a hosted DSP system.', 500 );
+		}
+
 		$this->_baseInstallPath = \getcwd();
 
 		//	Make sure proper storage paths are available
@@ -173,7 +175,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	public function install( InstalledRepositoryInterface $repo, PackageInterface $package )
 	{
-//		$this->_validatePackage( $package );
+		$this->_log( 'Installing package <info>' . $package->getPrettyName() . '</info>', true );
 
 		parent::install( $repo, $package );
 
@@ -190,7 +192,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	public function update( InstalledRepositoryInterface $repo, PackageInterface $initial, PackageInterface $target )
 	{
-//		$this->_validatePackage( $initial );
+		$this->_log( 'Updating package <info>' . $initial->getPrettyName() . '</info>', true );
 
 		parent::update( $repo, $initial, $target );
 
@@ -199,7 +201,6 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		$this->_deleteApplication( $initial );
 
 		//	In with the new...
-		$this->_validatePackage( $target );
 		$this->_createLinks( $target );
 		$this->_addApplication( $target );
 	}
@@ -210,12 +211,26 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	public function uninstall( InstalledRepositoryInterface $repo, PackageInterface $package )
 	{
-		$this->_validatePackage( $package );
+		$this->_log( 'Removing package <info>' . $package->getPrettyName() . '</info>', true );
 
 		parent::uninstall( $repo, $package );
 
 		$this->_deleteLinks( $package );
 		$this->_deleteApplication( $package );
+	}
+
+	/**
+	 * @param PackageInterface $package
+	 *
+	 * @return string
+	 */
+	protected function getPackageBasePath( PackageInterface $package )
+	{
+		$this->_log( 'Installer::getPackageBasePath called.', true );
+
+		$this->_validatePackage( $package );
+
+		return $this->_packageInstallPath . $this->_getPackageTypeSubPath( $package->getType() ) . '/' . $this->_packageName;
 	}
 
 	/**
@@ -227,29 +242,19 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	}
 
 	/**
-	 * @param PackageInterface $package
-	 *
-	 * @return string
-	 */
-	protected function getPackageBasePath( PackageInterface $package )
-	{
-		$this->_validatePackage( $package );
-
-		return $this->_packageInstallPath . $this->_getPackageTypeSubPath( $package->getType() ) . '/' . $this->_packageName;
-	}
-
-	/**
 	 * @param string $basePath
 	 *
 	 * @return bool|string
 	 */
 	protected function _checkDatabase( $basePath = null )
 	{
+		$this->_log( 'Installer::_checkDatabase called.', true );
+
 		$_configFile = ( $basePath ? : static::$_platformBasePath ) . static::DEFAULT_DATABASE_CONFIG_FILE;
 
 		if ( !file_exists( $_configFile ) )
 		{
-			$this->io->write( '  - No database configuration found. Registration not complete.</info>' );
+			$this->_log( 'No database configuration found. <info>Registration not complete</info>.' );
 
 			return false;
 		}
@@ -257,7 +262,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		/** @noinspection PhpIncludeInspection */
 		if ( false === ( $_dbConfig = @require( $_configFile ) ) )
 		{
-			$this->io->write( '  - <error>Unable to read database configuration file. Registration not complete.</error>' );
+			$this->_log( '<error>Unable to read database configuration file. Registration not complete.</error>' );
 
 			return false;
 		}
@@ -282,7 +287,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 
 		if ( empty( $_config ) || null === ( $_app = Option::get( $_config, 'application' ) ) )
 		{
-			$this->io->write( '  - No registration requested' );
+			$this->_log( 'No registration requested' );
 
 			return false;
 		}
@@ -291,7 +296,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		{
 			if ( $this->io->isDebug() )
 			{
-				$this->io->write( '  - Registration requested, but <warning>no database connection available</warning>.' );
+				$this->_log( 'Registration requested, but <warning>no database connection available</warning>.', true );
 
 				return false;
 			}
@@ -307,16 +312,12 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	protected function _addApplication( PackageInterface $package )
 	{
-		$this->io->write( '_addApplication' );
+		$this->_log( 'Installer::_addApplication called.', true );
 
 		if ( false === ( $_app = $this->_getRegistrationInfo( $package ) ) )
 		{
-			$this->io->write( '_addApplication: nope' );
-
 			return false;
 		}
-
-		$this->io->write( '_addApplication: yep' );
 
 		$_sql = <<<SQL
 INSERT INTO df_sys_app (
@@ -376,6 +377,8 @@ SQL;
 			':requires_plugin'         => 1,
 		);
 
+		$this->_log( 'Inserting row into database', true );
+
 		try
 		{
 			if ( false === ( $_result = Sql::execute( $_sql, $_data ) ) )
@@ -389,12 +392,12 @@ SQL;
 		}
 		catch ( \Exception $_ex )
 		{
-			$this->io->write( '  - Package registration error with payload: ' . $_ex->getMessage() );
+			$this->_log( 'Package registration error with payload: ' . $_ex->getMessage() );
 
 			return false;
 		}
 
-		$this->io->write( '  - Package registered as "<info>' . $_apiName . '</info>" with DSP.' );
+		$this->_log( 'Package registered as "<info>' . $_apiName . '</info>" with DSP.' );
 
 		return true;
 	}
@@ -408,6 +411,8 @@ SQL;
 	 */
 	protected function _deleteApplication( PackageInterface $package )
 	{
+		$this->_log( 'Installer::_deleteApplication called.', true );
+
 		if ( false === ( $_app = $this->_getRegistrationInfo( $package ) ) )
 		{
 			return false;
@@ -425,6 +430,8 @@ SQL;
 			':is_active' => 0
 		);
 
+		$this->_log( 'Soft-deleting row in database', true );
+
 		try
 		{
 			if ( false === ( $_result = Sql::execute( $_sql, $_data ) ) )
@@ -438,12 +445,12 @@ SQL;
 		}
 		catch ( \Exception $_ex )
 		{
-			$this->io->write( '  - Package registration error with payload: ' . $_ex->getMessage() );
+			$this->_log( 'Package registration error with payload: ' . $_ex->getMessage() );
 
 			return false;
 		}
 
-		$this->io->write( '  - Package "<info>' . $_apiName . '</info>" unregistered from DSP.' );
+		$this->_log( 'Package "<info>' . $_apiName . '</info>" unregistered from DSP.' );
 
 		return true;
 	}
@@ -453,17 +460,16 @@ SQL;
 	 */
 	protected function _createLinks( PackageInterface $package )
 	{
+		$this->_log( 'Installer::_createLinks called.', true );
+
 		if ( null === ( $_links = $this->_getPackageConfig( $package, 'links' ) ) )
 		{
-			if ( $this->io->isDebug() )
-			{
-				$this->io->write( '  - Package contains no links' );
-			}
+			$this->_log( 'Package contains no links', true );
 
 			return;
 		}
 
-		$this->io->write( '  - Creating package symlinks' );
+		$this->_log( 'Creating package symlinks' );
 
 		//	Make the links
 		foreach ( Option::clean( $_links ) as $_link )
@@ -475,21 +481,21 @@ SQL;
 			{
 				if ( $_target == ( $_priorTarget = readlink( $_linkName ) ) )
 				{
-					$this->io->write( '  - Package link exists: <info>' . $_linkName . '</info>' );
+					$this->_log( 'Package link exists: <info>' . $_linkName . '</info>' );
 					continue;
 				}
 
-				$this->io->write( '  - Link exists but target "<error>' . $_priorTarget . '</error>" is incorrect. Package links not created.' );
+				$this->_log( 'Link exists but target "<error>' . $_priorTarget . '</error>" is incorrect. Package links not created.' );
 				continue;
 			}
 
 			if ( false === @\symlink( $_target, $_linkName ) )
 			{
-				$this->io->write( '  - File system error creating symlink: <error>' . $_linkName . '</error>' );
+				$this->_log( 'File system error creating symlink: <error>' . $_linkName . '</error>' );
 				throw new FileSystemException( 'Unable to create symlink: ' . $_linkName );
 			}
 
-			$this->io->write( '  - Package linked to "<info>' . $_linkName . '</info>"' );
+			$this->_log( 'Package linked to "<info>' . $_linkName . '</info>"' );
 		}
 	}
 
@@ -498,17 +504,16 @@ SQL;
 	 */
 	protected function _deleteLinks( PackageInterface $package )
 	{
+		$this->_log( 'Installer::_deleteLinks called.', true );
+
 		if ( null === ( $_links = $this->_getPackageConfig( $package, 'links' ) ) )
 		{
-			if ( $this->io->isDebug() )
-			{
-				$this->io->write( '  - Package contains no links' );
-			}
+			$this->_log( 'Package contains no links', true );
 
 			return;
 		}
 
-		$this->io->write( '  - Removing package symlinks' );
+		$this->_log( 'Removing package symlinks' );
 
 		//	Make the links
 		foreach ( Option::clean( $_links ) as $_link )
@@ -519,19 +524,19 @@ SQL;
 			//	Already linked?
 			if ( !\is_link( $_linkName ) )
 			{
-				$this->io->write(
-					'  - Expected link "<warning>' . $_linkName . '</warning>" not found. Ignoring.Package link <warning>' . $_linkName . '</warning>'
+				$this->_log(
+					'Expected link "<warning>' . $_linkName . '</warning>" not found. Ignoring.Package link <warning>' . $_linkName . '</warning>'
 				);
 				continue;
 			}
 
 			if ( false === @\unlink( $_linkName ) )
 			{
-				$this->io->write( '  - File system error removing symlink: <error>' . $_linkName . '</error>' );
+				$this->_log( 'File system error removing symlink: <error>' . $_linkName . '</error>' );
 				throw new FileSystemException( 'Unable to remove symlink: ' . $_linkName );
 			}
 
-			$this->io->write( '  - Package links removed' );
+			$this->_log( 'Package links removed' );
 		}
 	}
 
@@ -543,22 +548,17 @@ SQL;
 	 */
 	protected function _validatePackage( PackageInterface $package )
 	{
+		$this->_log( 'Installer::_validatePackage called.', true );
+
 		//	Link path for plug-ins
 		$_config = $this->_parseConfiguration( $package );
 
-		if ( $this->io->isDebug() )
-		{
-			$this->io->write( '  - Validating package payload' );
-		}
-
-		$this->io->write(
-			'  - ' . ( static::$_devMode ? 'Development' : 'Production' ) . ' installation: ' . static::$_platformBasePath
-		);
+		$this->_log( ( static::$_devMode ? 'Development' : 'Production' ) . ' installation: ' . static::$_platformBasePath, true );
 
 		//	Only install DreamFactory packages if not a plug-in
 		if ( static::ALLOWED_PACKAGE_PREFIX != $this->_packagePrefix )
 		{
-			$this->io->write( '  - Package type "<error>' . $this->_packagePrefix . '</error>" invalid' );
+			$this->_log( 'Package type "<error>' . $this->_packagePrefix . '</error>" invalid' );
 			throw new \InvalidArgumentException( 'The package "' . $this->_packageName . '" cannot be installed by this installer.' );
 		}
 
@@ -570,7 +570,7 @@ SQL;
 				if ( !array_key_exists( $_type, $this->_supportedTypes ) )
 				{
 					$this->_supportedTypes[$_type] = $_path;
-					$this->io->write( '  - <info>Added support for package type "' . $_type . '"</info>' );
+					$this->_log( 'Added support for package type "<info>' . $_type . '</info>"' );
 				}
 			}
 		}
@@ -582,38 +582,46 @@ SQL;
 	 * @param mixed            $defaultValue
 	 *
 	 * @throws \InvalidArgumentException
+	 * @throws \Kisma\Core\Exceptions\FileSystemException
 	 * @return array
 	 */
 	protected function _getPackageConfig( PackageInterface $package, $key = null, $defaultValue = null )
 	{
-		//	Get the extra stuff
-		$_extra = Option::clean( $package->getExtra() );
-		$_config = array();
+		static $_cache = array();
 
-		//	Read configuration section. Can be an array or name of file to include
-		if ( null !== ( $_configFile = Option::get( $_extra, 'config' ) ) )
+		$_packageName = $package->getPrettyName();
+
+		if ( null === ( $_packageConfig = Option::get( $_cache, $_packageName ) ) )
 		{
-			if ( is_string( $_configFile ) && is_file( $_configFile ) && is_readable( $_configFile ) )
-			{
-				/** @noinspection PhpIncludeInspection */
-				if ( false === ( $_config = @include( $_configFile ) ) )
-				{
-					$this->io->write( '  - <error>File system error reading package configuration file: ' . $_configFile . '</error>' );
-					$_config = array();
-				}
+			//	Get the extra stuff
+			$_extra = Option::clean( $package->getExtra() );
+			$_extraConfig = array();
 
-				if ( !is_array( $_config ) )
+			//	Read configuration section. Can be an array or name of file to include
+			if ( null !== ( $_configFile = Option::get( $_extra, 'config' ) ) )
+			{
+				if ( is_string( $_configFile ) && is_file( $_configFile ) && is_readable( $_configFile ) )
 				{
-					$this->io->write( '  - The "config" file specified in this package is invalid: <error>' . $_configFile . '</error>' );
-					throw new \InvalidArgumentException( 'The "config" file specified in this package is invalid.' );
+					/** @noinspection PhpIncludeInspection */
+					if ( false === ( $_extraConfig = @include( $_configFile ) ) )
+					{
+						$this->_log( '<error>File system error reading package configuration file: ' . $_configFile . '</error>' );
+						throw new FileSystemException( 'File system error reading package configuration file' );
+					}
+
+					if ( !is_array( $_extraConfig ) )
+					{
+						$this->_log( 'The "config" file specified in this package is invalid: <error>' . $_configFile . '</error>' );
+						throw new \InvalidArgumentException( 'The "config" file specified in this package is invalid.' );
+					}
 				}
 			}
+
+			$_cache[$_packageName] = $_packageConfig = array_merge( $_extra, $_extraConfig );
 		}
 
-		$_config = array_merge( $_extra, $_config );
-
 		//	Merge any config with the extra data
-		return $key ? Option::get( $_config, $key, $defaultValue ) : $_config;
+		return $key ? Option::get( $_packageConfig, $key, $defaultValue ) : $_packageConfig;
 	}
 
 	/**
@@ -726,14 +734,10 @@ SQL;
 	 */
 	protected function _validateInstallationTree( IOInterface $io, Composer $composer )
 	{
-		if ( file_exists( static::FABRIC_MARKER ) )
-		{
-			$this->io->write( '  - <warning>This installer is not available for DreamFactory-hosted DSPs</warning>' );
-			throw new FileSystemException( 'Installation not possible on hosted DSPs.' );
-		}
-
 		$_basePath = realpath( static::$_platformBasePath = static::_findPlatformBasePath( $io ) );
 		$this->filesystem->ensureDirectoryExists( $_basePath . '/storage/plugins/.manifest' );
+
+		$this->_log( 'Installation tree validated.', true );
 	}
 
 	/**
@@ -742,6 +746,20 @@ SQL;
 	public static function setDevMode( $devMode )
 	{
 		static::$_devMode = $devMode;
+	}
+
+	/**
+	 * @param string $message
+	 * @param bool   $debug
+	 */
+	protected function _log( $message, $debug = false )
+	{
+		if ( false !== $debug && !$this->io->isDebug() )
+		{
+			return;
+		}
+
+		$this->io->write( '  - ' . $message );
 	}
 
 }
