@@ -23,7 +23,6 @@ namespace DreamFactory\Tools\Composer\Package;
 use Composer\Composer;
 use Composer\EventDispatcher\EventSubscriberInterface;
 use Composer\IO\IOInterface;
-use Composer\Plugin\CommandEvent;
 use Composer\Plugin\PluginEvents;
 use Composer\Plugin\PluginInterface;
 
@@ -67,9 +66,9 @@ class Plugin implements PluginInterface, EventSubscriberInterface
 	}
 
 	/**
-	 * @param CommandEvent $event
+	 * @param \Composer\Script\CommandEvent $event
 	 */
-	public static function onCommand( CommandEvent $event )
+	public static function onCommand( \Composer\Script\CommandEvent $event )
 	{
 		static $_commands = array( 'update', 'install' );
 
