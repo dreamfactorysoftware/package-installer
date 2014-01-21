@@ -24,9 +24,10 @@
 		}
 	},
 	"extra":             {
-		"class":             "DreamFactory\\Tools\\Composer\\Package\\Plugin",
-		"supported-types":   {
+		"class":           "DreamFactory\\Tools\\Composer\\Package\\Plugin",
+		"supported-types": {
 			"dreamfactory-application": "/applications",
+			"dreamfactory-jetpack":     "/plugins",
 			"dreamfactory-library":     "/plugins",
 			"dreamfactory-plugin":      "/plugins"
 		}

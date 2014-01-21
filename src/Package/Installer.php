@@ -23,13 +23,10 @@ namespace DreamFactory\Tools\Composer\Package;
 use Composer\Composer;
 use Composer\Installer\LibraryInstaller;
 use Composer\IO\IOInterface;
-use Composer\Package\Dumper\ArrayDumper;
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 use Composer\Util\Filesystem;
 use DreamFactory\Tools\Composer\Enums\PackageTypes;
-use Kisma\Core\Enums\GlobFlags;
-use Kisma\Core\Exceptions\DataStoreException;
 use Kisma\Core\Exceptions\FileSystemException;
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;
@@ -141,7 +138,9 @@ class Installer extends LibraryInstaller
 		$this->_io = $io;
 		$this->_fabricHosted = file_exists( static::FABRIC_MARKER );
 		$this->_baseInstallPath = \getcwd();
-		$this->_platformBasePath = $this->_findPlatformBasePath();
+
+		//	Make sure proper storage paths are available
+		$this->_validateInstallationTree( $io, $composer );
 	}
 
 	/**
@@ -154,8 +153,7 @@ class Installer extends LibraryInstaller
 
 		parent::install( $repo, $package );
 
-//		$this->_addApplication( $package );
-		$this->_createLinks( $package );
+		$this->_addApplication();
 	}
 
 	/**
@@ -169,16 +167,14 @@ class Installer extends LibraryInstaller
 	{
 		$this->_validatePackage( $initial );
 
-		//	Out with the old...
-//		$this->_deleteApplication( $initial );
-		$this->_deleteLinks( $initial );
-
 		parent::update( $repo, $initial, $target );
+
+		//	Out with the old...
+		$this->_deleteApplication();
 
 		//	In with the new...
 		$this->_validatePackage( $target );
-//		$this->_addApplication( $target );
-		$this->_createLinks( $target );
+		$this->_addApplication();
 	}
 
 	/**
@@ -191,21 +187,7 @@ class Installer extends LibraryInstaller
 
 		parent::uninstall( $repo, $package );
 
-//		$this->_deleteApplication( $package );
-		$this->_deleteLinks( $package );
-	}
-
-	/**
-	 * {@inheritDoc}
-	 */
-	public function getInstallPath( PackageInterface $package )
-	{
-		if ( empty( $this->_packageInstallPath ) )
-		{
-			$this->_validatePackage( $package );
-		}
-
-		return parent::getInstallPath( $package );
+		$this->_deleteApplication();
 	}
 
 	/**
@@ -217,19 +199,21 @@ class Installer extends LibraryInstaller
 	}
 
 	/**
-	 * @param InstalledRepositoryInterface $repo
-	 * @param PackageInterface             $package
-	 *
-	 * @return bool
+	 * @param PackageInterface $package
 	 */
-	public function isInstalled( InstalledRepositoryInterface $repo, PackageInterface $package )
+	protected function installBinaries( PackageInterface $package )
 	{
-		if ( empty( $this->_packageInstallPath ) )
-		{
-			$this->_validatePackage( $package );
-		}
+		parent::installBinaries( $package );
+		$this->_createLinks( $package );
+	}
 
-		return parent::isInstalled( $repo, $package );
+	/**
+	 * @param PackageInterface $package
+	 */
+	protected function removeBinaries( PackageInterface $package )
+	{
+		parent::removeBinaries( $package );
+		$this->_deleteLinks( $package );
 	}
 
 	/**
@@ -237,7 +221,7 @@ class Installer extends LibraryInstaller
 	 *
 	 * @return bool|string
 	 */
-	protected function _getDatabaseConfig( $basePath = null )
+	protected function _checkDatabase( $basePath = null )
 	{
 		$_configFile = ( $basePath ? : $this->_platformBasePath ) . static::DEFAULT_DATABASE_CONFIG_FILE;
 
@@ -248,27 +232,37 @@ class Installer extends LibraryInstaller
 			return false;
 		}
 
-		return $_configFile;
-	}
-
-	/**
-	 * @param PackageInterface $package
-	 *
-	 * @throws \Kisma\Core\Exceptions\DataStoreException
-	 * @return bool
-	 */
-	protected function _addApplication( PackageInterface $package )
-	{
-		if ( false === ( $_configFile = $this->_getDatabaseConfig() ) )
+		/** @noinspection PhpIncludeInspection */
+		if ( false === ( $_dbConfig = @require( $_configFile ) ) )
 		{
+			$this->_io->write( '  - <error>Unable to read database configuration file. Registration not complete.</error>' );
+
 			return false;
 		}
 
-		if ( null !== ( $_app = Option::get( $this->_config, 'application' ) ) )
-		{
-			$this->_io->write( '  - <info>No registration requested</info>' );
+		Sql::setConnectionString(
+			Option::get( $_dbConfig, 'connectionString' ),
+			Option::get( $_dbConfig, 'username' ),
+			Option::get( $_dbConfig, 'password' )
+		);
 
-			return true;
+		return true;
+	}
+
+	/**
+	 * @throws \Kisma\Core\Exceptions\DataStoreException
+	 * @return bool
+	 */
+	protected function _addApplication()
+	{
+		if ( null !== ( $_app = Option::get( $this->_config, 'application' ) ) || !$this->_checkDatabase() )
+		{
+			if ( null === $_app )
+			{
+				$this->_io->write( '  - <info>No registration requested</info>' );
+			}
+
+			return false;
 		}
 
 		$_sql = <<<SQL
@@ -301,12 +295,25 @@ INSERT INTO df_sys_app (
   :toggle_location,
   :requires_plugin
 )
+ON DUPLICATE KEY UPDATE
+  `description` = VALUES(`description`),
+  `is_active` = VALUES(`is_active`),
+  `url` = VALUES(`url`),
+  `is_url_external` = VALUES(`is_url_external`),
+  `import_url` = VALUES(`import_url`),
+  `storage_service_id` = VALUES(`storage_service_id`),
+  `storage_container` = VALUES(`storage_container`),
+  `requires_fullscreen` = VALUES(`requires_fullscreen`),
+  `allow_fullscreen_toggle` = VALUES(`allow_fullscreen_toggle`),
+  `toggle_location` = VALUES(`toggle_location`),
+  `requires_plugin` = VALUES(`require_plugin`)
 SQL;
+
 		$_data = array(
 			':api_name'                => $_apiName = Option::get( $_app, 'api-name', $this->_packageSuffix ),
 			':name'                    => Option::get( $_app, 'name', $this->_packageSuffix ),
 			':description'             => Option::get( $_app, 'description' ),
-			':is_active'               => Option::getBool( $_app, 'is-active' ),
+			':is_active'               => Option::getBool( $_app, 'is-active', false ),
 			':url'                     => Option::get( $_app, 'url' ),
 			':is_url_external'         => Option::getBool( $_app, 'is-url-external' ),
 			':import_url'              => Option::get( $_app, 'import-url' ),
@@ -318,24 +325,18 @@ SQL;
 
 		try
 		{
-			/** @noinspection PhpIncludeInspection */
-			$_dbConfig = require( $_configFile );
-
-			Sql::setConnectionString(
-				Option::get( $_dbConfig, 'connectionString' ),
-				Option::get( $_dbConfig, 'username' ),
-				Option::get( $_dbConfig, 'password' )
-			);
-
 			if ( false === ( $_result = Sql::execute( $_sql, $_data ) ) )
 			{
-				$this->_io->write( '  - <error>Error storing application to database: </error>' . print_r( $_data, true ) );
-				throw new DataStoreException( 'Error saving application row: ' . print_r( $_data, true ), 500 );
+				$_message =
+					( null === ( $_statement = Sql::getStatement() )
+						? 'Unknown database error' : 'Database error: ' . print_r( $_statement->errorInfo(), true ) );
+
+				throw new \Exception( $_message );
 			}
 		}
-		catch ( Exception $_ex )
+		catch ( \Exception $_ex )
 		{
-			$this->_io->write( '  - <error>Error registering package. Manual registration required.' );
+			$this->_io->write( '  - <error>Package registration error with payload: ' . $_ex->getMessage() );
 
 			return false;
 		}
@@ -346,23 +347,21 @@ SQL;
 	}
 
 	/**
-	 * @param PackageInterface $package
+	 * Soft-deletes a registered package
 	 *
 	 * @throws \Kisma\Core\Exceptions\DataStoreException
 	 * @return bool
 	 */
-	protected function _deleteApplication( PackageInterface $package )
+	protected function _deleteApplication()
 	{
-		if ( false === ( $_configFile = $this->_getDatabaseConfig() ) )
+		if ( null !== ( $_app = Option::get( $this->_config, 'application' ) ) || !$this->_checkDatabase() )
 		{
+			if ( null === $_app )
+			{
+				$this->_io->write( '  - <info>No registration requested</info>' );
+			}
+
 			return false;
-		}
-
-		if ( null !== ( $_app = Option::get( $this->_config, 'application' ) ) )
-		{
-			$this->_io->write( '  - <info>No registration requested</info>' );
-
-			return true;
 		}
 
 		$_sql = <<<SQL
@@ -379,31 +378,104 @@ SQL;
 
 		try
 		{
-			/** @noinspection PhpIncludeInspection */
-			$_dbConfig = require( 'config/database.config.php' );
-
-			Sql::setConnectionString(
-				Option::get( $_dbConfig, 'connectionString' ),
-				Option::get( $_dbConfig, 'username' ),
-				Option::get( $_dbConfig, 'password' )
-			);
-
 			if ( false === ( $_result = Sql::execute( $_sql, $_data ) ) )
 			{
-				$this->_io->write( '  - <error>Error storing application to database: </error>' . print_r( $_data, true ) );
-				throw new DataStoreException( 'Error saving application row: ' . print_r( $_data, true ), 500 );
+				$_message =
+					( null === ( $_statement = Sql::getStatement() )
+						? 'Unknown database error' : 'Database error: ' . print_r( $_statement->errorInfo(), true ) );
+
+				throw new \Exception( $_message );
 			}
 		}
-		catch ( Exception $_ex )
+		catch ( \Exception $_ex )
 		{
-			$this->_io->write( '  - <error>Error unregistering package. Manual unregistration required.</error>' );
+			$this->_io->write( '  - <error>Package registration error with payload: ' . $_ex->getMessage() );
 
 			return false;
 		}
 
-		$this->_io->write( '  - <info>Package unregistered as "' . $_apiName . '" from DSP.</info>' );
+		$this->_io->write( '  - <info>Package "' . $_apiName . '" unregistered from DSP.</info>' );
 
 		return true;
+	}
+
+	/**
+	 * @throws \Kisma\Core\Exceptions\FileSystemException
+	 */
+	protected function _createLinks( PackageInterface $package )
+	{
+		if ( null === ( $_links = Option::get( $this->_config, 'links' ) ) )
+		{
+			if ( $this->_io->isDebug() )
+			{
+				$this->_io->write( '  - <info>Package contains no links</info>' );
+			}
+
+			return;
+		}
+
+		$this->_io->write( '  - Creating package symlinks' );
+
+		//	Make the links
+		foreach ( Option::clean( $_links ) as $_link )
+		{
+			//	Adjust relative directory to absolute
+			list( $_target, $_linkName ) = $this->_normalizeLink( $package, $_link );
+
+			if ( \is_link( $_linkName ) )
+			{
+				$this->_io->write( '  - <info>Package already linked</info>' );
+				continue;
+			}
+
+			if ( false === @\symlink( $_target, $_linkName ) )
+			{
+				$this->_io->write( '  - <error>File system error creating symlink: ' . $_linkName . '</error>' );
+				throw new FileSystemException( 'Unable to create symlink: ' . $_linkName );
+			}
+
+			$this->_io->write( '  - <info>Package links created</info>' );
+		}
+	}
+
+	/**
+	 * @throws \Kisma\Core\Exceptions\FileSystemException
+	 */
+	protected function _deleteLinks( PackageInterface $package )
+	{
+		if ( null === ( $_links = Option::get( $this->_config, 'links' ) ) )
+		{
+			if ( $this->_io->isDebug() )
+			{
+				$this->_io->write( '  - <info>Package contains no links</info>' );
+			}
+
+			return;
+		}
+
+		$this->_io->write( '  - Removing package symlinks' );
+
+		//	Make the links
+		foreach ( Option::clean( $_links ) as $_link )
+		{
+			//	Adjust relative directory to absolute
+			list( $_target, $_linkName ) = $this->_normalizeLink( $package, $_link );
+
+			//	Already linked?
+			if ( !\is_link( $_linkName ) )
+			{
+				$this->_io->write( '  - <warning>Package link not found to remove:</warning> <info>' . $_linkName . '</info>' );
+				continue;
+			}
+
+			if ( false === @\unlink( $_linkName ) )
+			{
+				$this->_io->write( '  - <error>File system error removing symlink: ' . $_linkName . '</error>' );
+				throw new FileSystemException( 'Unable to remove symlink: ' . $_linkName );
+			}
+
+			$this->_io->write( '  - <info>Package links removed</info>' );
+		}
 	}
 
 	/**
@@ -524,85 +596,6 @@ SQL;
 	}
 
 	/**
-	 * @throws \Kisma\Core\Exceptions\FileSystemException
-	 */
-	protected function _createLinks( PackageInterface $package )
-	{
-		if ( null === ( $_links = Option::get( $this->_config, 'links' ) ) )
-		{
-			if ( $this->_io->isDebug() )
-			{
-				$this->_io->write( '  - <info>Package contains no links</info>' );
-			}
-
-			return;
-		}
-
-		$this->_io->write( '  - Creating package symlinks' );
-
-		//	Make the links
-		foreach ( Option::clean( $_links ) as $_link )
-		{
-			//	Adjust relative directory to absolute
-			list( $_target, $_linkName ) = $this->_normalizeLink( $package, $_link );
-
-			if ( \is_link( $_linkName ) )
-			{
-				$this->_io->write( '  - <info>Package already linked</info>' );
-				continue;
-			}
-
-			if ( false === @\symlink( $_target, $_linkName ) )
-			{
-				$this->_io->write( '  - <error>File system error creating symlink: ' . $_linkName . '</error>' );
-				throw new FileSystemException( 'Unable to create symlink: ' . $_linkName );
-			}
-
-			$this->_io->write( '  - <info>Package links created</info>' );
-		}
-	}
-
-	/**
-	 * @throws \Kisma\Core\Exceptions\FileSystemException
-	 */
-	protected function _deleteLinks( PackageInterface $package )
-	{
-		if ( null === ( $_links = Option::get( $this->_config, 'links' ) ) )
-		{
-			if ( $this->_io->isDebug() )
-			{
-				$this->_io->write( '  - <info>Package contains no links</info>' );
-			}
-
-			return;
-		}
-
-		$this->_io->write( '  - Removing package symlinks' );
-
-		//	Make the links
-		foreach ( Option::clean( $_links ) as $_link )
-		{
-			//	Adjust relative directory to absolute
-			list( $_target, $_linkName ) = $this->_normalizeLink( $package, $_link );
-
-			//	Already linked?
-			if ( !\is_link( $_linkName ) )
-			{
-				$this->_io->write( '  - <warning>Package link not found to remove:</warning> <info>' . $_linkName . '</info>' );
-				continue;
-			}
-
-			if ( false === @\unlink( $_linkName ) )
-			{
-				$this->_io->write( '  - <error>File system error removing symlink: ' . $_linkName . '</error>' );
-				throw new FileSystemException( 'Unable to remove symlink: ' . $_linkName );
-			}
-
-			$this->_io->write( '  - <info>Package links removed</info>' );
-		}
-	}
-
-	/**
 	 * @param string $type
 	 *
 	 * @return string
@@ -638,6 +631,26 @@ SQL;
 		}
 
 		return $_path;
+	}
+
+	/**
+	 * @param IOInterface $io
+	 * @param Composer    $composer
+	 *
+	 * @throws \Kisma\Core\Exceptions\FileSystemException
+	 */
+	protected function _validateInstallationTree( IOInterface $io, Composer $composer )
+	{
+		if ( file_exists( static::FABRIC_MARKER ) )
+		{
+			$this->io->write( '  - <warning>This installer is not available for DreamFactory-hosted DSPs</warning>' );
+			throw new FileSystemException( 'Installation not possible on hosted DSPs.' );
+		}
+
+		$_fs = new Filesystem();
+
+		$_basePath = realpath( $this->_platformBasePath = $this->_findPlatformBasePath() );
+		$_fs->ensureDirectoryExists( $_basePath . '/storage/plugins/.manifest' );
 	}
 
 }
