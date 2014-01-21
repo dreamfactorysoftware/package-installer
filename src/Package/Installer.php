@@ -181,6 +181,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 
 		parent::install( $repo, $package );
 
+		$this->_createLinks( $package );
 		$this->_addApplication();
 	}
 
@@ -198,10 +199,12 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		parent::update( $repo, $initial, $target );
 
 		//	Out with the old...
+		$this->_deleteLinks( $initial );
 		$this->_deleteApplication();
 
 		//	In with the new...
 		$this->_validatePackage( $target );
+		$this->_createLinks( $target );
 		$this->_addApplication();
 	}
 
@@ -215,6 +218,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 
 		parent::uninstall( $repo, $package );
 
+		$this->_deleteLinks( $package );
 		$this->_deleteApplication();
 	}
 
@@ -234,25 +238,8 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	protected function getPackageBasePath( PackageInterface $package )
 	{
 		$this->_validatePackage( $package );
+
 		return $this->_packageInstallPath . $this->_getPackageTypeSubPath( $package->getType() ) . '/' . $this->_packageName;
-	}
-
-	/**
-	 * @param PackageInterface $package
-	 */
-	protected function installBinaries( PackageInterface $package )
-	{
-		parent::installBinaries( $package );
-		$this->_createLinks( $package );
-	}
-
-	/**
-	 * @param PackageInterface $package
-	 */
-	protected function removeBinaries( PackageInterface $package )
-	{
-		parent::removeBinaries( $package );
-		$this->_deleteLinks( $package );
 	}
 
 	/**
