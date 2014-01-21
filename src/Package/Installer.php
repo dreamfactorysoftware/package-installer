@@ -238,6 +238,8 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	public function supports( $packageType )
 	{
+		$this->_log( 'Installer::supports called.', true );
+
 		return \array_key_exists( $packageType, $this->_supportedTypes );
 	}
 
