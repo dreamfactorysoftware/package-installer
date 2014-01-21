@@ -715,14 +715,15 @@ SQL;
 	protected function _normalizeLink( PackageInterface $package, $link )
 	{
 		//	Adjust relative directory to absolute
-		$_target = //	../../../storage
-			$this->_packageLinkBasePath . '/' . //	plugins|applications
-			$this->_getPackageTypeSubPath( $package->getType() ) . '/' . //	vendor/package
+		$_target = //	../storage
+			rtrim( $this->_packageLinkBasePath, '/' ) . '/' . //	plugins|applications
+			trim( $this->_getPackageTypeSubPath( $package->getType() ), '/' ) . '/' . //	vendor/package
 			$package->getPrettyName() . '/' . ltrim( Option::get( $link, 'target' ), '/' );
 
 		$_linkName =
-			static::$_platformBasePath .
-			static::DEFAULT_PLUGIN_LINK_PATH .
+			rtrim( static::$_platformBasePath . '/' ) .
+			'/' .
+			trim( static::DEFAULT_PLUGIN_LINK_PATH, '/' ) .
 			'/' .
 			Option::get( $link, 'link', @end( explode( '/', $package->getPrettyName(), 2 ) ) );
 
