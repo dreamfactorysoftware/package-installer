@@ -608,8 +608,8 @@ SQL;
 	/**
 	 * Locates the installed DSP's base directory
 	 *
+	 * @throws \Kisma\Core\Exceptions\FileSystemException
 	 * @return string
-	 * @throws Exception
 	 */
 	protected function _findPlatformBasePath()
 	{
@@ -619,15 +619,15 @@ SQL;
 		{
 			if ( file_exists( $_path . '/config/schema/system_schema.json' ) && is_dir( $_path . '/storage/.private' ) )
 			{
-				if ( file_exists( static::FABRIC_MARKER ) )
-				{
-					throw new Exception( 'Packages cannot be installed on a free-hosted DSP.' );
-				}
-
 				break;
 			}
 
-			$_path = dirname( $_path );
+			//	If we get to the root, ain't no DSP...
+			if ( '/' == ( $_path = dirname( $_path ) ) )
+			{
+				$this->_io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
+				throw new FileSystemException( 'Unable to find the DSP installation directory.' );
+			}
 		}
 
 		return $_path;
