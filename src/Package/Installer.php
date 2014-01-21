@@ -650,12 +650,15 @@ SQL;
 	/**
 	 * Locates the installed DSP's base directory
 	 *
-	 * @throws \Kisma\Core\Exceptions\FileSystemException
+	 * @param \Composer\IO\IOInterface $io
+	 * @param string                   $startPath
+	 *
+	 * @throws \ErrorException
 	 * @return string
 	 */
-	protected static function _findPlatformBasePath()
+	protected static function _findPlatformBasePath( IOInterface $io, $startPath = null )
 	{
-		$_path = dirname( __DIR__ );
+		$_path = $startPath ? : dirname( __DIR__ );
 
 		while ( true )
 		{
@@ -667,15 +670,15 @@ SQL;
 			//	If we get to the root, ain't no DSP...
 			if ( '/' == ( $_path = dirname( $_path ) ) )
 			{
-				$this->io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
-
+				$io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
+				
 				if ( !static::$_devMode )
 				{
 					throw new FileSystemException( 'Unable to find the DSP installation directory.' );
 				}
-			}
 
-			break;
+				break;
+			}
 		}
 
 		return $_path;
