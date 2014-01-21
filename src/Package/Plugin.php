@@ -23,6 +23,7 @@ namespace DreamFactory\Tools\Composer\Package;
 use Composer\Composer;
 use Composer\EventDispatcher\EventSubscriberInterface;
 use Composer\IO\IOInterface;
+use Composer\Plugin\CommandEvent;
 use Composer\Plugin\PluginEvents;
 use Composer\Plugin\PluginInterface;
 
@@ -30,8 +31,17 @@ use Composer\Plugin\PluginInterface;
  * Plugin
  * DreamFactory Services Platform installer injection plug-in
  */
-class Plugin implements PluginInterface
+class Plugin implements EventSubscriberInterface, PluginInterface
 {
+	//*************************************************************************
+	//	Members
+	//*************************************************************************
+
+	/**
+	 * @var Installer
+	 */
+	protected static $_installer;
+
 	//*************************************************************************
 	//	Methods
 	//*************************************************************************
@@ -42,7 +52,31 @@ class Plugin implements PluginInterface
 	 */
 	public function activate( Composer $composer, IOInterface $io )
 	{
-		$_installer = new Installer( $io, $composer );
-		$composer->getInstallationManager()->addInstaller( $_installer );
+		static::$_installer = new Installer( $io, $composer );
+		$composer->getInstallationManager()->addInstaller( static::$_installer );
+	}
+
+	/**
+	 * {@InheritDoc}
+	 */
+	public static function getSubscribedEvents()
+	{
+		return array(
+			PluginEvents::COMMAND => array(
+				array( 'onCommand', 0 )
+			),
+		);
+	}
+
+	/**
+	 * @param CommandEvent $event
+	 * @param bool         $devMode
+	 */
+	public static function onCommand( CommandEvent $event, $devMode )
+	{
+		if ( null !== static::$_installer )
+		{
+			static::$_installer->setDevMode( $devMode );
+		}
 	}
 }
