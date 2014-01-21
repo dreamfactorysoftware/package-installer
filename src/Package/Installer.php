@@ -25,6 +25,7 @@ use Composer\Installer\LibraryInstaller;
 use Composer\IO\IOInterface;
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
+use Composer\Repository\RepositoryManager;
 use Composer\Util\Filesystem;
 use DreamFactory\Tools\Composer\Enums\PackageTypes;
 use Kisma\Core\Exceptions\FileSystemException;
@@ -117,10 +118,6 @@ class Installer extends LibraryInstaller
 	 * @var array
 	 */
 	protected $_config = array();
-	/**
-	 * @var IOInterface
-	 */
-	protected $_io;
 
 	//*************************************************************************
 	//* Methods
@@ -135,7 +132,6 @@ class Installer extends LibraryInstaller
 	{
 		parent::__construct( $io, $composer, $type );
 
-		$this->_io = $io;
 		$this->_fabricHosted = file_exists( static::FABRIC_MARKER );
 		$this->_baseInstallPath = \getcwd();
 
@@ -227,7 +223,7 @@ class Installer extends LibraryInstaller
 
 		if ( !file_exists( $_configFile ) )
 		{
-			$this->_io->write( '  - <info>No database configuration found. Registration not complete.</info>' );
+			$this->io->write( '  - <info>No database configuration found. Registration not complete.</info>' );
 
 			return false;
 		}
@@ -235,7 +231,7 @@ class Installer extends LibraryInstaller
 		/** @noinspection PhpIncludeInspection */
 		if ( false === ( $_dbConfig = @require( $_configFile ) ) )
 		{
-			$this->_io->write( '  - <error>Unable to read database configuration file. Registration not complete.</error>' );
+			$this->io->write( '  - <error>Unable to read database configuration file. Registration not complete.</error>' );
 
 			return false;
 		}
@@ -259,7 +255,7 @@ class Installer extends LibraryInstaller
 		{
 			if ( null === $_app )
 			{
-				$this->_io->write( '  - <info>No registration requested</info>' );
+				$this->io->write( '  - <info>No registration requested</info>' );
 			}
 
 			return false;
@@ -336,12 +332,12 @@ SQL;
 		}
 		catch ( \Exception $_ex )
 		{
-			$this->_io->write( '  - <error>Package registration error with payload: ' . $_ex->getMessage() );
+			$this->io->write( '  - <error>Package registration error with payload: ' . $_ex->getMessage() );
 
 			return false;
 		}
 
-		$this->_io->write( '  - <info>Package registered as "' . $_apiName . '" with DSP.</info>' );
+		$this->io->write( '  - <info>Package registered as "' . $_apiName . '" with DSP.</info>' );
 
 		return true;
 	}
@@ -358,7 +354,7 @@ SQL;
 		{
 			if ( null === $_app )
 			{
-				$this->_io->write( '  - <info>No registration requested</info>' );
+				$this->io->write( '  - <info>No registration requested</info>' );
 			}
 
 			return false;
@@ -389,12 +385,12 @@ SQL;
 		}
 		catch ( \Exception $_ex )
 		{
-			$this->_io->write( '  - <error>Package registration error with payload: ' . $_ex->getMessage() );
+			$this->io->write( '  - <error>Package registration error with payload: ' . $_ex->getMessage() );
 
 			return false;
 		}
 
-		$this->_io->write( '  - <info>Package "' . $_apiName . '" unregistered from DSP.</info>' );
+		$this->io->write( '  - <info>Package "' . $_apiName . '" unregistered from DSP.</info>' );
 
 		return true;
 	}
@@ -406,15 +402,15 @@ SQL;
 	{
 		if ( null === ( $_links = Option::get( $this->_config, 'links' ) ) )
 		{
-			if ( $this->_io->isDebug() )
+			if ( $this->io->isDebug() )
 			{
-				$this->_io->write( '  - <info>Package contains no links</info>' );
+				$this->io->write( '  - <info>Package contains no links</info>' );
 			}
 
 			return;
 		}
 
-		$this->_io->write( '  - Creating package symlinks' );
+		$this->io->write( '  - Creating package symlinks' );
 
 		//	Make the links
 		foreach ( Option::clean( $_links ) as $_link )
@@ -424,17 +420,17 @@ SQL;
 
 			if ( \is_link( $_linkName ) )
 			{
-				$this->_io->write( '  - <info>Package already linked</info>' );
+				$this->io->write( '  - <info>Package already linked</info>' );
 				continue;
 			}
 
 			if ( false === @\symlink( $_target, $_linkName ) )
 			{
-				$this->_io->write( '  - <error>File system error creating symlink: ' . $_linkName . '</error>' );
+				$this->io->write( '  - <error>File system error creating symlink: ' . $_linkName . '</error>' );
 				throw new FileSystemException( 'Unable to create symlink: ' . $_linkName );
 			}
 
-			$this->_io->write( '  - <info>Package links created</info>' );
+			$this->io->write( '  - <info>Package links created</info>' );
 		}
 	}
 
@@ -445,15 +441,15 @@ SQL;
 	{
 		if ( null === ( $_links = Option::get( $this->_config, 'links' ) ) )
 		{
-			if ( $this->_io->isDebug() )
+			if ( $this->io->isDebug() )
 			{
-				$this->_io->write( '  - <info>Package contains no links</info>' );
+				$this->io->write( '  - <info>Package contains no links</info>' );
 			}
 
 			return;
 		}
 
-		$this->_io->write( '  - Removing package symlinks' );
+		$this->io->write( '  - Removing package symlinks' );
 
 		//	Make the links
 		foreach ( Option::clean( $_links ) as $_link )
@@ -464,17 +460,17 @@ SQL;
 			//	Already linked?
 			if ( !\is_link( $_linkName ) )
 			{
-				$this->_io->write( '  - <warning>Package link not found to remove:</warning> <info>' . $_linkName . '</info>' );
+				$this->io->write( '  - <warning>Package link not found to remove:</warning> <info>' . $_linkName . '</info>' );
 				continue;
 			}
 
 			if ( false === @\unlink( $_linkName ) )
 			{
-				$this->_io->write( '  - <error>File system error removing symlink: ' . $_linkName . '</error>' );
+				$this->io->write( '  - <error>File system error removing symlink: ' . $_linkName . '</error>' );
 				throw new FileSystemException( 'Unable to remove symlink: ' . $_linkName );
 			}
 
-			$this->_io->write( '  - <info>Package links removed</info>' );
+			$this->io->write( '  - <info>Package links removed</info>' );
 		}
 	}
 
@@ -489,15 +485,15 @@ SQL;
 		//	Link path for plug-ins
 		$this->_parseConfiguration( $package );
 
-		if ( $this->_io->isDebug() )
+		if ( $this->io->isDebug() )
 		{
-			$this->_io->write( '  - Validating package payload' );
+			$this->io->write( '  - Validating package payload' );
 		}
 
 		//	Only install DreamFactory packages if not a plug-in
 		if ( static::ALLOWED_PACKAGE_PREFIX != $this->_packagePrefix )
 		{
-			$this->_io->write( '  - <error>Package type "' . $this->_packagePrefix . '" invalid</error>' );
+			$this->io->write( '  - <error>Package type "' . $this->_packagePrefix . '" invalid</error>' );
 			throw new \InvalidArgumentException( 'The package "' . $this->_packageName . '" cannot be installed by this installer.' );
 		}
 
@@ -509,7 +505,7 @@ SQL;
 				if ( !array_key_exists( $_type, $this->_supportedTypes ) )
 				{
 					$this->_supportedTypes[$_type] = $_path;
-					$this->_io->write( '  - <info>Added support for package type "' . $_type . '"</info>' );
+					$this->io->write( '  - <info>Added support for package type "' . $_type . '"</info>' );
 				}
 			}
 		}
@@ -548,13 +544,13 @@ SQL;
 				/** @noinspection PhpIncludeInspection */
 				if ( false === ( $_config = @include( $_configFile ) ) )
 				{
-					$this->_io->write( '  - <error>File system error reading package configuration file: ' . $_configFile . '</error>' );
+					$this->io->write( '  - <error>File system error reading package configuration file: ' . $_configFile . '</error>' );
 					$_config = array();
 				}
 
 				if ( !is_array( $_config ) )
 				{
-					$this->_io->write( '  - <error>The "config" file specified in this package is invalid: ' . $_configFile . '</error>' );
+					$this->io->write( '  - <error>The "config" file specified in this package is invalid: ' . $_configFile . '</error>' );
 					throw new \InvalidArgumentException( 'The "config" file specified in this package is invalid.' );
 				}
 			}
@@ -625,8 +621,13 @@ SQL;
 			//	If we get to the root, ain't no DSP...
 			if ( '/' == ( $_path = dirname( $_path ) ) )
 			{
-				$this->_io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
-				throw new FileSystemException( 'Unable to find the DSP installation directory.' );
+				if ( !$this->composer->getInstallationManager()->getDevMode() )
+				{
+					$this->$this->io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
+					throw new FileSystemException( 'Unable to find the DSP installation directory.' );
+				}
+
+				break;
 			}
 		}
 
@@ -647,10 +648,8 @@ SQL;
 			throw new FileSystemException( 'Installation not possible on hosted DSPs.' );
 		}
 
-		$_fs = new Filesystem();
-
 		$_basePath = realpath( $this->_platformBasePath = $this->_findPlatformBasePath() );
-		$_fs->ensureDirectoryExists( $_basePath . '/storage/plugins/.manifest' );
+		$this->filesystem->ensureDirectoryExists( $_basePath . '/storage/plugins/.manifest' );
 	}
 
 }
