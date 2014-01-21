@@ -84,22 +84,6 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		PackageTypes::PLUGIN      => '/plugins',
 	);
 	/**
-	 * @var int string package type
-	 */
-	protected $_packageType = self::DEFAULT_PACKAGE_TYPE;
-	/**
-	 * @var string The full name of the package, i.e. "dreamfactory/portal-sandbox"
-	 */
-	protected $_packageName;
-	/**
-	 * @var string The package prefix, i.e. "dreamfactory"
-	 */
-	protected $_packagePrefix;
-	/**
-	 * @var string The non-vendor portion of the package name, i.e. "dreamfactory/portal-sandbox" is package name, package suffix is "portal-sandbox"
-	 */
-	protected $_packageSuffix;
-	/**
 	 * @var string The base installation path, where composer.json lives
 	 */
 	protected $_baseInstallPath = './';
@@ -139,7 +123,15 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		$this->_baseInstallPath = \getcwd();
 
 		//	Make sure proper storage paths are available
-		$this->_validateInstallationTree( $io, $composer );
+		$this->_validateInstallationTree();
+	}
+
+	/**
+	 * @param boolean $devMode
+	 */
+	public static function setDevMode( $devMode )
+	{
+		static::$_devMode = $devMode;
 	}
 
 	/**
@@ -159,13 +151,13 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	public static function onOperation( Event $event, $devMode )
 	{
-		$event->getIO()->write( '  - <info>Operation event fired</info>' );
+		$event->getIO()->write( '  - <info>' . $event->getName() . '</info> event fired' );
 
 		static::$_devMode = $devMode;
 		static::$_platformBasePath = static::_findPlatformBasePath( $event->getIO(), \getcwd() );
 
 		$event->getIO()->write(
-			'  - ' . ( static::$_devMode ? 'Development' : 'Production' ) . ' installation: ' . static::$_platformBasePath
+			'  - <info>' . ( static::$_devMode ? 'require-dev' : 'no-dev' ) . '</info>" mode: ' . static::$_platformBasePath
 		);
 	}
 
@@ -175,7 +167,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	public function install( InstalledRepositoryInterface $repo, PackageInterface $package )
 	{
-		$this->_log( 'Installing package <info>' . $package->getPrettyName() . '</info>', true );
+		$this->_log( 'Installing package of type <info>' . $package->getPrettyName() . '</info>', true );
 
 		parent::install( $repo, $package );
 
@@ -220,20 +212,6 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	}
 
 	/**
-	 * @param PackageInterface $package
-	 *
-	 * @return string
-	 */
-	protected function getPackageBasePath( PackageInterface $package )
-	{
-		$this->_log( 'Installer::getPackageBasePath called.', true );
-
-		$this->_validatePackage( $package );
-
-		return $this->_packageInstallPath . $this->_getPackageTypeSubPath( $package->getType() ) . '/' . $this->_packageName;
-	}
-
-	/**
 	 * {@inheritDoc}
 	 */
 	public function supports( $packageType )
@@ -241,6 +219,56 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		$this->_log( 'Installer::supports called.', true );
 
 		return \array_key_exists( $packageType, $this->_supportedTypes );
+	}
+
+	/**
+	 * Locates the installed DSP's base directory
+	 *
+	 * @param \Composer\IO\IOInterface $io
+	 * @param string                   $startPath
+	 *
+	 * @throws \Kisma\Core\Exceptions\FileSystemException
+	 * @return string
+	 */
+	protected static function _findPlatformBasePath( IOInterface $io, $startPath = null )
+	{
+		$_path = $startPath ? : dirname( __DIR__ );
+
+		while ( true )
+		{
+			if ( file_exists( $_path . '/config/schema/system_schema.json' ) && is_dir( $_path . '/storage/.private' ) )
+			{
+				break;
+			}
+
+			//	If we get to the root, ain't no DSP...
+			if ( '/' == ( $_path = dirname( $_path ) ) )
+			{
+				$io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
+
+				if ( !static::$_devMode )
+				{
+					throw new FileSystemException( 'Unable to find the DSP installation directory.' );
+				}
+
+				break;
+			}
+		}
+
+		return $_path;
+	}
+
+	/**
+	 * @param PackageInterface $package
+	 *
+	 * @return string
+	 */
+	protected function getPackageBasePath( PackageInterface $package )
+	{
+		$this->_log( 'Installer::getPackageBasePath called.', true );
+		$this->_validatePackage( $package );
+
+		return $this->_packageInstallPath . $this->_getPackageTypeSubPath( $package->getType() ) . '/' . $package->getPrettyName();
 	}
 
 	/**
@@ -262,7 +290,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		}
 
 		/** @noinspection PhpIncludeInspection */
-		if ( false === ( $_dbConfig = @require( $_configFile ) ) )
+//		if ( false === ( $_dbConfig = @require( $_configFile ) ) )
 		{
 			$this->_log( '<error>Unable to read database configuration file. Registration not complete.</error>' );
 
@@ -365,9 +393,11 @@ ON DUPLICATE KEY UPDATE
   `requires_plugin` = VALUES(`require_plugin`)
 SQL;
 
+		$_defaultApiName = @end( explode( '/', $package->getPrettyName(), 2 ) );
+
 		$_data = array(
-			':api_name'                => $_apiName = Option::get( $_app, 'api-name', $this->_packageSuffix ),
-			':name'                    => Option::get( $_app, 'name', $this->_packageSuffix ),
+			':api_name'                => $_apiName = Option::get( $_app, 'api-name', $_defaultApiName ),
+			':name'                    => Option::get( $_app, 'name', $_defaultApiName ),
 			':description'             => Option::get( $_app, 'description' ),
 			':is_active'               => Option::getBool( $_app, 'is-active', false ),
 			':url'                     => Option::get( $_app, 'url' ),
@@ -428,7 +458,7 @@ WHERE
 SQL;
 
 		$_data = array(
-			':api_name'  => $_apiName = Option::get( $_app, 'api-name', $this->_packageSuffix ),
+			':api_name'  => $_apiName = Option::get( $_app, 'api-name', @end( explode( '/', $package->getPrettyName(), 2 ) ) ),
 			':is_active' => 0
 		);
 
@@ -484,10 +514,12 @@ SQL;
 				if ( $_target == ( $_priorTarget = readlink( $_linkName ) ) )
 				{
 					$this->_log( 'Package link exists: <info>' . $_linkName . '</info>' );
-					continue;
+				}
+				else
+				{
+					$this->_log( 'Link exists but target "<error>' . $_priorTarget . '</error>" is incorrect. Package links not created.' );
 				}
 
-				$this->_log( 'Link exists but target "<error>' . $_priorTarget . '</error>" is incorrect. Package links not created.' );
 				continue;
 			}
 
@@ -550,31 +582,31 @@ SQL;
 	 */
 	protected function _validatePackage( PackageInterface $package )
 	{
-		$this->_log( 'Installer::_validatePackage called.', true );
+		static $_validated;
 
-		//	Link path for plug-ins
-		$_config = $this->_parseConfiguration( $package );
-
-		$this->_log( ( static::$_devMode ? 'Development' : 'Production' ) . ' installation: ' . static::$_platformBasePath, true );
-
-		//	Only install DreamFactory packages if not a plug-in
-		if ( static::ALLOWED_PACKAGE_PREFIX != $this->_packagePrefix )
+		if ( $_validated !== ( $_packageName = $package->getPrettyName() ) )
 		{
-			$this->_log( 'Package type "<error>' . $this->_packagePrefix . '</error>" invalid' );
-			throw new \InvalidArgumentException( 'The package "' . $this->_packageName . '" cannot be installed by this installer.' );
-		}
+			$this->_log( 'Installer::_validatePackage called.', true );
 
-		//	Get supported types
-		if ( null !== ( $_types = Option::get( $_config, 'supported-types' ) ) )
-		{
-			foreach ( $_types as $_type => $_path )
+			//	Link path for plug-ins
+			$_config = $this->_parseConfiguration( $package );
+
+			$this->_log( '<info>' . ( static::$_devMode ? 'require-dev' : 'no-dev' ) . '</info> installation: ' . static::$_platformBasePath, true );
+
+			//	Get supported types
+			if ( null !== ( $_types = Option::get( $_config, 'supported-types' ) ) )
 			{
-				if ( !array_key_exists( $_type, $this->_supportedTypes ) )
+				foreach ( $_types as $_type => $_path )
 				{
-					$this->_supportedTypes[$_type] = $_path;
-					$this->_log( 'Added support for package type "<info>' . $_type . '</info>"' );
+					if ( !array_key_exists( $_type, $this->_supportedTypes ) )
+					{
+						$this->_supportedTypes[$_type] = $_path;
+						$this->_log( 'Added support for package type "<info>' . $_type . '</info>"' );
+					}
 				}
 			}
+
+			$_validated = $_packageName;
 		}
 	}
 
@@ -591,9 +623,7 @@ SQL;
 	{
 		static $_cache = array();
 
-		$_packageName = $package->getPrettyName();
-
-		if ( null === ( $_packageConfig = Option::get( $_cache, $_packageName ) ) )
+		if ( null === ( $_packageConfig = Option::get( $_cache, $_packageName = $package->getPrettyName() ) ) )
 		{
 			//	Get the extra stuff
 			$_extra = Option::clean( $package->getExtra() );
@@ -636,31 +666,32 @@ SQL;
 	 */
 	protected function _parseConfiguration( PackageInterface $package )
 	{
-		$_parts = explode( '/', $this->_packageName = $package->getPrettyName(), 2 );
+		$_parts = explode( '/', $_packageName = $package->getPrettyName(), 2 );
 
 		if ( 2 != count( $_parts ) )
 		{
-			throw new \InvalidArgumentException( 'The package "' . $this->_packageName . '" package name is malformed or cannot be parsed.' );
+			throw new \InvalidArgumentException( 'The package "' . $_packageName . '" package name is malformed or cannot be parsed.' );
 		}
 
-		$this->_packagePrefix = $_parts[0];
-		$this->_packageSuffix = $_parts[1];
-		$this->_packageType = $package->getType();
+		//	Only install DreamFactory packages if not a plug-in
+		if ( static::ALLOWED_PACKAGE_PREFIX != $_parts[0] )
+		{
+			$this->_log( 'Package is not supported by this installer' );
+			throw new \InvalidArgumentException( 'The package "' . $_packageName . '" is not supported by this installer.' );
+		}
 
 		$_config = $this->_getPackageConfig( $package );
-
-		//	Pull out the links
-		$_links = Option::get( $_config, 'links' );
+		$_links = Option::get( $_config, 'links', array() );
 
 		//	If no links found, create default for plugin
-		if ( empty( $_links ) && PackageTypes::PLUGIN == $this->_packageType )
+		if ( empty( $_links ) && PackageTypes::PLUGIN == $package->getType() )
 		{
 			$_link = array(
 				'target' => null,
-				'link'   => Option::get( $_config, 'api_name', $this->_packageSuffix )
+				'link'   => Option::get( $_config, 'api_name', $_parts[1] )
 			);
 
-			$_config['links'] = $_links = array( $this->_normalizeLink( $package, $_link ) );
+			$_config['links'] = array( $this->_normalizeLink( $package, $_link ) );
 		}
 
 		return $_config;
@@ -676,7 +707,12 @@ SQL;
 	{
 		//	Adjust relative directory to absolute
 		$_target = $this->getInstallPath( $package ) . '/' . Option::get( $link, 'target' );
-		$_linkName = static::$_platformBasePath . static::DEFAULT_PLUGIN_LINK_PATH . '/' . Option::get( $link, 'link', $this->_packageSuffix );
+
+		$_linkName =
+			static::$_platformBasePath .
+			static::DEFAULT_PLUGIN_LINK_PATH .
+			'/' .
+			Option::get( $link, 'link', @end( explode( '/', $package->getPrettyName(), 2 ) ) );
 
 		return array( $_target, $_linkName );
 	}
@@ -686,68 +722,20 @@ SQL;
 	 *
 	 * @return string
 	 */
-	protected function _getPackageTypeSubPath( $type = null )
+	protected function _getPackageTypeSubPath( $type )
 	{
-		return Option::get( $this->_supportedTypes, $type ? : $this->_packageType );
+		return Option::get( $this->_supportedTypes, $type );
 	}
 
 	/**
-	 * Locates the installed DSP's base directory
-	 *
-	 * @param \Composer\IO\IOInterface $io
-	 * @param string                   $startPath
-	 *
-	 * @throws \Kisma\Core\Exceptions\FileSystemException
-	 * @return string
-	 */
-	protected static function _findPlatformBasePath( IOInterface $io, $startPath = null )
-	{
-		$_path = $startPath ? : dirname( __DIR__ );
-
-		while ( true )
-		{
-			if ( file_exists( $_path . '/config/schema/system_schema.json' ) && is_dir( $_path . '/storage/.private' ) )
-			{
-				break;
-			}
-
-			//	If we get to the root, ain't no DSP...
-			if ( '/' == ( $_path = dirname( $_path ) ) )
-			{
-				$io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
-
-				if ( !static::$_devMode )
-				{
-					throw new FileSystemException( 'Unable to find the DSP installation directory.' );
-				}
-
-				break;
-			}
-		}
-
-		return $_path;
-	}
-
-	/**
-	 * @param IOInterface $io
-	 * @param Composer    $composer
-	 *
 	 * @throws \Kisma\Core\Exceptions\FileSystemException
 	 */
-	protected function _validateInstallationTree( IOInterface $io, Composer $composer )
+	protected function _validateInstallationTree()
 	{
-		$_basePath = realpath( static::$_platformBasePath = static::_findPlatformBasePath( $io ) );
+		$_basePath = realpath( static::$_platformBasePath = static::_findPlatformBasePath( $this->io ) );
 		$this->filesystem->ensureDirectoryExists( $_basePath . '/storage/plugins/.manifest' );
 
 		$this->_log( 'Installation tree validated.', true );
-	}
-
-	/**
-	 * @param boolean $devMode
-	 */
-	public static function setDevMode( $devMode )
-	{
-		static::$_devMode = $devMode;
 	}
 
 	/**

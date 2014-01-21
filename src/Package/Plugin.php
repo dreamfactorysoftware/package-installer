@@ -72,11 +72,13 @@ class Plugin implements EventSubscriberInterface, PluginInterface
 	 * @param CommandEvent $event
 	 * @param bool         $devMode
 	 */
-	public static function onCommand( CommandEvent $event, $devMode )
+	public static function onCommand( CommandEvent $event, $devMode = true )
 	{
 		if ( null !== static::$_installer )
 		{
 			static::$_installer->setDevMode( $devMode );
 		}
+
+		$event->getOutput()->write( 'Command event ' . print_r( $event, true ) );
 	}
 }
