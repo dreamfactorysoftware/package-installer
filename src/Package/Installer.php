@@ -233,10 +233,8 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	protected function getPackageBasePath( PackageInterface $package )
 	{
-		$_originalPath = parent::getPackageBasePath( $package );
 		$this->_validatePackage( $package );
-
-		return $this->_packageInstallPath . $this->_getPackageTypeSubPath( $package->getType() ) . $this->_packageName;
+		return $this->_packageInstallPath . $this->_getPackageTypeSubPath( $package->getType() ) . '/' . $this->_packageName;
 	}
 
 	/**
