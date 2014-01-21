@@ -537,7 +537,7 @@ SQL;
 
 		if ( $this->io->isDebug() )
 		{
-			$this->io->write( '  - Validating package payload (' . $this->composer->getInstallationManager()->getOperation() );
+			$this->io->write( '  - Validating package payload' );
 		}
 
 		$this->io->write(
