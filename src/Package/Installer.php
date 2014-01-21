@@ -653,33 +653,33 @@ SQL;
 	 * @throws \Kisma\Core\Exceptions\FileSystemException
 	 * @return string
 	 */
-protected staic function _findPlatformBasePath()
-{
-	$_path = dirname( __DIR__ );
-
-	while ( true )
+	protected static function _findPlatformBasePath()
 	{
-		if ( file_exists( $_path . '/config/schema/system_schema.json' ) && is_dir( $_path . '/storage/.private' ) )
+		$_path = dirname( __DIR__ );
+
+		while ( true )
 		{
+			if ( file_exists( $_path . '/config/schema/system_schema.json' ) && is_dir( $_path . '/storage/.private' ) )
+			{
+				break;
+			}
+
+			//	If we get to the root, ain't no DSP...
+			if ( '/' == ( $_path = dirname( $_path ) ) )
+			{
+				$this->io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
+
+				if ( !static::$_devMode )
+				{
+					throw new FileSystemException( 'Unable to find the DSP installation directory.' );
+				}
+			}
+
 			break;
 		}
 
-		//	If we get to the root, ain't no DSP...
-		if ( '/' == ( $_path = dirname( $_path ) ) )
-		{
-			$this->io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
-
-			if ( !static::$_devMode )
-			{
-				throw new FileSystemException( 'Unable to find the DSP installation directory.' );
-			}
-		}
-
-		break;
+		return $_path;
 	}
-
-	return $_path;
-}
 
 	/**
 	 * @param IOInterface $io
