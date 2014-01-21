@@ -275,6 +275,9 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		return true;
 	}
 
+	/**
+	 * @return bool|mixed
+	 */
 	protected function _getRegistrationInfo()
 	{
 		if ( null === ( $_app = Option::get( $this->_config, 'application' ) ) )
@@ -303,10 +306,14 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	protected function _addApplication()
 	{
+		$this->io->write('_addApplication');
 		if ( false === ( $_app = $this->_getRegistrationInfo() ) )
 		{
+		$this->io->write('_addApplication: nope');
 			return false;
 		}
+
+		$this->io->write('_addApplication: yep');
 
 		$_sql = <<<SQL
 INSERT INTO df_sys_app (
