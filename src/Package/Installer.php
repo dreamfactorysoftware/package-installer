@@ -25,6 +25,8 @@ use Composer\Installer\LibraryInstaller;
 use Composer\IO\IOInterface;
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
+use Composer\Script\Event;
+use Composer\Script\ScriptEvents;
 use DreamFactory\Tools\Composer\Enums\PackageTypes;
 use Kisma\Core\Exceptions\FileSystemException;
 use Kisma\Core\Utility\Option;
@@ -116,6 +118,10 @@ class Installer extends LibraryInstaller
 	 * @var array
 	 */
 	protected $_config = array();
+	/**
+	 * @var bool True if this install was started with "require-dev", false if "no-dev"
+	 */
+	protected static $_devMode = false;
 
 	//*************************************************************************
 	//* Methods
@@ -135,6 +141,27 @@ class Installer extends LibraryInstaller
 
 		//	Make sure proper storage paths are available
 		$this->_validateInstallationTree( $io, $composer );
+	}
+
+	/**
+	 * {@InheritDoc}
+	 */
+	public static function getSubscribedEvents()
+	{
+		return array(
+			ScriptEvents::PRE_INSTALL_CMD => array( array( 'onOperation', 0 ) ),
+			ScriptEvents::PRE_UPDATE_CMD  => array( array( 'onOperation', 0 ) ),
+		);
+	}
+
+	/**
+	 * @param Event $event
+	 * @param bool  $devMode
+	 */
+	public static function onOperation( Event $event, $devMode )
+	{
+		$event->getIO()->write( '  - <info>Operation event fired</info>' );
+		static::$_devMode = $devMode;
 	}
 
 	/**
@@ -632,14 +659,12 @@ SQL;
 			//	If we get to the root, ain't no DSP...
 			if ( '/' == ( $_path = dirname( $_path ) ) )
 			{
-				$this->$this->io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
-				throw new FileSystemException( 'Unable to find the DSP installation directory.' );
-			}
+				$this->io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
 
-			if ( !$this->_devMode )
-			{
-				$this->$this->io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
-				throw new FileSystemException( 'Unable to find the DSP installation directory.' );
+				if ( !static::$_devMode )
+				{
+					throw new FileSystemException( 'Unable to find the DSP installation directory.' );
+				}
 			}
 
 			break;
