@@ -108,9 +108,9 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	protected $_baseInstallPath = './';
 	/**
-	 * @var string The path of the install relative to $installBasePath, i.e. ../[applications|plugins]/vendor/package-name
+	 * @var string The path of the install relative to $installBasePath, i.e. ../../[applications|plugins]/vendor/package-name
 	 */
-	protected $_packageInstallPath = '../';
+	protected $_packageInstallPath = '../../';
 	/**
 	 * @var array
 	 */
@@ -122,7 +122,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	/**
 	 * @var string The base directory of the DSP installation
 	 */
-	protected static $_platformBasePath = '../../../';
+	protected static $_platformBasePath = '../../../../';
 
 	//*************************************************************************
 	//* Methods
