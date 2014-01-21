@@ -68,7 +68,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface
 	/**
 	 * @param \Composer\Script\CommandEvent $event
 	 */
-	public static function onCommand( \Composer\Script\CommandEvent $event )
+	public static function onCommand( $event )
 	{
 		static $_commands = array( 'update', 'install' );
 
