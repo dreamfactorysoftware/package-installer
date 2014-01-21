@@ -112,10 +112,6 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	protected $_packageInstallPath = '../../';
 	/**
-	 * @var array
-	 */
-	protected $_config = array();
-	/**
 	 * @var bool True if this install was started with "require-dev", false if "no-dev"
 	 */
 	protected static $_devMode = true;
@@ -177,12 +173,12 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	public function install( InstalledRepositoryInterface $repo, PackageInterface $package )
 	{
-		$this->_validatePackage( $package );
+//		$this->_validatePackage( $package );
 
 		parent::install( $repo, $package );
 
 		$this->_createLinks( $package );
-		$this->_addApplication();
+		$this->_addApplication( $package );
 	}
 
 	/**
@@ -194,18 +190,18 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	public function update( InstalledRepositoryInterface $repo, PackageInterface $initial, PackageInterface $target )
 	{
-		$this->_validatePackage( $initial );
+//		$this->_validatePackage( $initial );
 
 		parent::update( $repo, $initial, $target );
 
 		//	Out with the old...
 		$this->_deleteLinks( $initial );
-		$this->_deleteApplication();
+		$this->_deleteApplication( $initial );
 
 		//	In with the new...
 		$this->_validatePackage( $target );
 		$this->_createLinks( $target );
-		$this->_addApplication();
+		$this->_addApplication( $target );
 	}
 
 	/**
@@ -219,7 +215,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		parent::uninstall( $repo, $package );
 
 		$this->_deleteLinks( $package );
-		$this->_deleteApplication();
+		$this->_deleteApplication( $package );
 	}
 
 	/**
@@ -276,11 +272,15 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	}
 
 	/**
+	 * @param \Composer\Package\PackageInterface $package
+	 *
 	 * @return bool|mixed
 	 */
-	protected function _getRegistrationInfo()
+	protected function _getRegistrationInfo( PackageInterface $package )
 	{
-		if ( null === ( $_app = Option::get( $this->_config, 'application' ) ) )
+		$_config = $this->_getPackageConfig( $package );
+
+		if ( empty( $_config ) || null === ( $_app = Option::get( $_config, 'application' ) ) )
 		{
 			$this->io->write( '  - No registration requested' );
 
@@ -301,19 +301,22 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	}
 
 	/**
-	 * @throws \Kisma\Core\Exceptions\DataStoreException
+	 * @param \Composer\Package\PackageInterface $package
+	 *
 	 * @return bool
 	 */
-	protected function _addApplication()
+	protected function _addApplication( PackageInterface $package )
 	{
-		$this->io->write('_addApplication');
-		if ( false === ( $_app = $this->_getRegistrationInfo() ) )
+		$this->io->write( '_addApplication' );
+
+		if ( false === ( $_app = $this->_getRegistrationInfo( $package ) ) )
 		{
-		$this->io->write('_addApplication: nope');
+			$this->io->write( '_addApplication: nope' );
+
 			return false;
 		}
 
-		$this->io->write('_addApplication: yep');
+		$this->io->write( '_addApplication: yep' );
 
 		$_sql = <<<SQL
 INSERT INTO df_sys_app (
@@ -399,12 +402,13 @@ SQL;
 	/**
 	 * Soft-deletes a registered package
 	 *
-	 * @throws \Kisma\Core\Exceptions\DataStoreException
+	 * @param \Composer\Package\PackageInterface $package
+	 *
 	 * @return bool
 	 */
-	protected function _deleteApplication()
+	protected function _deleteApplication( PackageInterface $package )
 	{
-		if ( false === ( $_app = $this->_getRegistrationInfo() ) )
+		if ( false === ( $_app = $this->_getRegistrationInfo( $package ) ) )
 		{
 			return false;
 		}
@@ -449,7 +453,7 @@ SQL;
 	 */
 	protected function _createLinks( PackageInterface $package )
 	{
-		if ( null === ( $_links = Option::get( $this->_config, 'links' ) ) )
+		if ( null === ( $_links = $this->_getPackageConfig( $package, 'links' ) ) )
 		{
 			if ( $this->io->isDebug() )
 			{
@@ -494,7 +498,7 @@ SQL;
 	 */
 	protected function _deleteLinks( PackageInterface $package )
 	{
-		if ( null === ( $_links = Option::get( $this->_config, 'links' ) ) )
+		if ( null === ( $_links = $this->_getPackageConfig( $package, 'links' ) ) )
 		{
 			if ( $this->io->isDebug() )
 			{
@@ -540,7 +544,7 @@ SQL;
 	protected function _validatePackage( PackageInterface $package )
 	{
 		//	Link path for plug-ins
-		$this->_parseConfiguration( $package );
+		$_config = $this->_parseConfiguration( $package );
 
 		if ( $this->io->isDebug() )
 		{
@@ -559,7 +563,7 @@ SQL;
 		}
 
 		//	Get supported types
-		if ( null !== ( $_types = Option::get( $this->_config, 'supported-types' ) ) )
+		if ( null !== ( $_types = Option::get( $_config, 'supported-types' ) ) )
 		{
 			foreach ( $_types as $_type => $_path )
 			{
@@ -570,6 +574,46 @@ SQL;
 				}
 			}
 		}
+	}
+
+	/**
+	 * @param PackageInterface $package
+	 * @param string           $key
+	 * @param mixed            $defaultValue
+	 *
+	 * @throws \InvalidArgumentException
+	 * @return array
+	 */
+	protected function _getPackageConfig( PackageInterface $package, $key = null, $defaultValue = null )
+	{
+		//	Get the extra stuff
+		$_extra = Option::clean( $package->getExtra() );
+		$_config = array();
+
+		//	Read configuration section. Can be an array or name of file to include
+		if ( null !== ( $_configFile = Option::get( $_extra, 'config' ) ) )
+		{
+			if ( is_string( $_configFile ) && is_file( $_configFile ) && is_readable( $_configFile ) )
+			{
+				/** @noinspection PhpIncludeInspection */
+				if ( false === ( $_config = @include( $_configFile ) ) )
+				{
+					$this->io->write( '  - <error>File system error reading package configuration file: ' . $_configFile . '</error>' );
+					$_config = array();
+				}
+
+				if ( !is_array( $_config ) )
+				{
+					$this->io->write( '  - The "config" file specified in this package is invalid: <error>' . $_configFile . '</error>' );
+					throw new \InvalidArgumentException( 'The "config" file specified in this package is invalid.' );
+				}
+			}
+		}
+
+		$_config = array_merge( $_extra, $_config );
+
+		//	Merge any config with the extra data
+		return $key ? Option::get( $_config, $key, $defaultValue ) : $_config;
 	}
 
 	/**
@@ -593,32 +637,7 @@ SQL;
 		$this->_packageSuffix = $_parts[1];
 		$this->_packageType = $package->getType();
 
-		//	Get the extra stuff
-		$_extra = Option::clean( $package->getExtra() );
-		$_config = array();
-
-		//	Read configuration section. Can be an array or name of file to include
-		if ( null !== ( $_configFile = Option::get( $_extra, 'config' ) ) )
-		{
-			if ( is_string( $_configFile ) && is_file( $_configFile ) && is_readable( $_configFile ) )
-			{
-				/** @noinspection PhpIncludeInspection */
-				if ( false === ( $_config = @include( $_configFile ) ) )
-				{
-					$this->io->write( '  - <error>File system error reading package configuration file: ' . $_configFile . '</error>' );
-					$_config = array();
-				}
-
-				if ( !is_array( $_config ) )
-				{
-					$this->io->write( '  - <error>The "config" file specified in this package is invalid: ' . $_configFile . '</error>' );
-					throw new \InvalidArgumentException( 'The "config" file specified in this package is invalid.' );
-				}
-			}
-		}
-
-		//	Merge any config with the extra data
-		$_config = array_merge( $_extra, $_config );
+		$_config = $this->_getPackageConfig( $package );
 
 		//	Pull out the links
 		$_links = Option::get( $_config, 'links' );
@@ -634,7 +653,7 @@ SQL;
 			$_config['links'] = $_links = array( $this->_normalizeLink( $package, $_link ) );
 		}
 
-		return $this->_config = $_config;
+		return $_config;
 	}
 
 	/**
