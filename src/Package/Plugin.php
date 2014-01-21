@@ -41,6 +41,10 @@ class Plugin implements EventSubscriberInterface, PluginInterface
 	 * @var Installer
 	 */
 	protected static $_installer;
+	/**
+	 * @var bool require-dev or no-dev
+	 */
+	protected static $_devMode = true;
 
 	//*************************************************************************
 	//	Methods
@@ -53,6 +57,8 @@ class Plugin implements EventSubscriberInterface, PluginInterface
 	public function activate( Composer $composer, IOInterface $io )
 	{
 		static::$_installer = new Installer( $io, $composer );
+		static::$_installer->setDevMode( static::$_devMode );
+
 		$composer->getInstallationManager()->addInstaller( static::$_installer );
 	}
 
@@ -74,11 +80,6 @@ class Plugin implements EventSubscriberInterface, PluginInterface
 	 */
 	public static function onCommand( CommandEvent $event, $devMode = true )
 	{
-		if ( null !== static::$_installer )
-		{
-			static::$_installer->setDevMode( $devMode );
-		}
-
-		$event->getOutput()->write( 'Command event ' . print_r( $event, true ) );
+		static::$_devMode = $devMode;
 	}
 }
