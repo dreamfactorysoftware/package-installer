@@ -92,6 +92,10 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	protected $_packageInstallPath = '../../';
 	/**
+	 * @var string The path of the install relative to $installBasePath, i.e. ../../[applications|plugins]/vendor/package-name
+	 */
+	protected $_packageLinkBasePath = '../storage/';
+	/**
 	 * @var bool True if this install was started with "require-dev", false if "no-dev"
 	 */
 	protected static $_devMode = true;
@@ -711,7 +715,7 @@ SQL;
 	protected function _normalizeLink( PackageInterface $package, $link )
 	{
 		//	Adjust relative directory to absolute
-		$_target = $this->getInstallPath( $package ) . '/' . Option::get( $link, 'target' );
+		$_target = $this->_packageLinkBasePath . '/' . $package->getPrettyName() . '/' . ltrim( Option::get( $link, 'target' ), '/' );
 
 		$_linkName =
 			static::$_platformBasePath .
