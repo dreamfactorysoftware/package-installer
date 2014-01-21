@@ -1,4 +1,4 @@
-# DreamFactory Package Installer v1.2.37
+# DreamFactory Package Installer v1.2.38
 
 DreamFactory Package Installer (DFPI) is a tool for installing applications,
 libraries and plug-ins to your [DSP](https://github.com/dreamfactorysoftware/dsp-core).
