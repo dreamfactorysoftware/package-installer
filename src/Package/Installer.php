@@ -24,13 +24,13 @@ use Composer\Composer;
 use Composer\EventDispatcher\EventSubscriberInterface;
 use Composer\Installer\LibraryInstaller;
 use Composer\IO\IOInterface;
+use Composer\Json\JsonFile;
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 use Composer\Script\Event;
 use Composer\Script\ScriptEvents;
 use DreamFactory\Tools\Composer\Enums\PackageTypes;
 use Kisma\Core\Exceptions\FileSystemException;
-use Kisma\Core\Utility\FileSystem;
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;
 
@@ -54,6 +54,10 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 * @var string
 	 */
 	const ALLOWED_PACKAGE_PREFIX = 'dreamfactory';
+	/**
+	 * @type bool If true, installer will attempt to update the local DSP's database directly.
+	 */
+	const ENABLE_DATABASE_ACCESS = false;
 	/**
 	 * @var string
 	 */
@@ -85,25 +89,25 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		PackageTypes::PLUGIN      => '/plugins',
 	);
 	/**
-	 * @var string The base installation path, where composer.json lives
+	 * @var string The base directory of the DSP installation relative to manifest directory
+	 */
+	protected static $_platformBasePath = '../../../../';
+	/**
+	 * @var string The base installation path, where composer.json lives: ./
 	 */
 	protected $_baseInstallPath = './';
 	/**
-	 * @var string The path of the install relative to $installBasePath, i.e. ../../[applications|plugins]/vendor/package-name
+	 * @var string The path of the package installation relative to manifest directory: ../../[applications|plugins]/vendor/package-name
 	 */
 	protected $_packageInstallPath = '../../';
 	/**
-	 * @var string The path of the install relative to $installBasePath, i.e. ../../[applications|plugins]/vendor/package-name
+	 * @var string The target of the package link relative to /web
 	 */
 	protected $_packageLinkBasePath = '../storage/';
 	/**
 	 * @var bool True if this install was started with "require-dev", false if "no-dev"
 	 */
 	protected static $_devMode = true;
-	/**
-	 * @var string The base directory of the DSP installation
-	 */
-	protected static $_platformBasePath = '../../../../';
 
 	//*************************************************************************
 	//* Methods
@@ -156,7 +160,10 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	public static function onOperation( Event $event, $devMode )
 	{
-		$event->getIO()->write( '  - <info>' . $event->getName() . '</info> event fired' );
+		if ( $event->getIO()->isDebug() )
+		{
+			$event->getIO()->write( '  - <info>' . $event->getName() . '</info> event fired' );
+		}
 
 		static::$_devMode = $devMode;
 		static::$_platformBasePath = static::_findPlatformBasePath( $event->getIO(), \getcwd() );
@@ -300,7 +307,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		}
 
 		/** @noinspection PhpIncludeInspection */
-		if ( false === ( $_dbConfig = @require( $_configFile ) ) )
+		if ( false === ( $_dbConfig = @include( $_configFile ) ) )
 		{
 			$this->_log( 'Not registered. Unable to read database configuration file: <error>' . $_configFile . '</error></error>' );
 
@@ -323,16 +330,14 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	protected function _getRegistrationInfo( PackageInterface $package )
 	{
-		$_config = $this->_getPackageConfig( $package );
-
-		if ( empty( $_config ) || null === ( $_app = Option::get( $_config, 'application' ) ) )
+		if ( null === ( $_app = $this->_getPackageConfig( $package, 'application' ) ) )
 		{
 			$this->_log( 'No registration requested' );
 
 			return false;
 		}
 
-		if ( !$this->_checkDatabase() )
+		if ( static::ENABLE_DATABASE_ACCESS && !$this->_checkDatabase() )
 		{
 			if ( $this->io->isDebug() )
 			{
@@ -357,6 +362,29 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		if ( false === ( $_app = $this->_getRegistrationInfo( $package ) ) )
 		{
 			return false;
+		}
+
+		$_defaultApiName = $this->_getPackageConfig( $package, '_suffix' );
+
+		$_payload = array(
+			'api_name'                => $_apiName = Option::get( $_app, 'api-name', $_defaultApiName ),
+			'name'                    => Option::get( $_app, 'name', $_defaultApiName ),
+			'description'             => Option::get( $_app, 'description' ),
+			'is_active'               => Option::getBool( $_app, 'is-active', false ),
+			'url'                     => Option::get( $_app, 'url' ),
+			'is_url_external'         => Option::getBool( $_app, 'is-url-external' ),
+			'import_url'              => Option::get( $_app, 'import-url' ),
+			'requires_fullscreen'     => Option::getBool( $_app, 'requires-fullscreen' ),
+			'allow_fullscreen_toggle' => Option::getBool( $_app, 'allow-fullscreen-toggle' ),
+			'toggle_location'         => Option::get( $_app, 'toggle-location' ),
+			'requires_plugin'         => 1,
+		);
+
+		$this->_writePackageData( $package, $_payload );
+
+		if ( !static::ENABLE_DATABASE_ACCESS )
+		{
+			return true;
 		}
 
 		$_sql = <<<SQL
@@ -402,8 +430,6 @@ ON DUPLICATE KEY UPDATE
   `toggle_location` = VALUES(`toggle_location`),
   `requires_plugin` = VALUES(`require_plugin`)
 SQL;
-
-		$_defaultApiName = $this->_getPackageConfig( $package, '_suffix' );
 
 		$_data = array(
 			':api_name'                => $_apiName = Option::get( $_app, 'api-name', $_defaultApiName ),
@@ -460,6 +486,13 @@ SQL;
 			return false;
 		}
 
+		$this->_writePackageData( $package, false );
+
+		if ( static::ENABLE_DATABASE_ACCESS )
+		{
+			return true;
+		}
+
 		$_sql = <<<SQL
 UPDATE df_sys_app SET
 	`is_active` = :is_active
@@ -495,6 +528,36 @@ SQL;
 		$this->_log( 'Package "<info>' . $_apiName . '</info>" unregistered from DSP.' );
 
 		return true;
+	}
+
+	/**
+	 * @param PackageInterface $package
+	 * @param array            $data
+	 *
+	 * @return string
+	 * @throws \Kisma\Core\Exceptions\FileSystemException
+	 */
+	protected function _writePackageData( PackageInterface $package, array $data = array() )
+	{
+		$_fileName = './' . $package->getUniqueName() . '.manifest.json';
+
+		//	Remove package data...
+		if ( false === $data )
+		{
+			if ( file_exists( $_fileName ) && false === @unlink( $_fileName ) )
+			{
+				$this->_log( 'Error removing package data file <error>' . $_fileName . '</error>' );
+			}
+
+			return null;
+		}
+
+		$_file = new JsonFile( './' . $_fileName );
+		$_file->write( (array)$data );
+
+		$this->_log( 'Package data written to "<info>' . $_fileName . '</info>"' );
+
+		return $_fileName;
 	}
 
 	/**
@@ -757,7 +820,12 @@ SQL;
 	protected function _validateInstallationTree()
 	{
 		$_basePath = realpath( static::$_platformBasePath = static::_findPlatformBasePath( $this->io ) );
-		$this->filesystem->ensureDirectoryExists( $_basePath . '/storage/plugins/.manifest' );
+
+		foreach ( $this->_supportedTypes as $_type => $_path )
+		{
+			$this->filesystem->ensureDirectoryExists( $_basePath . '/storage/' . $_path . '/.manifest' );
+			$this->_log( '* Type "<info>' . $_type . '</info>" installation tree validated.', true );
+		}
 
 		$this->_log( 'Installation tree validated.', true );
 	}
@@ -773,7 +841,7 @@ SQL;
 			return;
 		}
 
-		$this->io->write( '  - ' . $message );
+		$this->io->write( '  - ' . ( $debug ? ' <info>**</info> ' : null ) . $message );
 	}
 
 }
