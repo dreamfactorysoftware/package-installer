@@ -783,8 +783,7 @@ SQL;
 	{
 		//	Build path the link target
 		$_target =
-			'/' .
-			trim( $this->_packageLinkBasePath, '/' ) .
+			rtrim( $this->_packageLinkBasePath, '/' ) .
 			'/' .
 			trim( $this->_getPackageTypeSubPath( $package->getType() ), '/' ) .
 			'/' .
@@ -794,8 +793,7 @@ SQL;
 
 		//	And the link
 		$_linkName =
-			'/' .
-			trim( static::$_platformBasePath, '/' ) .
+			rtrim( static::$_platformBasePath, '/' ) .
 			'/' .
 			trim( static::DEFAULT_PLUGIN_LINK_PATH, '/' ) .
 			'/' .
