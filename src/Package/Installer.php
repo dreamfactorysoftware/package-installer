@@ -330,9 +330,13 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	protected function _getRegistrationInfo( PackageInterface $package )
 	{
-		if ( null === ( $_app = $this->_getPackageConfig( $package, 'application' ) ) )
+		static $_supportedData = 'application';
+
+		$_packageData = $this->_getPackageConfig( $package, 'data' );
+
+		if ( empty( $_packageData ) || null === ( $_records = Option::get( $_packageData, $_supportedData ) ) )
 		{
-			$this->_log( 'No registration requested' );
+			$this->_log( 'No registration requested', true );
 
 			return false;
 		}
@@ -347,7 +351,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 			}
 		}
 
-		return $_app;
+		return $_records;
 	}
 
 	/**

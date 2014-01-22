@@ -1,4 +1,5 @@
 {
+	"_readme":                 "This is template for an application (dreamfactory.df_sys_app) record.",
 	"api_name":                "{{api_name}}",
 	"name":                    "{{name}}",
 	"description":             "{{description}}",
