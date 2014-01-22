@@ -725,7 +725,7 @@ SQL;
 			'/' .
 			trim( static::DEFAULT_PLUGIN_LINK_PATH, '/' ) .
 			'/' .
-			Option::get( $link, 'link', @end( explode( '/', $package->getPrettyName(), 2 ) ) );
+			ltrim( Option::get( $link, 'link', @end( explode( '/', $package->getPrettyName(), 2 ) ) ), '/' );
 
 		return array( $_target, $_linkName );
 	}
