@@ -72,6 +72,10 @@ you can customize the installation of your DSP package:
 In the above example we are giving our package a pretty name,
 an `api_name` (which defines the route) and a few other details.
 
+## Packaging Without Composer
+
+Doc coming.
+
 ## Contributing
 
 All code contributions - including those of people having commit access -
@@ -80,22 +84,18 @@ merged. This is to ensure proper review of all the code.
 
 Fork the project, create a feature branch, and send us a pull request.
 
-If you would like to help take a look at the [list of issues](http://github
-.com/dreamfactorysoftware/dsp-core/issues).
+If you would like to help take a look at the [list of issues](http://github.com/dreamfactorysoftware/dsp-core/issues).
 
 ## Community
 
-Join our other DSP users on [Google Groups](https://groups.google
-.com/forum/#!forum/dsp-devs)!
+Join our other DSP users on [Google Groups](https://groups.google.com/forum/#!forum/dsp-devs)!
 
-IRC channels are on irc.freenode.org: [#dreamfactory](irc://irc.freenode
-.org/dreamfactory)
+IRC channels are on irc.freenode.org: [#dreamfactory](irc://irc.freenode.org/dreamfactory)
 for users and [#dreamfactory-dev](irc://irc.freenode.org/dreamfactory-dev) for
 development.
 
 Stack Overflow has a growing collection of
-[DSP related questions](http://stackoverflow
-.com/questions/tagged/dreamfactory-dsp).
+[DSP related questions](http://stackoverflow.com/questions/tagged/dreamfactory-dsp).
 
 ## License
 
