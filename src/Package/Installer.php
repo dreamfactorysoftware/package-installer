@@ -30,6 +30,7 @@ use Composer\Script\Event;
 use Composer\Script\ScriptEvents;
 use DreamFactory\Tools\Composer\Enums\PackageTypes;
 use Kisma\Core\Exceptions\FileSystemException;
+use Kisma\Core\Utility\FileSystem;
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;
 
@@ -402,7 +403,7 @@ ON DUPLICATE KEY UPDATE
   `requires_plugin` = VALUES(`require_plugin`)
 SQL;
 
-		$_defaultApiName = @end( explode( '/', $package->getPrettyName(), 2 ) );
+		$_defaultApiName = $this->_getPackageConfig( $package, '_suffix' );
 
 		$_data = array(
 			':api_name'                => $_apiName = Option::get( $_app, 'api-name', $_defaultApiName ),
@@ -467,7 +468,7 @@ WHERE
 SQL;
 
 		$_data = array(
-			':api_name'  => $_apiName = Option::get( $_app, 'api-name', @end( explode( '/', $package->getPrettyName(), 2 ) ) ),
+			':api_name'  => $_apiName = Option::get( $_app, 'api-name', $this->_getPackageConfig( $package, '_suffix' ) ),
 			':is_active' => 0
 		);
 
@@ -703,6 +704,9 @@ SQL;
 			$_config['links'] = array( $this->_normalizeLink( $package, $_link ) );
 		}
 
+		$_config['_prefix'] = $_parts[0];
+		$_config['_suffix'] = $_parts[1];
+
 		return $_config;
 	}
 
@@ -714,18 +718,24 @@ SQL;
 	 */
 	protected function _normalizeLink( PackageInterface $package, $link )
 	{
-		//	Adjust relative directory to absolute
-		$_target = //	../storage
-			rtrim( $this->_packageLinkBasePath, '/' ) . '/' . //	plugins|applications
-			trim( $this->_getPackageTypeSubPath( $package->getType() ), '/' ) . '/' . //	vendor/package
-			$package->getPrettyName() . '/' . ltrim( Option::get( $link, 'target' ), '/' );
+		//	Build path the link target
+		$_target = FileSystem::makePath(
+			$this->_packageLinkBasePath . $this->_getPackageTypeSubPath( $package->getType() ),
+			$package->getPrettyName(),
+			Option::get( $link, 'target' )
+		);
 
-		$_linkName =
-			rtrim( static::$_platformBasePath . '/' ) .
-			'/' .
-			trim( static::DEFAULT_PLUGIN_LINK_PATH, '/' ) .
-			'/' .
-			ltrim( Option::get( $link, 'link', @end( explode( '/', $package->getPrettyName(), 2 ) ) ), '/' );
+		//	And the link
+		$_linkName = FileSystem::makePath(
+			true,
+			static::$_platformBasePath,
+			static::DEFAULT_PLUGIN_LINK_PATH,
+			Option::get(
+				$link,
+				'link',
+				$this->_getPackageConfig( $package, '_suffix' )
+			)
+		);
 
 		return array( $_target, $_linkName );
 	}
