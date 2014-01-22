@@ -46,20 +46,23 @@ you can customize the installation of your DSP package:
 
     {
         "extra": {
-            "name":              "Portal Sandbox",
-			"api-name":          "pbox",
-			"description":       "A sample application that demonstrates the DSP's portal service.",
-			"start-url":         "/index.php",
-			"url-is-external":   false,
-			"import-url":        "https://github.com/dreamfactorysoftware/portal-sandbox/archive/master.zip",
-			"active":            true,
-			"fullscreen":        false,
-			"fullscreen-toggle": true,
-			"toggle-location":   "top",
-			"config":            "config/app.config.php",
+        	"data":
+        		"application":	{
+					"name":              "Portal Sandbox",
+					"api-name":          "pbox",
+					"description":       "A sample application that demonstrates the DSP's portal service.",
+					"start-url":         "/index.php",
+					"url-is-external":   false,
+					"import-url":        "https://github.com/dreamfactorysoftware/portal-sandbox/archive/master.zip",
+					"active":            true,
+					"fullscreen":        false,
+					"fullscreen-toggle": true,
+					"toggle-location":   "top",
+					"config":            "config/app.config.php"
+			}.
 			"links":             [
 				{
-					"target": null,
+					"target": "src/",
 					"link":   "pbox"
 				}
 			]
