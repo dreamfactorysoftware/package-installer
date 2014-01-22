@@ -719,23 +719,24 @@ SQL;
 	protected function _normalizeLink( PackageInterface $package, $link )
 	{
 		//	Build path the link target
-		$_target = FileSystem::makePath(
-			$this->_packageLinkBasePath . $this->_getPackageTypeSubPath( $package->getType() ),
-			$package->getPrettyName(),
-			Option::get( $link, 'target' )
-		);
+		$_target =
+			'/' .
+			trim( $this->_packageLinkBasePath, '/' ) .
+			'/' .
+			trim( $this->_getPackageTypeSubPath( $package->getType() ), '/' ) .
+			'/' .
+			trim( $package->getPrettyName(), '/' ) .
+			'/' .
+			trim( Option::get( $link, 'target' ), '/' );
 
 		//	And the link
-		$_linkName = FileSystem::makePath(
-			true,
-			static::$_platformBasePath,
-			static::DEFAULT_PLUGIN_LINK_PATH,
-			Option::get(
-				$link,
-				'link',
-				$this->_getPackageConfig( $package, '_suffix' )
-			)
-		);
+		$_linkName =
+			'/' .
+			trim( static::$_platformBasePath, '/' ) .
+			'/' .
+			trim( static::DEFAULT_PLUGIN_LINK_PATH, '/' ) .
+			'/' .
+			trim( Option::get( $link, 'link', $this->_getPackageConfig( $package, '_suffix' ) ), '/' );
 
 		return array( $_target, $_linkName );
 	}
