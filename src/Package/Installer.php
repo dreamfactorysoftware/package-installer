@@ -536,12 +536,12 @@ SQL;
 
 	/**
 	 * @param PackageInterface $package
-	 * @param array            $data
+	 * @param array            $data The package data. Set $data = false to remove the package data file
 	 *
-	 * @return string
+	 * @return string The name of the file data to which data was written
 	 * @throws \Kisma\Core\Exceptions\FileSystemException
 	 */
-	protected function _writePackageData( PackageInterface $package, array $data = array() )
+	protected function _writePackageData( PackageInterface $package, $data = array() )
 	{
 		$_fileName = './package.data/' . $package->getUniqueName() . '.manifest.json';
 
