@@ -1,0 +1,13 @@
+{
+	"api_name":                "{{api_name}}",
+	"name":                    "{{name}}",
+	"description":             "{{description}}",
+	"is_active":               "{{is_active}}",
+	"url":                     "{{url}}",
+	"is_url_external":         "{{is_url_external}}",
+	"import_url":              "{{import_url}}",
+	"requires_fullscreen":     "{{requires_fullscreen}}",
+	"allow_fullscreen_toggle": "{{allow_fullscreen_toggle}}",
+	"toggle_location":         "{{toggle_location}}",
+	"requires_plugin":         "{{required_plugin}}"
+}
