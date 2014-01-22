@@ -38,7 +38,7 @@ use Kisma\Core\Utility\Sql;
  * Installer
  * DreamFactory Package Installer
  *
- * Under each DSP installation lies a /storage directory. This plug-in installs DreamFactory DSP packages into this space
+ * Under each DSP   lies a /storage directory. This plug-in installs DreamFactory DSP packages into this space
  *
  * /storage/plugins                                    Installation base (plug-in vendors)
  * /storage/plugins/.manifest/composer.json            Main config file
@@ -179,7 +179,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	public function install( InstalledRepositoryInterface $repo, PackageInterface $package )
 	{
-		$this->_log( 'Installing package of type <info>' . $package->getPrettyName() . '</info>', true );
+		$this->_log( 'Installing package <info>' . $package->getPrettyName() . '</info>', true );
 
 		parent::install( $repo, $package );
 
@@ -539,7 +539,7 @@ SQL;
 	 */
 	protected function _writePackageData( PackageInterface $package, array $data = array() )
 	{
-		$_fileName = './' . $package->getUniqueName() . '.manifest.json';
+		$_fileName = './package.data/' . $package->getUniqueName() . '.manifest.json';
 
 		//	Remove package data...
 		if ( false === $data )
@@ -552,7 +552,7 @@ SQL;
 			return null;
 		}
 
-		$_file = new JsonFile( './' . $_fileName );
+		$_file = new JsonFile( $_fileName );
 		$_file->write( (array)$data );
 
 		$this->_log( 'Package data written to "<info>' . $_fileName . '</info>"' );
