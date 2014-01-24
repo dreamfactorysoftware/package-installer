@@ -84,7 +84,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	/**
 	 * @const string
 	 */
-	const REQUIRE_DEV_BASE_PATH = './';
+	const REQUIRE_DEV_BASE_PATH = './dev';
 
 	//*************************************************************************
 	//* Members
@@ -262,9 +262,6 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		//	In --require-dev mode, we create a temp storage area...
 		if ( static::$_requireDev )
 		{
-			$_fs = new  Filesystem();
-			$_fs->ensureDirectoryExists( static::REQUIRE_DEV_BASE_PATH . '/storage.dev/.private' );
-
 			return static::REQUIRE_DEV_BASE_PATH;
 		}
 
@@ -272,7 +269,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 
 		while ( true )
 		{
-			if ( file_exists( $_path . '/config/schema/system_schema.json' ) && is_dir( $_path . '/storage/.private' ) )
+			if ( file_exists( $_path . '/config/schema/system_schema.json' ) && is_dir( $_path . static::DEFAULT_STORAGE_BASE_PATH . '/.private' ) )
 			{
 				break;
 			}
@@ -856,31 +853,25 @@ SQL;
 	}
 
 	/**
-	 * @return string
-	 */
-	protected function _getStorageBasePath()
-	{
-		return static::DEFAULT_STORAGE_BASE_PATH . ( static::$_requireDev ? '.dev' : null );
-	}
-
-	/**
 	 * @throws \Kisma\Core\Exceptions\FileSystemException
 	 */
 	protected function _validateInstallationTree()
 	{
+		static $_requiredPaths = array(
+			'storage',
+			'storage/.private',
+			'storage/applications/.manifest',
+			'storage/plugins/.manifest',
+		);
+
 		$_basePath = realpath( static::$_platformBasePath = static::_findPlatformBasePath( $this->io ) );
 
 		foreach ( $this->_supportedTypes as $_type => $_path )
 		{
 			$this->filesystem->ensureDirectoryExists(
-				rtrim( $_basePath, '/' ) . $this->_getStorageBasePath() . '/' . trim( $_path, '/' ) . '/.manifest'
+				rtrim( $_basePath, '/' ) . static::DEFAULT_STORAGE_BASE_PATH . '/' . trim( $_path, '/' ) . '/.manifest'
 			);
 			$this->_log( '* Type "<info>' . $_type . '</info>" installation tree validated.', true );
-		}
-
-		if ( static::$_requireDev )
-		{
-			$this->_packageLinkBasePath = '../storage.dev';
 		}
 
 		$this->_log( 'Installation tree validated.', true );
