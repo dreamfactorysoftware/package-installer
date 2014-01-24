@@ -31,6 +31,7 @@ use Composer\Repository\InstalledRepositoryInterface;
 use Composer\Script\CommandEvent;
 use Composer\Script\Event;
 use Composer\Script\ScriptEvents;
+use Composer\Util\Filesystem;
 use DreamFactory\Tools\Composer\Enums\PackageTypes;
 use Kisma\Core\Exceptions\FileSystemException;
 use Kisma\Core\Utility\Option;
@@ -68,6 +69,10 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 * @const string
 	 */
 	const DEFAULT_PLUGIN_LINK_PATH = '/web';
+	/**
+	 * @const string
+	 */
+	const DEFAULT_STORAGE_BASE_PATH = '/storage';
 	/**
 	 * @const int The default package type
 	 */
@@ -257,10 +262,13 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		//	In --require-dev mode, we create a temp storage area...
 		if ( static::$_requireDev )
 		{
+			$_fs = new  Filesystem();
+			$_fs->ensureDirectoryExists( static::REQUIRE_DEV_BASE_PATH . '/storage.dev/.private' );
+
 			return static::REQUIRE_DEV_BASE_PATH;
 		}
 
-		$_path = $startPath ? : __DIR__;
+		$_path = $startPath ? : getcwd();
 
 		while ( true )
 		{
@@ -294,6 +302,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	protected function getPackageBasePath( PackageInterface $package )
 	{
 		$this->_log( 'Installer::getPackageBasePath called.', true );
+
 		$this->_validatePackage( $package );
 
 		return
@@ -325,7 +334,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		/** @noinspection PhpIncludeInspection */
 		if ( false === ( $_dbConfig = @include( $_configFile ) ) )
 		{
-			$this->_log( 'Not registered. Unable to read database configuration file: <error>' . $_configFile . '</error></error>' );
+			$this->_log( 'Not registered. Unable to read database configuration file: <error>' . $_configFile . '</error>' );
 
 			return false;
 		}
@@ -847,6 +856,14 @@ SQL;
 	}
 
 	/**
+	 * @return string
+	 */
+	protected function _getStorageBasePath()
+	{
+		return static::DEFAULT_STORAGE_BASE_PATH . ( static::$_requireDev ? '.dev' : null );
+	}
+
+	/**
 	 * @throws \Kisma\Core\Exceptions\FileSystemException
 	 */
 	protected function _validateInstallationTree()
@@ -855,8 +872,15 @@ SQL;
 
 		foreach ( $this->_supportedTypes as $_type => $_path )
 		{
-			$this->filesystem->ensureDirectoryExists( $_basePath . '/storage/' . $_path . '/.manifest' );
+			$this->filesystem->ensureDirectoryExists(
+				rtrim( $_basePath, '/' ) . $this->_getStorageBasePath() . '/' . trim( $_path, '/' ) . '/.manifest'
+			);
 			$this->_log( '* Type "<info>' . $_type . '</info>" installation tree validated.', true );
+		}
+
+		if ( static::$_requireDev )
+		{
+			$this->_packageLinkBasePath = '../storage.dev';
 		}
 
 		$this->_log( 'Installation tree validated.', true );
@@ -875,5 +899,4 @@ SQL;
 
 		$this->io->write( '  - ' . ( $debug ? ' <info>**</info> ' : null ) . $message );
 	}
-
 }
