@@ -26,7 +26,9 @@ use Composer\Installer\LibraryInstaller;
 use Composer\IO\IOInterface;
 use Composer\Json\JsonFile;
 use Composer\Package\PackageInterface;
+use Composer\Plugin\PluginEvents;
 use Composer\Repository\InstalledRepositoryInterface;
+use Composer\Script\CommandEvent;
 use Composer\Script\Event;
 use Composer\Script\ScriptEvents;
 use DreamFactory\Tools\Composer\Enums\PackageTypes;
@@ -51,29 +53,33 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	//*************************************************************************
 
 	/**
-	 * @var string
+	 * @const string
 	 */
 	const ALLOWED_PACKAGE_PREFIX = 'dreamfactory';
 	/**
-	 * @type bool If true, installer will attempt to update the local DSP's database directly.
+	 * @const bool If true, installer will attempt to update the local DSP's database directly.
 	 */
 	const ENABLE_DATABASE_ACCESS = false;
 	/**
-	 * @var string
+	 * @const string
 	 */
 	const DEFAULT_DATABASE_CONFIG_FILE = '/config/database.config.php';
 	/**
-	 * @var string
+	 * @const string
 	 */
 	const DEFAULT_PLUGIN_LINK_PATH = '/web';
 	/**
-	 * @var int The default package type
+	 * @const int The default package type
 	 */
 	const DEFAULT_PACKAGE_TYPE = PackageTypes::APPLICATION;
 	/**
-	 * @var string
+	 * @const string
 	 */
 	const FABRIC_MARKER = '/var/www/.fabric_hosted';
+	/**
+	 * @const string
+	 */
+	const REQUIRE_DEV_BASE_PATH = './';
 
 	//*************************************************************************
 	//* Members
@@ -107,7 +113,11 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	/**
 	 * @var bool True if this install was started with "require-dev", false if "no-dev"
 	 */
-	protected static $_devMode = true;
+	protected static $_requireDev = true;
+	/**
+	 * @var bool
+	 */
+	protected static $_requireDsp = true;
 
 	//*************************************************************************
 	//* Methods
@@ -140,7 +150,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	public static function setDevMode( $devMode )
 	{
-		static::$_devMode = $devMode;
+		static::$_requireDev = $devMode;
 	}
 
 	/**
@@ -165,11 +175,11 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 			$event->getIO()->write( '  - <info>' . $event->getName() . '</info> event fired' );
 		}
 
-		static::$_devMode = $devMode;
+		static::$_requireDev = $devMode;
 		static::$_platformBasePath = static::_findPlatformBasePath( $event->getIO(), \getcwd() );
 
 		$event->getIO()->write(
-			'  - <info>' . ( static::$_devMode ? 'require-dev' : 'no-dev' ) . '</info>" mode: ' . static::$_platformBasePath
+			'  - <info>' . ( static::$_requireDev ? 'require-dev' : 'no-dev' ) . '</info>" mode: ' . static::$_platformBasePath
 		);
 	}
 
@@ -244,6 +254,12 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	protected static function _findPlatformBasePath( IOInterface $io, $startPath = null )
 	{
+		//	In --require-dev mode, we create a temp storage area...
+		if ( static::$_requireDev )
+		{
+			return static::REQUIRE_DEV_BASE_PATH;
+		}
+
 		$_path = $startPath ? : __DIR__;
 
 		while ( true )
@@ -258,7 +274,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 			{
 				$io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
 
-				if ( !static::$_devMode )
+				if ( !static::$_requireDev )
 				{
 					throw new FileSystemException( 'Unable to find the DSP installation directory.' );
 				}
@@ -571,6 +587,13 @@ SQL;
 	{
 		$this->_log( 'Installer::_createLinks called.', true );
 
+		if ( static::$_requireDev )
+		{
+			$this->_log( 'Linking skipped because of "<info>require-dev</info>"' );
+
+			return true;
+		}
+
 		if ( null === ( $_links = $this->_getPackageConfig( $package, 'links' ) ) )
 		{
 			$this->_log( 'Package contains no links', true );
@@ -616,6 +639,13 @@ SQL;
 	protected function _deleteLinks( PackageInterface $package )
 	{
 		$this->_log( 'Installer::_deleteLinks called.', true );
+
+		if ( static::$_requireDev )
+		{
+			$this->_log( 'Uninking skipped because of "<info>require-dev</info>"' );
+
+			return true;
+		}
 
 		if ( null === ( $_links = $this->_getPackageConfig( $package, 'links' ) ) )
 		{
@@ -668,7 +698,7 @@ SQL;
 			//	Link path for plug-ins
 			$_config = $this->_parseConfiguration( $package );
 
-			$this->_log( '<info>' . ( static::$_devMode ? 'require-dev' : 'no-dev' ) . '</info> installation: ' . static::$_platformBasePath, true );
+			$this->_log( '<info>' . ( static::$_requireDev ? 'require-dev' : 'no-dev' ) . '</info> installation: ' . static::$_platformBasePath, true );
 
 			//	Get supported types
 			if ( null !== ( $_types = Option::get( $_config, 'supported-types' ) ) )
