@@ -26,9 +26,7 @@ use Composer\Installer\LibraryInstaller;
 use Composer\IO\IOInterface;
 use Composer\Json\JsonFile;
 use Composer\Package\PackageInterface;
-use Composer\Plugin\PluginEvents;
 use Composer\Repository\InstalledRepositoryInterface;
-use Composer\Script\CommandEvent;
 use Composer\Script\Event;
 use Composer\Script\ScriptEvents;
 use Composer\Util\Filesystem;
@@ -84,7 +82,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	/**
 	 * @const string
 	 */
-	const REQUIRE_DEV_BASE_PATH = './dev';
+	const REQUIRE_DEV_BASE_PATH = '/dev';
 
 	//*************************************************************************
 	//* Members
@@ -246,49 +244,6 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		$this->_log( 'Installer::supports called.', true );
 
 		return \array_key_exists( $packageType, $this->_supportedTypes );
-	}
-
-	/**
-	 * Locates the installed DSP's base directory
-	 *
-	 * @param \Composer\IO\IOInterface $io
-	 * @param string                   $startPath
-	 *
-	 * @throws \Kisma\Core\Exceptions\FileSystemException
-	 * @return string
-	 */
-	protected static function _findPlatformBasePath( IOInterface $io, $startPath = null )
-	{
-		//	In --require-dev mode, we create a temp storage area...
-		if ( static::$_requireDev )
-		{
-			return static::REQUIRE_DEV_BASE_PATH;
-		}
-
-		$_path = $startPath ? : getcwd();
-
-		while ( true )
-		{
-			if ( file_exists( $_path . '/config/schema/system_schema.json' ) && is_dir( $_path . static::DEFAULT_STORAGE_BASE_PATH . '/.private' ) )
-			{
-				break;
-			}
-
-			//	If we get to the root, ain't no DSP...
-			if ( '/' == ( $_path = dirname( $_path ) ) )
-			{
-				$io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
-
-				if ( !static::$_requireDev )
-				{
-					throw new FileSystemException( 'Unable to find the DSP installation directory.' );
-				}
-
-				break;
-			}
-		}
-
-		return $_path;
 	}
 
 	/**
@@ -853,25 +808,69 @@ SQL;
 	}
 
 	/**
+	 * Locates the installed DSP's base directory
+	 *
+	 * @param \Composer\IO\IOInterface $io
+	 * @param string                   $startPath
+	 *
+	 * @throws \Kisma\Core\Exceptions\FileSystemException
+	 * @return string
+	 */
+	protected static function _findPlatformBasePath( IOInterface $io, $startPath = null )
+	{
+		//	In --require-dev mode, we create a temp storage area...
+		if ( static::$_requireDev )
+		{
+			$_fs = new Filesystem();
+
+			$_path = realpath( getcwd() ) . static::REQUIRE_DEV_BASE_PATH;
+			$_fs->ensureDirectoryExists( $_path );
+
+			$io->write( '  - <info>require-dev</info> base path set to <info>' . $_path . '</info>' );
+		}
+		else
+		{
+			$_path = $startPath ? : getcwd();
+
+			while ( true )
+			{
+				if ( file_exists( $_path . '/config/schema/system_schema.json' ) && is_dir( $_path . static::DEFAULT_STORAGE_BASE_PATH . '/.private' ) )
+				{
+					break;
+				}
+
+				//	If we get to the root, ain't no DSP...
+				if ( '/' == ( $_path = dirname( $_path ) ) )
+				{
+					$io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
+					throw new FileSystemException( 'Unable to find the DSP installation directory.' );
+				}
+			}
+
+			return $_path;
+		}
+	}
+
+	/**
 	 * @throws \Kisma\Core\Exceptions\FileSystemException
 	 */
 	protected function _validateInstallationTree()
 	{
-		static $_requiredPaths = array(
-			'storage',
-			'storage/.private',
-			'storage/applications/.manifest',
-			'storage/plugins/.manifest',
-		);
+		static::$_platformBasePath = static::_findPlatformBasePath( $this->io );
 
-		$_basePath = realpath( static::$_platformBasePath = static::_findPlatformBasePath( $this->io ) );
+		$_basePath = realpath( static::$_platformBasePath );
+		$this->_log( 'Platform base path identified: ' . static::$_platformBasePath );
+
+		//	Make sure the private storage base is there...
+		$this->filesystem->ensureDirectoryExists( $_basePath . static::DEFAULT_STORAGE_BASE_PATH . '/.private' );
 
 		foreach ( $this->_supportedTypes as $_type => $_path )
 		{
 			$this->filesystem->ensureDirectoryExists(
-				rtrim( $_basePath, '/' ) . static::DEFAULT_STORAGE_BASE_PATH . '/' . trim( $_path, '/' ) . '/.manifest'
+				$_basePath . static::DEFAULT_STORAGE_BASE_PATH . '/' . trim( $_path, '/' ) . '/.manifest'
 			);
-			$this->_log( '* Type "<info>' . $_type . '</info>" installation tree validated.', true );
+
+			$this->_log( '  * Type "<info>' . $_type . '</info>" installation tree validated.', true );
 		}
 
 		$this->_log( 'Installation tree validated.', true );

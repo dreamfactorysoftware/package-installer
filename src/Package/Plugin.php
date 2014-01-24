@@ -81,5 +81,15 @@ class Plugin implements EventSubscriberInterface, PluginInterface
 	public static function onCommand( CommandEvent $event, $devMode = true )
 	{
 		static::$_devMode = $devMode;
+
+		if ( static::$_installer )
+		{
+			call_user_func( array( get_class( static::$_installer ), 'setDevMode' ), $devMode );
+		}
+
+		if ( $devMode )
+		{
+			$event->getOutput()->write( '    Development mode enabled via command line' );
+		}
 	}
 }
