@@ -114,6 +114,10 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	protected $_packageLinkBasePath = '../storage/';
 	/**
+	 * @var bool If true, debug messages are emitted
+	 */
+	protected static $_debug = null;
+	/**
 	 * @var bool True if this install was started with "require-dev", false if "no-dev"
 	 */
 	protected static $_requireDev = true;
@@ -143,6 +147,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		}
 
 		$this->_baseInstallPath = \getcwd();
+		static::$_debug = static::$_debug ? : $io->isVerbose();
 
 		//	Make sure proper storage paths are available
 		$this->_validateInstallationTree();
@@ -173,7 +178,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	public static function onOperation( Event $event, $devMode )
 	{
-		if ( $event->getIO()->isDebug() )
+		if ( static::$_debug )
 		{
 			$event->getIO()->write( '  - <info>' . $event->getName() . '</info> event fired' );
 		}
@@ -320,9 +325,9 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 
 		if ( static::ENABLE_DATABASE_ACCESS && !$this->_checkDatabase() )
 		{
-			if ( $this->io->isDebug() )
+			if ( static::$_debug )
 			{
-				$this->_log( 'Registration requested, but <warning>no database connection available</warning>.', true );
+				$this->_log( 'Registration requested, but <warning>no database connection available</warning>.' );
 
 				return false;
 			}
@@ -882,11 +887,28 @@ SQL;
 	 */
 	protected function _log( $message, $debug = false )
 	{
-		if ( false !== $debug && !$this->io->isDebug() )
+		if ( false !== $debug && !static::$_debug )
 		{
 			return;
 		}
 
 		$this->io->write( '  - ' . ( $debug ? ' <info>**</info> ' : null ) . $message );
 	}
+
+	/**
+	 * @param boolean $debug
+	 */
+	public static function setDebug( $debug )
+	{
+		static::$_debug = $debug;
+	}
+
+	/**
+	 * @return boolean
+	 */
+	public static function getDebug()
+	{
+		return static::$_debug;
+	}
+
 }
