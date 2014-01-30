@@ -31,7 +31,7 @@ use Composer\Script\Event;
 use Composer\Script\ScriptEvents;
 use Composer\Util\Filesystem;
 use DreamFactory\Tools\Composer\Enums\PackageTypes;
-use DreamFactory\Tools\Composer\Enums\Verbosity;
+use Kisma\Core\Enums\Verbosity;
 use Kisma\Core\Exceptions\FileSystemException;
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;

@@ -25,7 +25,7 @@
 	},
 	"require":           {
 		"composer-plugin-api": "1.0.0",
-		"kisma/kisma":         "*"
+		"kisma/kisma":         ">=0.2.10"
 	},
 	"extra":             {
 		"class":                    "DreamFactory\\Tools\\Composer\\Package\\Plugin",
