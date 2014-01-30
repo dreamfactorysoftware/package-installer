@@ -58,6 +58,7 @@ class Plugin implements EventSubscriberInterface, PluginInterface
 	{
 		static::$_installer = new Installer( $io, $composer );
 		static::$_installer->setDevMode( static::$_devMode );
+		static::$_installer->setDebug( $io->isVerbose() );
 
 		$composer->getInstallationManager()->addInstaller( static::$_installer );
 	}
@@ -81,5 +82,19 @@ class Plugin implements EventSubscriberInterface, PluginInterface
 	public static function onCommand( CommandEvent $event, $devMode = true )
 	{
 		static::$_devMode = $devMode;
+
+		$event->getOutput()->write( '<info>DreamFactory Package Installer plug-in initialized</info>' );
+
+		if ( static::$_installer )
+		{
+			if ( static::$_installer->getDebug() )
+			{
+				$event->getOutput()->write( '  - <warning>Development</warning> mode ' . ( $devMode ? 'enabled' : 'disabled' ) . ' via command line' );
+			}
+
+			call_user_func( array( get_class( static::$_installer ), 'setDevMode' ), $devMode );
+		}
+
+		$event->getOutput()->write( '  - <warning>Development</warning> mode ' . ( $devMode ? 'enabled' : 'disabled' ) . ' via command line' );
 	}
 }

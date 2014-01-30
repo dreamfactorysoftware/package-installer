@@ -26,11 +26,10 @@ use Composer\Installer\LibraryInstaller;
 use Composer\IO\IOInterface;
 use Composer\Json\JsonFile;
 use Composer\Package\PackageInterface;
-use Composer\Plugin\PluginEvents;
 use Composer\Repository\InstalledRepositoryInterface;
-use Composer\Script\CommandEvent;
 use Composer\Script\Event;
 use Composer\Script\ScriptEvents;
+use Composer\Util\Filesystem;
 use DreamFactory\Tools\Composer\Enums\PackageTypes;
 use Kisma\Core\Exceptions\FileSystemException;
 use Kisma\Core\Utility\Option;
@@ -69,6 +68,10 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	const DEFAULT_PLUGIN_LINK_PATH = '/web';
 	/**
+	 * @const string
+	 */
+	const DEFAULT_STORAGE_BASE_PATH = '/storage';
+	/**
 	 * @const int The default package type
 	 */
 	const DEFAULT_PACKAGE_TYPE = PackageTypes::APPLICATION;
@@ -79,7 +82,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	/**
 	 * @const string
 	 */
-	const REQUIRE_DEV_BASE_PATH = './';
+	const REQUIRE_DEV_BASE_PATH = '/dev';
 
 	//*************************************************************************
 	//* Members
@@ -111,6 +114,10 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	protected $_packageLinkBasePath = '../storage/';
 	/**
+	 * @var bool If true, debug messages are emitted
+	 */
+	protected static $_debug = null;
+	/**
 	 * @var bool True if this install was started with "require-dev", false if "no-dev"
 	 */
 	protected static $_requireDev = true;
@@ -140,6 +147,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		}
 
 		$this->_baseInstallPath = \getcwd();
+		static::$_debug = static::$_debug ? : $io->isVerbose();
 
 		//	Make sure proper storage paths are available
 		$this->_validateInstallationTree();
@@ -170,7 +178,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	public static function onOperation( Event $event, $devMode )
 	{
-		if ( $event->getIO()->isDebug() )
+		if ( static::$_debug )
 		{
 			$event->getIO()->write( '  - <info>' . $event->getName() . '</info> event fired' );
 		}
@@ -244,49 +252,6 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	}
 
 	/**
-	 * Locates the installed DSP's base directory
-	 *
-	 * @param \Composer\IO\IOInterface $io
-	 * @param string                   $startPath
-	 *
-	 * @throws \Kisma\Core\Exceptions\FileSystemException
-	 * @return string
-	 */
-	protected static function _findPlatformBasePath( IOInterface $io, $startPath = null )
-	{
-		//	In --require-dev mode, we create a temp storage area...
-		if ( static::$_requireDev )
-		{
-			return static::REQUIRE_DEV_BASE_PATH;
-		}
-
-		$_path = $startPath ? : __DIR__;
-
-		while ( true )
-		{
-			if ( file_exists( $_path . '/config/schema/system_schema.json' ) && is_dir( $_path . '/storage/.private' ) )
-			{
-				break;
-			}
-
-			//	If we get to the root, ain't no DSP...
-			if ( '/' == ( $_path = dirname( $_path ) ) )
-			{
-				$io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
-
-				if ( !static::$_requireDev )
-				{
-					throw new FileSystemException( 'Unable to find the DSP installation directory.' );
-				}
-
-				break;
-			}
-		}
-
-		return $_path;
-	}
-
-	/**
 	 * @param PackageInterface $package
 	 *
 	 * @return string
@@ -294,6 +259,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	protected function getPackageBasePath( PackageInterface $package )
 	{
 		$this->_log( 'Installer::getPackageBasePath called.', true );
+
 		$this->_validatePackage( $package );
 
 		return
@@ -325,7 +291,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		/** @noinspection PhpIncludeInspection */
 		if ( false === ( $_dbConfig = @include( $_configFile ) ) )
 		{
-			$this->_log( 'Not registered. Unable to read database configuration file: <error>' . $_configFile . '</error></error>' );
+			$this->_log( 'Not registered. Unable to read database configuration file: <error>' . $_configFile . '</error>' );
 
 			return false;
 		}
@@ -359,9 +325,9 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 
 		if ( static::ENABLE_DATABASE_ACCESS && !$this->_checkDatabase() )
 		{
-			if ( $this->io->isDebug() )
+			if ( static::$_debug )
 			{
-				$this->_log( 'Registration requested, but <warning>no database connection available</warning>.', true );
+				$this->_log( 'Registration requested, but <warning>no database connection available</warning>.' );
 
 				return false;
 			}
@@ -847,16 +813,69 @@ SQL;
 	}
 
 	/**
+	 * Locates the installed DSP's base directory
+	 *
+	 * @param \Composer\IO\IOInterface $io
+	 * @param string                   $startPath
+	 *
+	 * @throws \Kisma\Core\Exceptions\FileSystemException
+	 * @return string
+	 */
+	protected static function _findPlatformBasePath( IOInterface $io, $startPath = null )
+	{
+		//	In --require-dev mode, we create a temp storage area...
+		if ( static::$_requireDev )
+		{
+			$_fs = new Filesystem();
+
+			$_path = realpath( getcwd() ) . static::REQUIRE_DEV_BASE_PATH;
+			$_fs->ensureDirectoryExists( $_path );
+
+			$io->write( '  - <info>require-dev</info> base path set to <info>' . $_path . '</info>' );
+		}
+		else
+		{
+			$_path = $startPath ? : getcwd();
+
+			while ( true )
+			{
+				if ( file_exists( $_path . '/config/schema/system_schema.json' ) && is_dir( $_path . static::DEFAULT_STORAGE_BASE_PATH . '/.private' ) )
+				{
+					break;
+				}
+
+				//	If we get to the root, ain't no DSP...
+				if ( '/' == ( $_path = dirname( $_path ) ) )
+				{
+					$io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
+					throw new FileSystemException( 'Unable to find the DSP installation directory.' );
+				}
+			}
+
+			return $_path;
+		}
+	}
+
+	/**
 	 * @throws \Kisma\Core\Exceptions\FileSystemException
 	 */
 	protected function _validateInstallationTree()
 	{
-		$_basePath = realpath( static::$_platformBasePath = static::_findPlatformBasePath( $this->io ) );
+		static::$_platformBasePath = static::_findPlatformBasePath( $this->io );
+
+		$_basePath = realpath( static::$_platformBasePath );
+		$this->_log( 'Platform base path identified: ' . static::$_platformBasePath );
+
+		//	Make sure the private storage base is there...
+		$this->filesystem->ensureDirectoryExists( $_basePath . static::DEFAULT_STORAGE_BASE_PATH . '/.private' );
 
 		foreach ( $this->_supportedTypes as $_type => $_path )
 		{
-			$this->filesystem->ensureDirectoryExists( $_basePath . '/storage/' . $_path . '/.manifest' );
-			$this->_log( '* Type "<info>' . $_type . '</info>" installation tree validated.', true );
+			$this->filesystem->ensureDirectoryExists(
+				$_basePath . static::DEFAULT_STORAGE_BASE_PATH . '/' . trim( $_path, '/' ) . '/.manifest'
+			);
+
+			$this->_log( '  * Type "<info>' . $_type . '</info>" installation tree validated.', true );
 		}
 
 		$this->_log( 'Installation tree validated.', true );
@@ -868,12 +887,28 @@ SQL;
 	 */
 	protected function _log( $message, $debug = false )
 	{
-		if ( false !== $debug && !$this->io->isDebug() )
+		if ( false !== $debug && !static::$_debug )
 		{
 			return;
 		}
 
 		$this->io->write( '  - ' . ( $debug ? ' <info>**</info> ' : null ) . $message );
+	}
+
+	/**
+	 * @param boolean $debug
+	 */
+	public static function setDebug( $debug )
+	{
+		static::$_debug = $debug;
+	}
+
+	/**
+	 * @return boolean
+	 */
+	public static function getDebug()
+	{
+		return static::$_debug;
 	}
 
 }
