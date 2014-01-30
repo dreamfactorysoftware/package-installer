@@ -31,6 +31,7 @@ use Composer\Script\Event;
 use Composer\Script\ScriptEvents;
 use Composer\Util\Filesystem;
 use DreamFactory\Tools\Composer\Enums\PackageTypes;
+use DreamFactory\Tools\Composer\Enums\Verbosity;
 use Kisma\Core\Exceptions\FileSystemException;
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;
@@ -114,17 +115,13 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	protected $_packageLinkBasePath = '../storage/';
 	/**
-	 * @var bool If true, debug messages are emitted
+	 * @var int Reflects the command's verbosity
 	 */
-	protected static $_debug = null;
+	protected static $_verbosity = Verbosity::NORMAL;
 	/**
 	 * @var bool True if this install was started with "require-dev", false if "no-dev"
 	 */
 	protected static $_requireDev = true;
-	/**
-	 * @var bool
-	 */
-	protected static $_requireDsp = true;
 
 	//*************************************************************************
 	//* Methods
@@ -139,26 +136,20 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	public function __construct( IOInterface $io, Composer $composer, $type = 'library' )
 	{
-		parent::__construct( $io, $composer, $type );
-
 		if ( file_exists( static::FABRIC_MARKER ) )
 		{
 			throw new \Exception( 'This installer cannot be used on a hosted DSP system.', 500 );
 		}
 
 		$this->_baseInstallPath = \getcwd();
-		static::$_debug = static::$_debug ? : $io->isVerbose();
+
+		static::$_verbosity =
+			( $io->isVerbose() ? Verbosity::VERBOSE : $io->isVeryVerbose() ? Verbosity::VERY_VERBOSE : $io->isDebug() ? Verbosity::DEBUG : Verbosity::NORMAL );
+
+		parent::__construct( $io, $composer, $type );
 
 		//	Make sure proper storage paths are available
 		$this->_validateInstallationTree();
-	}
-
-	/**
-	 * @param boolean $devMode
-	 */
-	public static function setDevMode( $devMode )
-	{
-		static::$_requireDev = $devMode;
 	}
 
 	/**
@@ -178,7 +169,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	public static function onOperation( Event $event, $devMode )
 	{
-		if ( static::$_debug )
+		if ( static::$_verbosity )
 		{
 			$event->getIO()->write( '  - <info>' . $event->getName() . '</info> event fired' );
 		}
@@ -186,9 +177,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		static::$_requireDev = $devMode;
 		static::$_platformBasePath = static::_findPlatformBasePath( $event->getIO(), \getcwd() );
 
-		$event->getIO()->write(
-			'  - <info>' . ( static::$_requireDev ? 'require-dev' : 'no-dev' ) . '</info>" mode: ' . static::$_platformBasePath
-		);
+		$event->getIO()->write( '  - <info>' . ( static::$_requireDev ? 'require-dev' : 'no-dev' ) . '</info>" mode: ' . static::$_platformBasePath );
 	}
 
 	/**
@@ -197,7 +186,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	public function install( InstalledRepositoryInterface $repo, PackageInterface $package )
 	{
-		$this->_log( 'Installing package <info>' . $package->getPrettyName() . '</info>', true );
+		$this->_log( 'Installing package <info>' . $package->getPrettyName() . '</info>' );
 
 		parent::install( $repo, $package );
 
@@ -214,7 +203,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	public function update( InstalledRepositoryInterface $repo, PackageInterface $initial, PackageInterface $target )
 	{
-		$this->_log( 'Updating package <info>' . $initial->getPrettyName() . '</info>', true );
+		$this->_log( 'Updating package <info>' . $initial->getPrettyName() . '</info>' );
 
 		parent::update( $repo, $initial, $target );
 
@@ -233,7 +222,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	public function uninstall( InstalledRepositoryInterface $repo, PackageInterface $package )
 	{
-		$this->_log( 'Removing package <info>' . $package->getPrettyName() . '</info>', true );
+		$this->_log( 'Removing package <info>' . $package->getPrettyName() . '</info>' );
 
 		parent::uninstall( $repo, $package );
 
@@ -246,9 +235,11 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	public function supports( $packageType )
 	{
-		$this->_log( 'Installer::supports called.', true );
+		$_does = \array_key_exists( $packageType, $this->_supportedTypes );
 
-		return \array_key_exists( $packageType, $this->_supportedTypes );
+		$this->_log( 'We ' . ( $_does ? 'loves' : 'hates' ) . ' packages\'s of type "<info>' . $packageType . '</info>"', Verbosity::VERY_VERBOSE );
+
+		return $_does;
 	}
 
 	/**
@@ -258,16 +249,18 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	protected function getPackageBasePath( PackageInterface $package )
 	{
-		$this->_log( 'Installer::getPackageBasePath called.', true );
-
 		$this->_validatePackage( $package );
 
-		return
+		$_path =
 			rtrim( $this->_packageInstallPath, '/' ) .
 			'/' .
 			trim( $this->_getPackageTypeSubPath( $package->getType() ), '/' ) .
 			'/' .
 			$package->getPrettyName();
+
+		$this->_log( 'Package base path is: <info>' . $_path . '</info>', Verbosity::DEBUG );
+
+		return $_path;
 	}
 
 	/**
@@ -277,8 +270,6 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	protected function _checkDatabase( $basePath = null )
 	{
-		$this->_log( 'Installer::_checkDatabase called.', true );
-
 		$_configFile = ( $basePath ? : static::$_platformBasePath ) . static::DEFAULT_DATABASE_CONFIG_FILE;
 
 		if ( !file_exists( $_configFile ) )
@@ -318,14 +309,14 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 
 		if ( empty( $_packageData ) || null === ( $_records = Option::get( $_packageData, $_supportedData ) ) )
 		{
-			$this->_log( 'No registration requested', true );
+			$this->_log( 'No registration requested', Verbosity::VERY_VERBOSE );
 
 			return false;
 		}
 
 		if ( static::ENABLE_DATABASE_ACCESS && !$this->_checkDatabase() )
 		{
-			if ( static::$_debug )
+			if ( static::$_requireDev )
 			{
 				$this->_log( 'Registration requested, but <warning>no database connection available</warning>.' );
 
@@ -343,8 +334,6 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	protected function _addApplication( PackageInterface $package )
 	{
-		$this->_log( 'Installer::_addApplication called.', true );
-
 		if ( false === ( $_app = $this->_getRegistrationInfo( $package ) ) )
 		{
 			return false;
@@ -431,7 +420,7 @@ SQL;
 			':requires_plugin'         => 1,
 		);
 
-		$this->_log( 'Inserting row into database', true );
+		$this->_log( 'Inserting row into database', Verbosity::DEBUG );
 
 		try
 		{
@@ -465,7 +454,7 @@ SQL;
 	 */
 	protected function _deleteApplication( PackageInterface $package )
 	{
-		$this->_log( 'Installer::_deleteApplication called.', true );
+		$this->_log( 'Installer::_deleteApplication called.', Verbosity::DEBUG );
 
 		if ( false === ( $_app = $this->_getRegistrationInfo( $package ) ) )
 		{
@@ -491,7 +480,7 @@ SQL;
 			':is_active' => 0
 		);
 
-		$this->_log( 'Soft-deleting row in database', true );
+		$this->_log( 'Soft-deleting row in database', Verbosity::DEBUG );
 
 		try
 		{
@@ -551,7 +540,7 @@ SQL;
 	 */
 	protected function _createLinks( PackageInterface $package )
 	{
-		$this->_log( 'Installer::_createLinks called.', true );
+		$this->_log( 'Installer::_createLinks called.', Verbosity::DEBUG );
 
 		if ( static::$_requireDev )
 		{
@@ -562,12 +551,12 @@ SQL;
 
 		if ( null === ( $_links = $this->_getPackageConfig( $package, 'links' ) ) )
 		{
-			$this->_log( 'Package contains no links', true );
+			$this->_log( 'Package contains no links', Verbosity::VERBOSE );
 
 			return;
 		}
 
-		$this->_log( 'Creating package symlinks' );
+		$this->_log( 'Creating package symlinks', Verbosity::VERBOSE );
 
 		//	Make the links
 		foreach ( Option::clean( $_links ) as $_link )
@@ -604,7 +593,7 @@ SQL;
 	 */
 	protected function _deleteLinks( PackageInterface $package )
 	{
-		$this->_log( 'Installer::_deleteLinks called.', true );
+		$this->_log( 'Installer::_deleteLinks called.', Verbosity::DEBUG );
 
 		if ( static::$_requireDev )
 		{
@@ -659,12 +648,15 @@ SQL;
 
 		if ( $_validated !== ( $_packageName = $package->getPrettyName() ) )
 		{
-			$this->_log( 'Installer::_validatePackage called.', true );
+			$this->_log( 'Installer::_validatePackage called.', Verbosity::DEBUG );
 
 			//	Link path for plug-ins
 			$_config = $this->_parseConfiguration( $package );
 
-			$this->_log( '<info>' . ( static::$_requireDev ? 'require-dev' : 'no-dev' ) . '</info> installation: ' . static::$_platformBasePath, true );
+			$this->_log(
+				'<info>' . ( static::$_requireDev ? 'require-dev' : 'no-dev' ) . '</info> installation: ' . static::$_platformBasePath,
+				Verbosity::VERBOSE
+			);
 
 			//	Get supported types
 			if ( null !== ( $_types = Option::get( $_config, 'supported-types' ) ) )
@@ -864,7 +856,11 @@ SQL;
 		static::$_platformBasePath = static::_findPlatformBasePath( $this->io );
 
 		$_basePath = realpath( static::$_platformBasePath );
-		$this->_log( 'Platform base path identified: ' . static::$_platformBasePath );
+
+		if ( !static::$_requireDev )
+		{
+			$this->_log( 'Platform base path is "<info>' . static::$_platformBasePath . '</info>"' );
+		}
 
 		//	Make sure the private storage base is there...
 		$this->filesystem->ensureDirectoryExists( $_basePath . static::DEFAULT_STORAGE_BASE_PATH . '/.private' );
@@ -875,40 +871,54 @@ SQL;
 				$_basePath . static::DEFAULT_STORAGE_BASE_PATH . '/' . trim( $_path, '/' ) . '/.manifest'
 			);
 
-			$this->_log( '  * Type "<info>' . $_type . '</info>" installation tree validated.', true );
+			$this->_log( 'Type "<info>' . $_type . '</info>" installation tree validated.', Verbosity::DEBUG );
 		}
 
-		$this->_log( 'Installation tree validated.', true );
+		$this->_log( 'Platform installation directory structure validated', Verbosity::VERBOSE );
 	}
 
 	/**
 	 * @param string $message
-	 * @param bool   $debug
+	 * @param int    $verbosity
 	 */
-	protected function _log( $message, $debug = false )
+	protected function _log( $message, $verbosity = Verbosity::NORMAL )
 	{
-		if ( false !== $debug && !static::$_debug )
+		if ( $verbosity <= static::$_verbosity )
 		{
-			return;
+			$this->io->write( '    ' . $message );
 		}
-
-		$this->io->write( '  - ' . ( $debug ? ' <info>**</info> ' : null ) . $message );
 	}
 
 	/**
-	 * @param boolean $debug
+	 * @param int $verbosity
 	 */
-	public static function setDebug( $debug )
+	public static function setVerbosity( $verbosity )
 	{
-		static::$_debug = $debug;
+		static::$_verbosity = $verbosity;
+	}
+
+	/**
+	 * @return int
+	 */
+	public static function getVerbosity()
+	{
+		return static::$_verbosity;
+	}
+
+	/**
+	 * @param boolean $requireDev
+	 */
+	public static function setRequireDev( $requireDev )
+	{
+		static::$_requireDev = $requireDev;
 	}
 
 	/**
 	 * @return boolean
 	 */
-	public static function getDebug()
+	public static function getRequireDev()
 	{
-		return static::$_debug;
+		return static::$_requireDev;
 	}
 
 }
