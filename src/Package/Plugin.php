@@ -26,6 +26,7 @@ use Composer\IO\IOInterface;
 use Composer\Plugin\CommandEvent;
 use Composer\Plugin\PluginEvents;
 use Composer\Plugin\PluginInterface;
+use Kisma\Core\Enums\Verbosity;
 
 /**
  * Plugin
@@ -44,7 +45,11 @@ class Plugin implements EventSubscriberInterface, PluginInterface
 	/**
 	 * @var bool require-dev or no-dev
 	 */
-	protected static $_devMode = true;
+	protected static $_requireDev = true;
+	/**
+	 * @var int The verbosity level of the command
+	 */
+	protected static $_verbosity = Verbosity::NORMAL;
 
 	//*************************************************************************
 	//	Methods
@@ -56,10 +61,13 @@ class Plugin implements EventSubscriberInterface, PluginInterface
 	 */
 	public function activate( Composer $composer, IOInterface $io )
 	{
-		static::$_installer = new Installer( $io, $composer );
-		static::$_installer->setDevMode( static::$_devMode );
-		static::$_installer->setDebug( $io->isVerbose() );
+		$io->write( '<info>DreamFactory Package Installer plug-in activated</info>' );
 
+		static::$_installer = new Installer( $io, $composer );
+		static::$_installer->setRequireDev( static::$_requireDev );
+		static::$_installer->setVerbosity( static::$_verbosity );
+
+		/** @noinspection PhpUndefinedMethodInspection */
 		$composer->getInstallationManager()->addInstaller( static::$_installer );
 	}
 
@@ -81,20 +89,26 @@ class Plugin implements EventSubscriberInterface, PluginInterface
 	 */
 	public static function onCommand( CommandEvent $event, $devMode = true )
 	{
-		static::$_devMode = $devMode;
+		static::$_requireDev = $devMode;
 
-		$event->getOutput()->write( '<info>DreamFactory Package Installer plug-in initialized</info>' );
+		/** @noinspection PhpUndefinedMethodInspection */
+		static::$_verbosity = $event->getOutput()->getVerbosity();
 
-		if ( static::$_installer )
+		/** @noinspection PhpUndefinedMethodInspection */
+		$event->getOutput()->writeln(
+			'  - Verbosity set to <info>' . Verbosity::prettyNameOf( static::$_verbosity ) . '</info>'
+		);
+
+		if ( null !== static::$_installer )
 		{
-			if ( static::$_installer->getDebug() )
+			static::$_installer->setRequireDev( static::$_requireDev );
+			static::$_installer->setVerbosity( static::$_verbosity );
+
+			if ( static::$_verbosity <= Verbosity::VERBOSE )
 			{
-				$event->getOutput()->write( '  - <warning>Development</warning> mode ' . ( $devMode ? 'enabled' : 'disabled' ) . ' via command line' );
+				/** @noinspection PhpUndefinedMethodInspection */
+				$event->getOutput()->writeln( '  - <warning>Development</warning> mode ' . ( $devMode ? 'enabled' : 'disabled' ) . ' via command line' );
 			}
-
-			call_user_func( array( get_class( static::$_installer ), 'setDevMode' ), $devMode );
 		}
-
-		$event->getOutput()->write( '  - <warning>Development</warning> mode ' . ( $devMode ? 'enabled' : 'disabled' ) . ' via command line' );
 	}
 }
