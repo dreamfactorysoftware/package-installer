@@ -1,5 +1,6 @@
 .idea/
 vendor
-.gitignore
 log
-composer.lock
+tests/log
+tests/metrics
+tests/config/keys.php

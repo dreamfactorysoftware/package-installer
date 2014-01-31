@@ -2,7 +2,7 @@
 	"name":              "dreamfactory/package-installer",
 	"description":       "DreamFactory Services Platform(tm) Package Installer",
 	"type":              "composer-plugin",
-	"keywords":          ["dreamfactory", "dsp", "cloud", "jetpack", "plug-in"],
+	"keywords":          ["dsp", "cloud", "jetpack", "plugin"],
 	"homepage":          "http://dreamfactorysoftware.github.io/",
 	"license":           ["Apache-2.0"],
 	"authors":           [
@@ -25,11 +25,24 @@
 	},
 	"require":           {
 		"composer-plugin-api": "1.0.0",
-		"kisma/kisma":         ">=0.2.10"
+		"kisma/kisma":         "@stable"
+	},
+	"require-dev":       {
+		"dreamfactory/lib-php-common-platform": "@stable",
+		"phpunit/phpunit":                      "@stable",
+		"phpunit/phpunit-mock-objects":         "@stable",
+		"phpunit/phpunit-selenium":             "@stable",
+		"phpunit/phpunit-story":                "@stable",
+		"phpunit/dbunit":                       "@stable",
+		"phpunit/php-code-coverage":            "@stable",
+		"phpunit/php-text-template":            "@stable",
+		"phpunit/php-token-stream":             "@stable",
+		"phpunit/php-timer":                    "@stable",
+		"phpunit/php-invoker":                  "@stable"
 	},
 	"extra":             {
 		"class":                    "DreamFactory\\Tools\\Composer\\Package\\Plugin",
-		"_comment.supported-types": "supported-types provides a way to extend the types of plug-ins to install and their location.",
+		"_comment.supported-types": "provides a way to extend the types and locations of plug-ins which we can install",
 		"supported-types":          {
 			"dreamfactory-application": "/applications",
 			"dreamfactory-jetpack":     "/plugins",
