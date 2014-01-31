@@ -26,6 +26,7 @@ use Composer\IO\IOInterface;
 use Composer\Plugin\CommandEvent;
 use Composer\Plugin\PluginEvents;
 use Composer\Plugin\PluginInterface;
+use Kisma\Core\Enums\Verbosity;
 
 /**
  * Plugin
@@ -44,22 +45,30 @@ class Plugin implements EventSubscriberInterface, PluginInterface
 	/**
 	 * @var bool require-dev or no-dev
 	 */
-	protected static $_devMode = true;
+	protected static $_requireDev = true;
+	/**
+	 * @var int The verbosity level of the command
+	 */
+	protected static $_verbosity = Verbosity::NORMAL;
 
 	//*************************************************************************
 	//	Methods
 	//*************************************************************************
 
 	/**
-	 * @param Composer    $composer
+	 * @param Composer $composer
 	 * @param IOInterface $io
 	 */
 	public function activate( Composer $composer, IOInterface $io )
 	{
 		static::$_installer = new Installer( $io, $composer );
-		static::$_installer->setDevMode( static::$_devMode );
+		static::$_installer->setRequireDev( static::$_requireDev );
+		static::$_installer->setVerbosity( static::$_verbosity );
 
+		/** @noinspection PhpUndefinedMethodInspection */
 		$composer->getInstallationManager()->addInstaller( static::$_installer );
+
+		$io->write( '<info>DFPI:</info> DreamFactory Package Installer activated' );
 	}
 
 	/**
@@ -80,11 +89,29 @@ class Plugin implements EventSubscriberInterface, PluginInterface
 	 */
 	public static function onCommand( CommandEvent $event, $devMode = true )
 	{
-		static::$_devMode = $devMode;
+		static::$_requireDev = $devMode;
 
-		if ( static::$_installer )
+		/** @noinspection PhpUndefinedMethodInspection */
+		static::$_verbosity = $event->getOutput()->getVerbosity();
+
+		if ( static::$_verbosity >= Verbosity::VERBOSE )
 		{
-			call_user_func( array( get_class( static::$_installer ), 'setDevMode' ), $devMode );
+			/** @noinspection PhpUndefinedMethodInspection */
+			$event->getOutput()->writeln( '<info>DFPI:</info> Verbosity set to <info>' . Verbosity::prettyNameOf( static::$_verbosity ) . '</info>' );
+		}
+
+		if ( null !== static::$_installer )
+		{
+			static::$_installer->setRequireDev( static::$_requireDev );
+			static::$_installer->setVerbosity( static::$_verbosity );
+
+			if ( static::$_verbosity >= Verbosity::VERBOSE )
+			{
+				/** @noinspection PhpUndefinedMethodInspection */
+				$event->getOutput()->writeln(
+					'<info>DFPI:</info> <warning>Development</warning> mode ' . ( $devMode ? 'enabled' : 'disabled' ) . ' via command line'
+				);
+			}
 		}
 	}
 }

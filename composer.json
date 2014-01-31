@@ -12,6 +12,9 @@
 			"role":  "Sr. Software Engineer"
 		}
 	],
+	"config":            {
+		"discard-changes": true
+	},
 	"support":           {
 		"email":  "support@dreamfactory.com",
 		"source": "https://github.com/dreamfactorysoftware/package-installer",
