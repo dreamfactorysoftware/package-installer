@@ -18,11 +18,12 @@
 		"issues": "https://github.com/dreamfactorysoftware/package-installer/issues"
 	},
 	"minimum-stability": "dev",
-	"autoload":          {
-		"psr-4": {
-			"DreamFactory\\Tools\\Composer\\": "src/"
+	"repositories":      [
+		{
+			"type": "pear",
+			"url":  "http://pear.php.net"
 		}
-	},
+	],
 	"require":           {
 		"composer-plugin-api": "1.0.0",
 		"kisma/kisma":         "@stable"
@@ -39,6 +40,11 @@
 		"phpunit/php-token-stream":             "@stable",
 		"phpunit/php-timer":                    "@stable",
 		"phpunit/php-invoker":                  "@stable"
+	},
+	"autoload":          {
+		"psr-4": {
+			"DreamFactory\\Tools\\Composer\\": "src/"
+		}
 	},
 	"extra":             {
 		"class":                    "DreamFactory\\Tools\\Composer\\Package\\Plugin",
