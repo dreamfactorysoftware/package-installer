@@ -29,7 +29,6 @@ use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 use Composer\Script\Event;
 use Composer\Script\ScriptEvents;
-use Composer\Util\Filesystem;
 use DreamFactory\Tools\Composer\Enums\PackageTypes;
 use Kisma\Core\Enums\Verbosity;
 use Kisma\Core\Exceptions\FileSystemException;
@@ -142,9 +141,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		}
 
 		$this->_baseInstallPath = \getcwd();
-
-		static::$_verbosity =
-			( $io->isVerbose() ? Verbosity::VERBOSE : $io->isVeryVerbose() ? Verbosity::VERY_VERBOSE : $io->isDebug() ? Verbosity::DEBUG : Verbosity::NORMAL );
+		static::$_verbosity = static::setVerbosity( $io );
 
 		parent::__construct( $io, $composer, $type );
 
@@ -169,15 +166,18 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	public static function onOperation( Event $event, $devMode )
 	{
-		if ( static::$_verbosity )
+		if ( static::$_verbosity >= Verbosity::DEBUG )
 		{
-			$event->getIO()->write( '  - <info>' . $event->getName() . '</info> event fired' );
+			$event->getIO()->write( 'DFPI: <info>' . $event->getName() . '</info> event fired' );
 		}
 
 		static::$_requireDev = $devMode;
 		static::$_platformBasePath = static::_findPlatformBasePath( $event->getIO(), \getcwd() );
 
-		$event->getIO()->write( '  - <info>' . ( static::$_requireDev ? 'require-dev' : 'no-dev' ) . '</info>" mode: ' . static::$_platformBasePath );
+		if ( static::$_verbosity >= Verbosity::DEBUG )
+		{
+			$event->getIO()->write( 'DFPI: <info>' . ( static::$_requireDev ? 'require-dev' : 'no-dev' ) . '</info>" mode: ' . static::$_platformBasePath );
+		}
 	}
 
 	/**
@@ -186,7 +186,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	public function install( InstalledRepositoryInterface $repo, PackageInterface $package )
 	{
-		$this->_log( 'Installing package <info>' . $package->getPrettyName() . '</info>' );
+		$this->_log( 'Installing package <info>' . $package->getPrettyName() . '</info>', Verbosity::DEBUG );
 
 		parent::install( $repo, $package );
 
@@ -203,7 +203,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	public function update( InstalledRepositoryInterface $repo, PackageInterface $initial, PackageInterface $target )
 	{
-		$this->_log( 'Updating package <info>' . $initial->getPrettyName() . '</info>' );
+		$this->_log( 'Updating package <info>' . $initial->getPrettyName() . '</info>', Verbosity::DEBUG );
 
 		parent::update( $repo, $initial, $target );
 
@@ -222,7 +222,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 */
 	public function uninstall( InstalledRepositoryInterface $repo, PackageInterface $package )
 	{
-		$this->_log( 'Removing package <info>' . $package->getPrettyName() . '</info>' );
+		$this->_log( 'Removing package <info>' . $package->getPrettyName() . '</info>', Verbosity::DEBUG );
 
 		parent::uninstall( $repo, $package );
 
@@ -251,16 +251,12 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	{
 		$this->_validatePackage( $package );
 
-		$_path =
+		return
 			rtrim( $this->_packageInstallPath, '/' ) .
 			'/' .
 			trim( $this->_getPackageTypeSubPath( $package->getType() ), '/' ) .
 			'/' .
 			$package->getPrettyName();
-
-		$this->_log( 'Package base path is: <info>' . $_path . '</info>', Verbosity::DEBUG );
-
-		return $_path;
 	}
 
 	/**
@@ -428,7 +424,7 @@ SQL;
 			{
 				$_message =
 					( null === ( $_statement = Sql::getStatement() )
-						? 'Unknown database error' : 'Database error: ' . print_r( $_statement->errorInfo(), true ) );
+						? 'Unknown database error' : 'Database error: ' . print_r( $_statement->errorInfo(), Verbosity::DEBUG ) );
 
 				throw new \Exception( $_message );
 			}
@@ -488,7 +484,7 @@ SQL;
 			{
 				$_message =
 					( null === ( $_statement = Sql::getStatement() )
-						? 'Unknown database error' : 'Database error: ' . print_r( $_statement->errorInfo(), true ) );
+						? 'Unknown database error' : 'Database error: ' . print_r( $_statement->errorInfo(), Verbosity::DEBUG ) );
 
 				throw new \Exception( $_message );
 			}
@@ -604,7 +600,7 @@ SQL;
 
 		if ( null === ( $_links = $this->_getPackageConfig( $package, 'links' ) ) )
 		{
-			$this->_log( 'Package contains no links', true );
+			$this->_log( 'Package contains no links', Verbosity::DEBUG );
 
 			return;
 		}
@@ -818,12 +814,16 @@ SQL;
 		//	In --require-dev mode, we create a temp storage area...
 		if ( static::$_requireDev )
 		{
-			$_fs = new Filesystem();
+			$_path = realpath( getcwd() ) . static::DEFAULT_STORAGE_BASE_PATH;
 
-			$_path = realpath( getcwd() ) . static::REQUIRE_DEV_BASE_PATH;
-			$_fs->ensureDirectoryExists( $_path );
-
-			$io->write( '  - <info>require-dev</info> base path set to <info>' . $_path . '</info>' );
+			if ( !is_dir( $_path ) )
+			{
+				if ( $io->isDebug() )
+				{
+					$io->write( '<info>DFPI:</info> <info>require-dev</info> set but no storage directory.' );
+					$io->write( '<info>DFPI:</info> Assuming "<info>' . $_path . '</info>" for storage' );
+				}
+			}
 		}
 		else
 		{
@@ -859,7 +859,7 @@ SQL;
 
 		if ( !static::$_requireDev )
 		{
-			$this->_log( 'Platform base path is "<info>' . static::$_platformBasePath . '</info>"' );
+			$this->_log( 'Platform base path is "<info>' . static::$_platformBasePath . '</info>"', Verbosity::VERBOSE );
 		}
 
 		//	Make sure the private storage base is there...
@@ -890,10 +890,20 @@ SQL;
 	}
 
 	/**
-	 * @param int $verbosity
+	 * @param int|\Composer\IO\IOInterface $verbosity
 	 */
 	public static function setVerbosity( $verbosity )
 	{
+		if ( $verbosity instanceof IOInterface )
+		{
+			//	Set from IOInterface if passed in...
+			static::$_verbosity =
+				( $verbosity->isVerbose()
+					? Verbosity::VERBOSE : $verbosity->isVeryVerbose()
+						? Verbosity::VERY_VERBOSE : $verbosity->isDebug()
+							? Verbosity::DEBUG : Verbosity::NORMAL );
+		}
+
 		static::$_verbosity = $verbosity;
 	}
 

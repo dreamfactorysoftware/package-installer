@@ -56,19 +56,19 @@ class Plugin implements EventSubscriberInterface, PluginInterface
 	//*************************************************************************
 
 	/**
-	 * @param Composer    $composer
+	 * @param Composer $composer
 	 * @param IOInterface $io
 	 */
 	public function activate( Composer $composer, IOInterface $io )
 	{
-		$io->write( '<info>DreamFactory Package Installer plug-in activated</info>' );
-
 		static::$_installer = new Installer( $io, $composer );
 		static::$_installer->setRequireDev( static::$_requireDev );
 		static::$_installer->setVerbosity( static::$_verbosity );
 
 		/** @noinspection PhpUndefinedMethodInspection */
 		$composer->getInstallationManager()->addInstaller( static::$_installer );
+
+		$io->write( '<info>DFPI:</info> DreamFactory Package Installer activated' );
 	}
 
 	/**
@@ -94,20 +94,23 @@ class Plugin implements EventSubscriberInterface, PluginInterface
 		/** @noinspection PhpUndefinedMethodInspection */
 		static::$_verbosity = $event->getOutput()->getVerbosity();
 
-		/** @noinspection PhpUndefinedMethodInspection */
-		$event->getOutput()->writeln(
-			'  - Verbosity set to <info>' . Verbosity::prettyNameOf( static::$_verbosity ) . '</info>'
-		);
+		if ( static::$_verbosity >= Verbosity::VERBOSE )
+		{
+			/** @noinspection PhpUndefinedMethodInspection */
+			$event->getOutput()->writeln( '<info>DFPI:</info> Verbosity set to <info>' . Verbosity::prettyNameOf( static::$_verbosity ) . '</info>' );
+		}
 
 		if ( null !== static::$_installer )
 		{
 			static::$_installer->setRequireDev( static::$_requireDev );
 			static::$_installer->setVerbosity( static::$_verbosity );
 
-			if ( static::$_verbosity <= Verbosity::VERBOSE )
+			if ( static::$_verbosity >= Verbosity::VERBOSE )
 			{
 				/** @noinspection PhpUndefinedMethodInspection */
-				$event->getOutput()->writeln( '  - <warning>Development</warning> mode ' . ( $devMode ? 'enabled' : 'disabled' ) . ' via command line' );
+				$event->getOutput()->writeln(
+					'<info>DFPI:</info> <warning>Development</warning> mode ' . ( $devMode ? 'enabled' : 'disabled' ) . ' via command line'
+				);
 			}
 		}
 	}
