@@ -24,19 +24,10 @@
 	"require":           {
 		"composer-plugin-api": "1.0.0",
 		"kisma/kisma":         "~0.2@stable"
-},
-"require-dev":       {
-	"dreamfactory/lib-php-common-platform": "dev-develop as dev-master",
-	"phpunit/phpunit":                      "~3.7@stable",
-	"phpunit/phpunit-mock-objects":         "@stable",
-	"phpunit/phpunit-selenium":             "@stable",
-	"phpunit/phpunit-story":                "@stable",
-	"phpunit/dbunit":                       "@stable",
-	"phpunit/php-code-coverage":            "@stable",
-	"phpunit/php-text-template":            "@stable",
-	"phpunit/php-token-stream":             "@stable",
-	"phpunit/php-timer":                    "@stable",
-	"phpunit/php-invoker":                  "@stable"
+	},
+	"require-dev":       {
+		"dreamfactory/lib-php-common-platform": "dev-develop as dev-master",
+		"composer/composer":                    "*"
 	},
 	"autoload":          {
 		"psr-4": {
