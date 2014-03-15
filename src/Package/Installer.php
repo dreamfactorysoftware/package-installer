@@ -88,7 +88,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
     /**
      * @const bool
      */
-    const ENABLE_LOCAL_DEV_STORAGE = false;
+    const ENABLE_LOCAL_DEV_STORAGE = true;
 
     //*************************************************************************
     //* Members
@@ -795,41 +795,39 @@ SQL;
      */
     protected static function _findPlatformBasePath( IOInterface $io, $startPath = null )
     {
-        //	In --require-dev mode, we create a temp storage area...
-        if ( static::$_requireDev && static::ENABLE_LOCAL_DEV_STORAGE )
-        {
-            $_path = realpath( getcwd() ) . static::DEFAULT_STORAGE_BASE_PATH;
+        $_path = $startPath ? : getcwd();
 
-            if ( !is_dir( $_path ) )
+        while ( true )
+        {
+            if ( file_exists( $_path . '/.dreamfactory.php' ) && is_dir( $_path . static::DEFAULT_STORAGE_BASE_PATH . '/.private' ) )
             {
-                if ( $io->isDebug() )
+                break;
+            }
+
+            //	If we get to the root, ain't no DSP...
+            if ( '/' == ( $_path = dirname( $_path ) ) )
+            {
+                $io->write( '  - <warning>Unable to find a DSP installation directory.</warning>' );
+
+                //	In --require-dev mode, we create a temp storage area...
+                if ( static::$_requireDev && static::ENABLE_LOCAL_DEV_STORAGE )
                 {
-                    $io->write( '<info>DFPI: require-dev set but no storage directory</info>' );
-                    $io->write( '<info>DFPI: Assuming "' . $_path . '" for storage</info>' );
+                    $_path = realpath( getcwd() ) . static::DEFAULT_STORAGE_BASE_PATH;
+
+                    if ( !is_dir( $_path ) )
+                    {
+                        if ( $io->isDebug() )
+                        {
+                            $io->write( '  - <error>DFPI: "require-dev" set but no storage directory</error>' );
+
+                            throw new FileSystemException( 'Unable to find a DSP installation directory.' );
+                        }
+                    }
                 }
             }
         }
-        else
-        {
-            $_path = $startPath ? : getcwd();
 
-            while ( true )
-            {
-                if ( file_exists( $_path . '/config/schema/system_schema.json' ) && is_dir( $_path . static::DEFAULT_STORAGE_BASE_PATH . '/.private' ) )
-                {
-                    break;
-                }
-
-                //	If we get to the root, ain't no DSP...
-                if ( '/' == ( $_path = dirname( $_path ) ) )
-                {
-                    $io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
-                    throw new FileSystemException( 'Unable to find the DSP installation directory.' );
-                }
-            }
-        }
-
-        if ( static::$_verbosity >= Verbosity::DEBUG )
+        if ( $io->isVerbose() )
         {
             $io->write( '  - Installation path found at ' . $_path );
         }
