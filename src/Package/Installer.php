@@ -127,6 +127,14 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
      * @var bool True if this install was started with "require-dev", false if "no-dev"
      */
     protected static $_requireDev = true;
+    /**
+     * @var \Composer\Composer
+     */
+    protected $_composer;
+    /**
+     * @var \Composer\IO\IOInterface
+     */
+    protected $_io;
 
     //*************************************************************************
     //* Methods
@@ -146,6 +154,8 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
             throw new \Exception( 'This installer cannot be used on a hosted DSP system.', 500 );
         }
 
+        $this->_composer = $composer;
+        $this->_io = $io;
         $this->_baseInstallPath = \getcwd();
         static::$_verbosity = static::setVerbosity( $io );
 
@@ -252,8 +262,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
     {
         $this->_validatePackage( $package );
 
-        $_path = rtrim( realpath( dirname( $this->vendorDir ) ), '/' ) .
-                 static::DEFAULT_STORAGE_BASE_PATH .
+        $_path = $this->_baseInstallPath . static::DEFAULT_STORAGE_BASE_PATH .
                  $this->_getPackageTypeSubPath( $package->getType() ) . '/' .
                  $package->getPrettyName();
 
@@ -447,6 +456,27 @@ SQL;
     }
 
     /**
+     * Return the manifest path for a package type
+     *
+     * @param string $type
+     * @param bool   $createIfMissing
+     *
+     * @throws \Kisma\Core\Exceptions\FileSystemException
+     * @return string
+     */
+    protected function _getManifestPath( $type, $createIfMissing = true )
+    {
+        $_manifestPath = $this->_baseInstallPath . static::DEFAULT_STORAGE_BASE_PATH . $this->_getPackageTypeSubPath( $type ) . '/.manifest';
+
+        if ( $createIfMissing && !$this->_ensureDirectory( $_manifestPath ) )
+        {
+            throw new FileSystemException( 'Unable to create package manifest path.' );
+        }
+
+        return $_manifestPath;
+    }
+
+    /**
      * @param PackageInterface $package
      * @param array            $data The package data. Set $data = false to remove the package data file
      *
@@ -455,7 +485,9 @@ SQL;
      */
     protected function _writePackageData( PackageInterface $package, $data = array() )
     {
-        $_fileName = './package.data/' . $package->getUniqueName() . '.manifest.json';
+        $this->_ensureDirectory( $_packageDataPath = $this->_getManifestPath( $package->getType(), false ) . '/packages' );
+
+        $_fileName = $_packageDataPath . '/' . $package->getUniqueName() . '.json';
 
         //	Remove package data...
         if ( false === $data )
@@ -835,6 +867,24 @@ SQL;
         }
 
         return $_path;
+    }
+
+    /**
+     * @param string $path
+     *
+     * @return bool
+     */
+    protected function _ensureDirectory( $path )
+    {
+        if ( !is_dir( $path ) )
+        {
+            if ( false === @mkdir( $path, 0777, true ) )
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
