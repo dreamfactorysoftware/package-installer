@@ -485,9 +485,16 @@ SQL;
      */
     protected function _writePackageData( PackageInterface $package, $data = array() )
     {
-        $this->_ensureDirectory( $_packageDataPath = $this->_getManifestPath( $package->getType(), false ) . '/packages' );
+        if ( !$this->_ensureDirectory( $_packageDataPath = $this->_getManifestPath( $package->getType(), false ) . '/packages' ) )
+        {
+            throw new FileSystemException( 'Unable to create package data directory.' );
+        }
+
+        $this->_log( 'Package manifest directory is ' . $_packageDataPath, Verbosity::VERBOSE );
 
         $_fileName = $_packageDataPath . '/' . $package->getUniqueName() . '.json';
+
+        $this->_log( 'Package manifest file is ' . $_fileName, Verbosity::VERBOSE );
 
         //	Remove package data...
         if ( false === $data )
