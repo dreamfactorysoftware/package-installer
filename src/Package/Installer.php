@@ -342,6 +342,9 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
      */
     protected function _addApplication( PackageInterface $package )
     {
+        //  Add to composer file
+        $this->_addToComposer( $package );
+
         if ( false === ( $_app = $this->_getRegistrationInfo( $package ) ) )
         {
             return false;
@@ -453,6 +456,26 @@ SQL;
         $this->_log( 'Package "<info>' . $_apiName . '</info>" unregistered from DSP.' );
 
         return true;
+    }
+
+    /**
+     * @param PackageInterface $package
+     *
+     * @return bool
+     */
+    protected function _addToComposer( PackageInterface $package )
+    {
+        $_manifestPath = $this->_getManifestPath( $package->getType() );
+
+        $_command =
+            'composer require --quiet --no-ansi --working-dir ' .
+            $_manifestPath .
+            ' --no-update ' .
+            escapeshellarg( $package->getPrettyName() . ':' . $package->getPrettyVersion() );
+
+        exec( $_command, $_output, $_returnVar );
+
+        return ( 0 == $_returnVar );
     }
 
     /**
