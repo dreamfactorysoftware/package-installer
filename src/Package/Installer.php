@@ -85,6 +85,10 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
      * @const string
      */
     const REQUIRE_DEV_BASE_PATH = '/dev';
+    /**
+     * @const bool
+     */
+    const ENABLE_LOCAL_DEV_STORAGE = false;
 
     //*************************************************************************
     //* Members
@@ -740,54 +744,6 @@ SQL;
     }
 
     /**
-     * Locates the installed DSP's base directory
-     *
-     * @param \Composer\IO\IOInterface $io
-     * @param string                   $startPath
-     *
-     * @throws \Kisma\Core\Exceptions\FileSystemException
-     * @return string
-     */
-    protected static function _findPlatformBasePath( IOInterface $io, $startPath = null )
-    {
-        //	In --require-dev mode, we create a temp storage area...
-        if ( static::$_requireDev )
-        {
-            $_path = realpath( getcwd() ) . static::DEFAULT_STORAGE_BASE_PATH;
-
-            if ( !is_dir( $_path ) )
-            {
-                if ( $io->isDebug() )
-                {
-                    $io->write( '<info>DFPI:</info> <info>require-dev</info> set but no storage directory.' );
-                    $io->write( '<info>DFPI:</info> Assuming "<info>' . $_path . '</info>" for storage' );
-                }
-            }
-        }
-        else
-        {
-            $_path = $startPath ? : getcwd();
-
-            while ( true )
-            {
-                if ( file_exists( $_path . '/config/schema/system_schema.json' ) && is_dir( $_path . static::DEFAULT_STORAGE_BASE_PATH . '/.private' ) )
-                {
-                    break;
-                }
-
-                //	If we get to the root, ain't no DSP...
-                if ( '/' == ( $_path = dirname( $_path ) ) )
-                {
-                    $io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
-                    throw new FileSystemException( 'Unable to find the DSP installation directory.' );
-                }
-            }
-
-            return $_path;
-        }
-    }
-
-    /**
      * @throws \Kisma\Core\Exceptions\FileSystemException
      */
     protected function _validateInstallationTree()
@@ -826,6 +782,59 @@ SQL;
         {
             $this->io->write( '    ' . $message );
         }
+    }
+
+    /**
+     * Locates the installed DSP's base directory
+     *
+     * @param \Composer\IO\IOInterface $io
+     * @param string                   $startPath
+     *
+     * @throws \Kisma\Core\Exceptions\FileSystemException
+     * @return string
+     */
+    protected static function _findPlatformBasePath( IOInterface $io, $startPath = null )
+    {
+        //	In --require-dev mode, we create a temp storage area...
+        if ( static::$_requireDev && static::ENABLE_LOCAL_DEV_STORAGE )
+        {
+            $_path = realpath( getcwd() ) . static::DEFAULT_STORAGE_BASE_PATH;
+
+            if ( !is_dir( $_path ) )
+            {
+                if ( $io->isDebug() )
+                {
+                    $io->write( '<info>DFPI: require-dev set but no storage directory</info>' );
+                    $io->write( '<info>DFPI: Assuming "' . $_path . '" for storage</info>' );
+                }
+            }
+        }
+        else
+        {
+            $_path = $startPath ? : getcwd();
+
+            while ( true )
+            {
+                if ( file_exists( $_path . '/config/schema/system_schema.json' ) && is_dir( $_path . static::DEFAULT_STORAGE_BASE_PATH . '/.private' ) )
+                {
+                    break;
+                }
+
+                //	If we get to the root, ain't no DSP...
+                if ( '/' == ( $_path = dirname( $_path ) ) )
+                {
+                    $io->write( '  - <error>Unable to find the DSP installation directory.</error>' );
+                    throw new FileSystemException( 'Unable to find the DSP installation directory.' );
+                }
+            }
+        }
+
+        if ( static::$_verbosity >= Verbosity::DEBUG )
+        {
+            $io->write( '  - Installation path found at ' . $_path );
+        }
+
+        return $_path;
     }
 
     /**
