@@ -252,15 +252,10 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
     {
         $this->_validatePackage( $package );
 
-        $_path = implode(
-            '/',
-            array(
-                rtrim( realpath( dirname( $this->vendorDir ) ), '/' ),
-                static::DEFAULT_STORAGE_BASE_PATH,
-                $this->_getPackageTypeSubPath( $package->getType() ),
-                $package->getPrettyName()
-            )
-        );
+        $_path = rtrim( realpath( dirname( $this->vendorDir ) ), '/' ) .
+                 static::DEFAULT_STORAGE_BASE_PATH .
+                 $this->_getPackageTypeSubPath( $package->getType() ) . '/' .
+                 $package->getPrettyName();
 
         $this->io->write( 'Package base path will be: ' . $_path );
 
