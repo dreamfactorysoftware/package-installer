@@ -1,0 +1,12 @@
+{
+	"config":      {
+		"discard-changes": true,
+		"exclude":         [".idea"]
+	},
+	"require":     {
+		"php":                            ">=5.3.18",
+		"kisma/kisma":                    ">=0.2@dev",
+		"dreamfactory/package-installer": "dev-develop as dev-master"
+	},
+	"require-dev": {}
+}

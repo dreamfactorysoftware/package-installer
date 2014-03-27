@@ -818,7 +818,7 @@ SQL;
 
         if ( !static::$_requireDev )
         {
-            $this->_log( 'Platform base path is "<info>' . static::$_platformBasePath . '</info>"', Verbosity::VERBOSE );
+            $this->_log( '[dreamfactory] Platform base path is "<info>' . static::$_platformBasePath . '</info>"', Verbosity::VERBOSE );
         }
 
         //	Make sure the private storage base is there...
