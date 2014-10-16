@@ -66,6 +66,10 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
      */
     const DEFAULT_DATABASE_CONFIG_FILE = '/config/database.config.php';
     /**
+     * @type string The manifest file name
+     */
+    const MANIFEST_PATH_NAME = '/.manifest';
+    /**
      * @type string
      */
     const DEFAULT_PLUGIN_LINK_PATH = '/web';
@@ -74,6 +78,10 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
      */
     const DEFAULT_STORAGE_BASE_PATH = '/storage';
     /**
+     * @type string
+     */
+    const DEFAULT_PRIVATE_PATH = '/storage/.private';
+    /**
      * @type int The default package type
      */
     const DEFAULT_PACKAGE_TYPE = PackageTypes::APPLICATION;
@@ -81,6 +89,10 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
      * @type string
      */
     const FABRIC_MARKER = '/var/www/.fabric_hosted';
+    /**
+     * @type string
+     */
+    const ROOT_MARKER = '/.dreamfactory.php';
     /**
      * @type string
      */
@@ -192,7 +204,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
         }
 
         static::$_requireDev = $devMode;
-        static::$_platformBasePath = static::_findPlatformBasePath( $event->getIO(), \getcwd() );
+        static::$_platformBasePath = static::_findPlatformBasePath( $event->getIO(), __DIR__ );
     }
 
     /**
@@ -269,7 +281,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
     {
         $this->_validatePackage( $package );
 
-        $_path = $this->_baseInstallPath . static::DEFAULT_STORAGE_BASE_PATH .
+        $_path = static::$_platformBasePath . static::DEFAULT_STORAGE_BASE_PATH .
             $this->_getPackageTypeSubPath( $package->getType() ) . '/' .
             $package->getPrettyName();
 
@@ -501,14 +513,14 @@ SQL;
     protected function _getManifestPath( $type, $createIfMissing = true )
     {
         $_manifestPath =
-            $this->_baseInstallPath .
+            static::$_platformBasePath .
             static::DEFAULT_STORAGE_BASE_PATH .
             $this->_getPackageTypeSubPath( $type ) .
-            '/.manifest';
+            static::MANIFEST_PATH_NAME;
 
-        if ( $createIfMissing && !$this->_ensureDirectory( $_manifestPath ) )
+        if ( $createIfMissing )
         {
-            throw new FileSystemException( 'Unable to create package manifest path.' );
+            $this->filesystem->ensureDirectoryExists( $_manifestPath );
         }
 
         return $_manifestPath;
@@ -523,10 +535,9 @@ SQL;
      */
     protected function _writePackageData( PackageInterface $package, $data = array() )
     {
-        if ( !$this->_ensureDirectory(
-            $_packageDataPath = $this->_getManifestPath( $package->getType(), false ) . '/packages'
-        )
-        )
+        $_packageDataPath = $this->_getManifestPath( $package->getType(), false ) . '/packages';
+
+        if ( !$this->filesystem->ensureDirectoryExists( $_packageDataPath ) )
         {
             throw new FileSystemException( 'Unable to create package data directory.' );
         }
@@ -557,11 +568,19 @@ SQL;
     }
 
     /**
-     * @throws \Kisma\Core\Exceptions\FileSystemException
+     * @param PackageInterface $package
+     *
+     * @return array|bool
+     * @throws FileSystemException
      */
-    protected function _createLinks( PackageInterface $package )
+    protected function _checkPackageLinks( $package )
     {
-        $this->_log( 'Installer::_createLinks called.', Verbosity::DEBUG );
+        if ( null === ( $_links = $this->_getPackageConfig( $package, 'links' ) ) )
+        {
+            $this->_log( 'Package contains no links', Verbosity::VERBOSE );
+
+            return false;
+        }
 
         if ( static::$_requireDev )
         {
@@ -570,14 +589,26 @@ SQL;
             return true;
         }
 
-        if ( null === ( $_links = $this->_getPackageConfig( $package, 'links' ) ) )
-        {
-            $this->_log( 'Package contains no links', Verbosity::VERBOSE );
+        return $_links;
+    }
 
-            return;
+    /**
+     * @param PackageInterface $package
+     *
+     * @return bool|void
+     * @throws FileSystemException
+     */
+    protected function _createLinks( PackageInterface $package )
+    {
+        $this->_log( '-- Create Links', Verbosity::DEBUG );
+        $this->_log( '---------------', Verbosity::DEBUG );
+
+        if ( is_bool( $_links = $this->_checkPackageLinks( $package ) ) )
+        {
+            return $_links;
         }
 
-        $this->_log( 'Creating package symlinks', Verbosity::VERBOSE );
+        $this->_log( 'Examining package links', Verbosity::VERBOSE );
 
         //	Make the links
         foreach ( Option::clean( $_links ) as $_link )
@@ -596,7 +627,7 @@ SQL;
                     $this->_log(
                         'Link exists but target "<error>' .
                         $_priorTarget .
-                        '</error>" is incorrect. Package links not created.'
+                        '</error>" is incorrect. Link "' . $_linkName . '" not created.'
                     );
                 }
 
@@ -606,6 +637,7 @@ SQL;
             if ( false === @\symlink( $_target, $_linkName ) )
             {
                 $this->_log( 'File system error creating symlink: <error>' . $_linkName . '</error>' );
+
                 throw new FileSystemException( 'Unable to create symlink: ' . $_linkName );
             }
 
@@ -618,20 +650,12 @@ SQL;
      */
     protected function _deleteLinks( PackageInterface $package )
     {
-        $this->_log( 'Installer::_deleteLinks called.', Verbosity::DEBUG );
+        $this->_log( '-- Delete Links', Verbosity::DEBUG );
+        $this->_log( '---------------', Verbosity::DEBUG );
 
-        if ( static::$_requireDev )
+        if ( is_bool( $_links = $this->_checkPackageLinks( $package ) ) )
         {
-            $this->_log( 'Uninking skipped because of "<info>require-dev</info>"' );
-
-            return true;
-        }
-
-        if ( null === ( $_links = $this->_getPackageConfig( $package, 'links' ) ) )
-        {
-            $this->_log( 'Package contains no links', Verbosity::DEBUG );
-
-            return;
+            return $_links;
         }
 
         $this->_log( 'Removing package symlinks' );
@@ -645,19 +669,14 @@ SQL;
             //	Already linked?
             if ( !\is_link( $_linkName ) )
             {
-                $this->_log(
-                    'Expected link "<warning>' .
-                    $_linkName .
-                    '</warning>" not found. Ignoring.Package link <warning>' .
-                    $_linkName .
-                    '</warning>'
-                );
+                $this->_log( 'Expected link "<warning>' . $_linkName . '</warning>" not found. Ignoring.' );
                 continue;
             }
 
             if ( false === @\unlink( $_linkName ) )
             {
                 $this->_log( 'File system error removing symlink: <error>' . $_linkName . '</error>' );
+
                 throw new FileSystemException( 'Unable to remove symlink: ' . $_linkName );
             }
 
@@ -853,27 +872,20 @@ SQL;
      */
     protected function _validateInstallationTree()
     {
-        static::$_platformBasePath = static::_findPlatformBasePath( $this->io );
+        $_basePath = static::_findPlatformBasePath( $this->io );
 
-        $_basePath = realpath( static::$_platformBasePath );
-
-        if ( !static::$_requireDev )
-        {
-            $this->_log(
-                '[dreamfactory] Platform base path is "<info>' . static::$_platformBasePath . '</info>"',
-                Verbosity::VERBOSE
-            );
-        }
+        $this->_log(
+            'Platform base path is "<info>' . $_basePath . '</info>"',
+            Verbosity::VERBOSE
+        );
 
         //	Make sure the private storage base is there...
-        $this->filesystem->ensureDirectoryExists( $_basePath . static::DEFAULT_STORAGE_BASE_PATH . '/.private' );
+        $this->filesystem->ensureDirectoryExists( $_basePath . static::DEFAULT_PRIVATE_PATH );
 
         foreach ( $this->_supportedTypes as $_type => $_path )
         {
-            $this->filesystem->ensureDirectoryExists(
-                $_basePath . static::DEFAULT_STORAGE_BASE_PATH . '/' . trim( $_path, '/' ) . '/.manifest'
-            );
-
+            //  Construct and validate each type's manifest path
+            $this->_getManifestPath( $_type );
             $this->_log( 'Type "<info>' . $_type . '</info>" installation tree validated.', Verbosity::DEBUG );
         }
 
@@ -903,64 +915,38 @@ SQL;
      */
     protected static function _findPlatformBasePath( IOInterface $io, $startPath = null )
     {
-        $_path = $startPath ?: getcwd();
+        //  Start path given or this file's directory
+        $_path = $startPath ?: __DIR__;
 
         while ( true )
         {
-            if ( file_exists( $_path . '/.dreamfactory.php' ) &&
-                is_dir( $_path . static::DEFAULT_STORAGE_BASE_PATH . '/.private' )
-            )
+            $_path = rtrim( $_path, ' /' );
+
+            if ( file_exists( $_path . static::ROOT_MARKER ) )
             {
-                break;
+                if ( is_dir( $_path . static::DEFAULT_PRIVATE_PATH ) )
+                {
+                    //  This is our platform root
+                    break;
+                }
             }
 
+            //  Too low, go up a level
+            $_path = dirname( $_path );
+
             //	If we get to the root, ain't no DSP...
-            if ( '/' == ( $_path = dirname( $_path ) ) )
+            if ( '/' == $_path || empty( $_path ) )
             {
-                $io->write( '  - <warning>Unable to find a DSP installation directory.</warning>' );
-
-                //	In --require-dev mode, we create a temp storage area...
-                if ( static::$_requireDev && static::ENABLE_LOCAL_DEV_STORAGE )
-                {
-                    $_path = realpath( getcwd() ) . static::DEFAULT_STORAGE_BASE_PATH;
-
-                    if ( !is_dir( $_path ) )
-                    {
-                        if ( $io->isDebug() )
-                        {
-                            $io->write( '  - <error>DFPI: "require-dev" set but no storage directory</error>' );
-
-                            throw new FileSystemException( 'Unable to find a DSP installation directory.' );
-                        }
-                    }
-                }
+                throw new FileSystemException( 'Unable to find a DSP installation directory.' );
             }
         }
 
         if ( $io->isVerbose() )
         {
-            $io->write( '  - Installation path found at ' . $_path );
+            $io->write( 'Installation path found at <comment>' . $_path . '</comment>' );
         }
 
-        return $_path;
-    }
-
-    /**
-     * @param string $path
-     *
-     * @return bool
-     */
-    protected function _ensureDirectory( $path )
-    {
-        if ( !is_dir( $path ) )
-        {
-            if ( false === @mkdir( $path, 0777, true ) )
-            {
-                return false;
-            }
-        }
-
-        return true;
+        return static::$_platformBasePath = realpath( $_path );
     }
 
     /**
