@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of the DreamFactory Services Platform(tm) Package Installer
- * Copyright 2012-2013 DreamFactory Software, Inc. {@email support@dreamfactory.com}
+ * Copyright 2012-201r DreamFactory Software, Inc. {@email support@dreamfactory.com}
  *
  * DreamFactory Services Platform(tm) Package Installer {@link http://github.com/dreamfactorysoftware/package-installer}
  * DreamFactory Services Platform(tm) {@link http://github.com/dreamfactorysoftware/dsp-core}
@@ -54,39 +54,39 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
     //*************************************************************************
 
     /**
-     * @const string
+     * @type string
      */
     const ALLOWED_PACKAGE_PREFIX = 'dreamfactory';
     /**
-     * @const bool If true, installer will attempt to update the local DSP's database directly.
+     * @type bool If true, installer will attempt to update the local DSP's database directly.
      */
     const ENABLE_DATABASE_ACCESS = false;
     /**
-     * @const string
+     * @type string
      */
     const DEFAULT_DATABASE_CONFIG_FILE = '/config/database.config.php';
     /**
-     * @const string
+     * @type string
      */
     const DEFAULT_PLUGIN_LINK_PATH = '/web';
     /**
-     * @const string
+     * @type string
      */
     const DEFAULT_STORAGE_BASE_PATH = '/storage';
     /**
-     * @const int The default package type
+     * @type int The default package type
      */
     const DEFAULT_PACKAGE_TYPE = PackageTypes::APPLICATION;
     /**
-     * @const string
+     * @type string
      */
     const FABRIC_MARKER = '/var/www/.fabric_hosted';
     /**
-     * @const string
+     * @type string
      */
     const REQUIRE_DEV_BASE_PATH = '/dev';
     /**
-     * @const bool
+     * @type bool
      */
     const ENABLE_LOCAL_DEV_STORAGE = true;
 
@@ -112,7 +112,8 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
      */
     protected $_baseInstallPath = './';
     /**
-     * @var string The path of the package installation relative to manifest directory (i.e. ../../[applications|plugins]/vendor/package-name)
+     * @var string The path of the package installation relative to manifest directory (i.e.
+     *      ../../[applications|plugins]/vendor/package-name)
      */
     protected $_packageInstallPath = '../../';
     /**
@@ -157,7 +158,8 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
         $this->_composer = $composer;
         $this->_io = $io;
         $this->_baseInstallPath = \getcwd();
-        static::$_verbosity = static::setVerbosity( $io );
+
+        static::setVerbosity( $io );
 
         parent::__construct( $io, $composer, $type );
 
@@ -171,8 +173,8 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
     public static function getSubscribedEvents()
     {
         return array(
-            ScriptEvents::PRE_INSTALL_CMD => array( array( 'onOperation', 0 ) ),
-            ScriptEvents::PRE_UPDATE_CMD  => array( array( 'onOperation', 0 ) ),
+            ScriptEvents::PRE_INSTALL_CMD => array(array('onOperation', 0)),
+            ScriptEvents::PRE_UPDATE_CMD  => array(array('onOperation', 0)),
         );
     }
 
@@ -184,7 +186,9 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
     {
         if ( static::$_verbosity >= Verbosity::DEBUG )
         {
-            $event->getIO()->write( 'DreamFactory Package Installer: <info>' . $event->getName() . '</info> event received' );
+            $event->getIO()->write(
+                'DreamFactory Package Installer: <info>' . $event->getName() . '</info> event received'
+            );
         }
 
         static::$_requireDev = $devMode;
@@ -248,7 +252,10 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
     {
         $_does = \array_key_exists( $packageType, $this->_supportedTypes );
 
-        $this->_log( 'We ' . ( $_does ? 'loves' : 'hates' ) . ' packages\'s of type "<info>' . $packageType . '</info>"', Verbosity::VERY_VERBOSE );
+        $this->_log(
+            'We ' . ( $_does ? 'loves' : 'hates' ) . ' packages\'s of type "<info>' . $packageType . '</info>"',
+            Verbosity::VERY_VERBOSE
+        );
 
         return $_does;
     }
@@ -263,8 +270,8 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
         $this->_validatePackage( $package );
 
         $_path = $this->_baseInstallPath . static::DEFAULT_STORAGE_BASE_PATH .
-                 $this->_getPackageTypeSubPath( $package->getType() ) . '/' .
-                 $package->getPrettyName();
+            $this->_getPackageTypeSubPath( $package->getType() ) . '/' .
+            $package->getPrettyName();
 
         $this->io->write( 'Package base path will be: ' . $_path );
 
@@ -278,7 +285,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
      */
     protected function _checkDatabase( $basePath = null )
     {
-        $_configFile = ( $basePath ? : static::$_platformBasePath ) . static::DEFAULT_DATABASE_CONFIG_FILE;
+        $_configFile = ( $basePath ?: static::$_platformBasePath ) . static::DEFAULT_DATABASE_CONFIG_FILE;
 
         if ( !file_exists( $_configFile ) )
         {
@@ -290,7 +297,9 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
         /** @noinspection PhpIncludeInspection */
         if ( false === ( $_dbConfig = @include( $_configFile ) ) )
         {
-            $this->_log( 'Not registered. Unable to read database configuration file: <error>' . $_configFile . '</error>' );
+            $this->_log(
+                'Not registered. Unable to read database configuration file: <error>' . $_configFile . '</error>'
+            );
 
             return false;
         }
@@ -381,7 +390,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
             Option::prefixKeys( ':', $_payload );
 
             //  Write with the store
-            if ( !ResourceStore::model( 'service' )->upsert( array( 'api_name' => $_apiName ), $_payload ) )
+            if ( !ResourceStore::model( 'service' )->upsert( array('api_name' => $_apiName), $_payload ) )
             {
                 throw new StorageException( 'Error saving application to database.' );
             }
@@ -429,7 +438,8 @@ WHERE
 SQL;
 
         $_data = array(
-            ':api_name'  => $_apiName = Option::get( $_app, 'api-name', $this->_getPackageConfig( $package, '_suffix' ) ),
+            ':api_name'  => $_apiName =
+                Option::get( $_app, 'api-name', $this->_getPackageConfig( $package, '_suffix' ) ),
             ':is_active' => 0
         );
 
@@ -441,7 +451,8 @@ SQL;
             {
                 $_message =
                     ( null === ( $_statement = Sql::getStatement() )
-                        ? 'Unknown database error' : 'Database error: ' . print_r( $_statement->errorInfo(), Verbosity::DEBUG ) );
+                        ? 'Unknown database error'
+                        : 'Database error: ' . print_r( $_statement->errorInfo(), Verbosity::DEBUG ) );
 
                 throw new \Exception( $_message );
             }
@@ -489,7 +500,11 @@ SQL;
      */
     protected function _getManifestPath( $type, $createIfMissing = true )
     {
-        $_manifestPath = $this->_baseInstallPath . static::DEFAULT_STORAGE_BASE_PATH . $this->_getPackageTypeSubPath( $type ) . '/.manifest';
+        $_manifestPath =
+            $this->_baseInstallPath .
+            static::DEFAULT_STORAGE_BASE_PATH .
+            $this->_getPackageTypeSubPath( $type ) .
+            '/.manifest';
 
         if ( $createIfMissing && !$this->_ensureDirectory( $_manifestPath ) )
         {
@@ -508,7 +523,10 @@ SQL;
      */
     protected function _writePackageData( PackageInterface $package, $data = array() )
     {
-        if ( !$this->_ensureDirectory( $_packageDataPath = $this->_getManifestPath( $package->getType(), false ) . '/packages' ) )
+        if ( !$this->_ensureDirectory(
+            $_packageDataPath = $this->_getManifestPath( $package->getType(), false ) . '/packages'
+        )
+        )
         {
             throw new FileSystemException( 'Unable to create package data directory.' );
         }
@@ -575,7 +593,11 @@ SQL;
                 }
                 else
                 {
-                    $this->_log( 'Link exists but target "<error>' . $_priorTarget . '</error>" is incorrect. Package links not created.' );
+                    $this->_log(
+                        'Link exists but target "<error>' .
+                        $_priorTarget .
+                        '</error>" is incorrect. Package links not created.'
+                    );
                 }
 
                 continue;
@@ -624,7 +646,11 @@ SQL;
             if ( !\is_link( $_linkName ) )
             {
                 $this->_log(
-                    'Expected link "<warning>' . $_linkName . '</warning>" not found. Ignoring.Package link <warning>' . $_linkName . '</warning>'
+                    'Expected link "<warning>' .
+                    $_linkName .
+                    '</warning>" not found. Ignoring.Package link <warning>' .
+                    $_linkName .
+                    '</warning>'
                 );
                 continue;
             }
@@ -657,7 +683,10 @@ SQL;
             $_config = $this->_parseConfiguration( $package );
 
             $this->_log(
-                '<info>' . ( static::$_requireDev ? 'require-dev' : 'no-dev' ) . '</info> installation: ' . static::$_platformBasePath,
+                '<info>' .
+                ( static::$_requireDev ? 'require-dev' : 'no-dev' ) .
+                '</info> installation: ' .
+                static::$_platformBasePath,
                 Verbosity::VERBOSE
             );
 
@@ -705,14 +734,22 @@ SQL;
                     /** @noinspection PhpIncludeInspection */
                     if ( false === ( $_extraConfig = @include( $_configFile ) ) )
                     {
-                        $this->_log( '<error>File system error reading package configuration file: ' . $_configFile . '</error>' );
+                        $this->_log(
+                            '<error>File system error reading package configuration file: ' . $_configFile . '</error>'
+                        );
                         throw new FileSystemException( 'File system error reading package configuration file' );
                     }
 
                     if ( !is_array( $_extraConfig ) )
                     {
-                        $this->_log( 'The "config" file specified in this package is invalid: <error>' . $_configFile . '</error>' );
-                        throw new \InvalidArgumentException( 'The "config" file specified in this package is invalid.' );
+                        $this->_log(
+                            'The "config" file specified in this package is invalid: <error>' .
+                            $_configFile .
+                            '</error>'
+                        );
+                        throw new \InvalidArgumentException(
+                            'The "config" file specified in this package is invalid.'
+                        );
                     }
                 }
             }
@@ -738,14 +775,18 @@ SQL;
 
         if ( 2 != count( $_parts ) )
         {
-            throw new \InvalidArgumentException( 'The package "' . $_packageName . '" package name is malformed or cannot be parsed.' );
+            throw new \InvalidArgumentException(
+                'The package "' . $_packageName . '" package name is malformed or cannot be parsed.'
+            );
         }
 
         //	Only install DreamFactory packages if not a plug-in
         if ( static::ALLOWED_PACKAGE_PREFIX != $_parts[0] )
         {
             $this->_log( 'Package is not supported by this installer' );
-            throw new \InvalidArgumentException( 'The package "' . $_packageName . '" is not supported by this installer.' );
+            throw new \InvalidArgumentException(
+                'The package "' . $_packageName . '" is not supported by this installer.'
+            );
         }
 
         $_config = $this->_getPackageConfig( $package );
@@ -759,7 +800,7 @@ SQL;
                 'link'   => Option::get( $_config, 'api_name', $_parts[1] )
             );
 
-            $_config['links'] = array( $this->_normalizeLink( $package, $_link ) );
+            $_config['links'] = array($this->_normalizeLink( $package, $_link ));
         }
 
         $_config['_prefix'] = $_parts[0];
@@ -794,7 +835,7 @@ SQL;
             '/' .
             trim( Option::get( $link, 'link', $this->_getPackageConfig( $package, '_suffix' ) ), '/' );
 
-        return array( $_target, $_linkName );
+        return array($_target, $_linkName);
     }
 
     /**
@@ -818,7 +859,10 @@ SQL;
 
         if ( !static::$_requireDev )
         {
-            $this->_log( '[dreamfactory] Platform base path is "<info>' . static::$_platformBasePath . '</info>"', Verbosity::VERBOSE );
+            $this->_log(
+                '[dreamfactory] Platform base path is "<info>' . static::$_platformBasePath . '</info>"',
+                Verbosity::VERBOSE
+            );
         }
 
         //	Make sure the private storage base is there...
@@ -859,11 +903,13 @@ SQL;
      */
     protected static function _findPlatformBasePath( IOInterface $io, $startPath = null )
     {
-        $_path = $startPath ? : getcwd();
+        $_path = $startPath ?: getcwd();
 
         while ( true )
         {
-            if ( file_exists( $_path . '/.dreamfactory.php' ) && is_dir( $_path . static::DEFAULT_STORAGE_BASE_PATH . '/.private' ) )
+            if ( file_exists( $_path . '/.dreamfactory.php' ) &&
+                is_dir( $_path . static::DEFAULT_STORAGE_BASE_PATH . '/.private' )
+            )
             {
                 break;
             }
@@ -925,13 +971,13 @@ SQL;
         if ( $verbosity instanceof IOInterface )
         {
             //	Set from IOInterface if passed in...
-            static::$_verbosity =
-                ( $verbosity->isVerbose()
+            $verbosity =
+                $verbosity->isVerbose()
                     ? Verbosity::VERBOSE
                     : $verbosity->isVeryVerbose()
-                        ? Verbosity::VERY_VERBOSE
-                        : $verbosity->isDebug()
-                            ? Verbosity::DEBUG : Verbosity::NORMAL );
+                    ? Verbosity::VERY_VERBOSE
+                    : $verbosity->isDebug()
+                        ? Verbosity::DEBUG : Verbosity::NORMAL;
         }
 
         static::$_verbosity = $verbosity;

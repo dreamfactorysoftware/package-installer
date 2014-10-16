@@ -1,32 +1,103 @@
 {
     "_readme": [
         "This file locks the dependencies of your project to a known state",
-        "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file"
+        "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
+        "This file is @generated automatically"
     ],
     "hash": "a2216c70f5a8e98baa2f3ffeb19d745f",
     "packages": [
         {
-            "name": "kisma/kisma",
-            "version": "0.2.35",
+            "name": "doctrine/cache",
+            "version": "dev-master",
             "source": {
                 "type": "git",
-                "url": "https://github.com/lucifurious/kisma.git",
-                "reference": "4d73c82144577ad0ed085fffcb7361bd21404233"
+                "url": "https://github.com/doctrine/cache.git",
+                "reference": "f7a1d660c521461b835dc31af0f6c9836769e917"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/lucifurious/kisma/zipball/4d73c82144577ad0ed085fffcb7361bd21404233",
-                "reference": "4d73c82144577ad0ed085fffcb7361bd21404233",
+                "url": "https://api.github.com/repos/doctrine/cache/zipball/f7a1d660c521461b835dc31af0f6c9836769e917",
+                "reference": "f7a1d660c521461b835dc31af0f6c9836769e917",
                 "shasum": ""
             },
             "require": {
-                "monolog/monolog": "@stable",
-                "php": ">=5.3.18",
-                "symfony/event-dispatcher": "~2.4@stable",
-                "symfony/http-foundation": "~2.4@stable"
+                "php": ">=5.3.2"
+            },
+            "conflict": {
+                "doctrine/common": ">2.2,<2.4"
             },
             "require-dev": {
-                "phpunit/phpunit": "~3.7@stable"
+                "phpunit/phpunit": ">=3.7",
+                "satooshi/php-coveralls": "~0.6"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "1.4.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-0": {
+                    "Doctrine\\Common\\Cache\\": "lib/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Roman Borschel",
+                    "email": "roman@code-factory.org"
+                },
+                {
+                    "name": "Benjamin Eberlei",
+                    "email": "kontakt@beberlei.de"
+                },
+                {
+                    "name": "Guilherme Blanco",
+                    "email": "guilhermeblanco@gmail.com"
+                },
+                {
+                    "name": "Jonathan Wage",
+                    "email": "jonwage@gmail.com"
+                },
+                {
+                    "name": "Johannes Schmitt",
+                    "email": "schmittjoh@gmail.com"
+                }
+            ],
+            "description": "Caching library offering an object-oriented API for many cache backends",
+            "homepage": "http://www.doctrine-project.org",
+            "keywords": [
+                "cache",
+                "caching"
+            ],
+            "time": "2014-09-29 13:28:56"
+        },
+        {
+            "name": "kisma/kisma",
+            "version": "0.2.67",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/lucifurious/kisma.git",
+                "reference": "aa4f8e5d21ac8ad8885d298555691c1a5c3f7349"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/lucifurious/kisma/zipball/aa4f8e5d21ac8ad8885d298555691c1a5c3f7349",
+                "reference": "aa4f8e5d21ac8ad8885d298555691c1a5c3f7349",
+                "shasum": ""
+            },
+            "require": {
+                "doctrine/cache": "*",
+                "monolog/monolog": "*",
+                "php": "~5.3",
+                "symfony/event-dispatcher": "~2.4",
+                "symfony/http-foundation": "~2.4"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "~3.7"
             },
             "type": "library",
             "extra": {
@@ -60,7 +131,7 @@
                 "php5",
                 "utility"
             ],
-            "time": "2014-03-18 13:46:42"
+            "time": "2014-10-05 22:12:34"
         },
         {
             "name": "monolog/monolog",
@@ -68,17 +139,20 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/Seldaek/monolog.git",
-                "reference": "4cf49e5496857532f4ca4bbb69d1eee591b88234"
+                "reference": "940cbe15abe36924e5693abb585215bb322686a7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Seldaek/monolog/zipball/4cf49e5496857532f4ca4bbb69d1eee591b88234",
-                "reference": "4cf49e5496857532f4ca4bbb69d1eee591b88234",
+                "url": "https://api.github.com/repos/Seldaek/monolog/zipball/940cbe15abe36924e5693abb585215bb322686a7",
+                "reference": "940cbe15abe36924e5693abb585215bb322686a7",
                 "shasum": ""
             },
             "require": {
                 "php": ">=5.3.0",
                 "psr/log": "~1.0"
+            },
+            "provide": {
+                "psr/log-implementation": "1.0.0"
             },
             "require-dev": {
                 "aws/aws-sdk-php": "~2.4, >2.4.8",
@@ -86,7 +160,8 @@
                 "graylog2/gelf-php": "~1.0",
                 "phpunit/phpunit": "~3.7.0",
                 "raven/raven": "~0.5",
-                "ruflin/elastica": "0.90.*"
+                "ruflin/elastica": "0.90.*",
+                "videlalvaro/php-amqplib": "~2.4"
             },
             "suggest": {
                 "aws/aws-sdk-php": "Allow sending log messages to AWS services like DynamoDB",
@@ -96,12 +171,13 @@
                 "graylog2/gelf-php": "Allow sending log messages to a GrayLog2 server",
                 "raven/raven": "Allow sending log messages to a Sentry server",
                 "rollbar/rollbar": "Allow sending log messages to Rollbar",
-                "ruflin/elastica": "Allow sending log messages to an Elastic Search server"
+                "ruflin/elastica": "Allow sending log messages to an Elastic Search server",
+                "videlalvaro/php-amqplib": "Allow sending log messages to an AMQP server using php-amqplib"
             },
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "1.8.x-dev"
+                    "dev-master": "1.11.x-dev"
                 }
             },
             "autoload": {
@@ -117,8 +193,7 @@
                 {
                     "name": "Jordi Boggiano",
                     "email": "j.boggiano@seld.be",
-                    "homepage": "http://seld.be",
-                    "role": "Developer"
+                    "homepage": "http://seld.be"
                 }
             ],
             "description": "Sends your logs to files, sockets, inboxes, databases and various web services",
@@ -128,7 +203,7 @@
                 "logging",
                 "psr-3"
             ],
-            "time": "2014-03-26 11:12:35"
+            "time": "2014-10-04 15:43:06"
         },
         {
             "name": "psr/log",
@@ -180,12 +255,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/EventDispatcher.git",
-                "reference": "8b345992d9e850798f46a6c68804ac9e4965e91a"
+                "reference": "e133748fd9165e24f8e9498ef5862f8bd37004e5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/EventDispatcher/zipball/8b345992d9e850798f46a6c68804ac9e4965e91a",
-                "reference": "8b345992d9e850798f46a6c68804ac9e4965e91a",
+                "url": "https://api.github.com/repos/symfony/EventDispatcher/zipball/e133748fd9165e24f8e9498ef5862f8bd37004e5",
+                "reference": "e133748fd9165e24f8e9498ef5862f8bd37004e5",
                 "shasum": ""
             },
             "require": {
@@ -193,7 +268,9 @@
             },
             "require-dev": {
                 "psr/log": "~1.0",
-                "symfony/dependency-injection": "~2.0",
+                "symfony/config": "~2.0",
+                "symfony/dependency-injection": "~2.6",
+                "symfony/expression-language": "~2.6",
                 "symfony/stopwatch": "~2.2"
             },
             "suggest": {
@@ -203,7 +280,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "2.5-dev"
+                    "dev-master": "2.6-dev"
                 }
             },
             "autoload": {
@@ -217,19 +294,17 @@
             ],
             "authors": [
                 {
-                    "name": "Fabien Potencier",
-                    "email": "fabien@symfony.com",
-                    "homepage": "http://fabien.potencier.org",
-                    "role": "Lead Developer"
-                },
-                {
                     "name": "Symfony Community",
                     "homepage": "http://symfony.com/contributors"
+                },
+                {
+                    "name": "Fabien Potencier",
+                    "email": "fabien@symfony.com"
                 }
             ],
             "description": "Symfony EventDispatcher Component",
             "homepage": "http://symfony.com",
-            "time": "2014-02-11 13:52:21"
+            "time": "2014-10-04 06:08:58"
         },
         {
             "name": "symfony/http-foundation",
@@ -238,12 +313,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/HttpFoundation.git",
-                "reference": "a62e173e81a067eae72b1c40ffd9d007b6568da9"
+                "reference": "c24942a7ec2d8409d1f60d02c4460ca8317e885a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/HttpFoundation/zipball/a62e173e81a067eae72b1c40ffd9d007b6568da9",
-                "reference": "a62e173e81a067eae72b1c40ffd9d007b6568da9",
+                "url": "https://api.github.com/repos/symfony/HttpFoundation/zipball/c24942a7ec2d8409d1f60d02c4460ca8317e885a",
+                "reference": "c24942a7ec2d8409d1f60d02c4460ca8317e885a",
                 "shasum": ""
             },
             "require": {
@@ -255,7 +330,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "2.5-dev"
+                    "dev-master": "2.6-dev"
                 }
             },
             "autoload": {
@@ -272,19 +347,17 @@
             ],
             "authors": [
                 {
-                    "name": "Fabien Potencier",
-                    "email": "fabien@symfony.com",
-                    "homepage": "http://fabien.potencier.org",
-                    "role": "Lead Developer"
-                },
-                {
                     "name": "Symfony Community",
                     "homepage": "http://symfony.com/contributors"
+                },
+                {
+                    "name": "Fabien Potencier",
+                    "email": "fabien@symfony.com"
                 }
             ],
             "description": "Symfony HttpFoundation Component",
             "homepage": "http://symfony.com",
-            "time": "2014-03-26 11:51:10"
+            "time": "2014-10-07 14:06:18"
         }
     ],
     "packages-dev": [
@@ -362,12 +435,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/composer/composer.git",
-                "reference": "f233383de8bd42cb95334b072b31165b30eb19c0"
+                "reference": "b0cabd1e989ac7a1fdaac51610e987a833c262e1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/composer/composer/zipball/f233383de8bd42cb95334b072b31165b30eb19c0",
-                "reference": "f233383de8bd42cb95334b072b31165b30eb19c0",
+                "url": "https://api.github.com/repos/composer/composer/zipball/b0cabd1e989ac7a1fdaac51610e987a833c262e1",
+                "reference": "b0cabd1e989ac7a1fdaac51610e987a833c262e1",
                 "shasum": ""
             },
             "require": {
@@ -379,7 +452,7 @@
                 "symfony/process": "~2.1"
             },
             "require-dev": {
-                "phpunit/phpunit": "~3.7.10"
+                "phpunit/phpunit": "~3.7"
             },
             "suggest": {
                 "ext-openssl": "Enabling the openssl extension allows you to access https URLs for repositories and packages",
@@ -405,15 +478,14 @@
             ],
             "authors": [
                 {
-                    "name": "Jordi Boggiano",
-                    "email": "j.boggiano@seld.be",
-                    "homepage": "http://seld.be",
-                    "role": "Developer"
-                },
-                {
                     "name": "Nils Adermann",
                     "email": "naderman@naderman.de",
                     "homepage": "http://www.naderman.de"
+                },
+                {
+                    "name": "Jordi Boggiano",
+                    "email": "j.boggiano@seld.be",
+                    "homepage": "http://seld.be"
                 }
             ],
             "description": "Composer helps you declare, manage and install dependencies of PHP projects, ensuring you have the right stack everywhere.",
@@ -423,7 +495,7 @@
                 "dependency",
                 "package"
             ],
-            "time": "2014-03-26 17:28:52"
+            "time": "2014-10-16 07:43:09"
         },
         {
             "name": "dready92/php-on-couch",
@@ -474,16 +546,16 @@
         },
         {
             "name": "dreamfactory/azure-sdk-for-php",
-            "version": "0.4.0.3",
+            "version": "dev-develop",
             "source": {
                 "type": "git",
                 "url": "https://github.com/dreamfactorysoftware/azure-sdk-for-php.git",
-                "reference": "bbecccae3343e99e47846ba85f53cf26fe4f2506"
+                "reference": "3326524639e3f42521f7259ea6ca02a6e901e3d3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/dreamfactorysoftware/azure-sdk-for-php/zipball/bbecccae3343e99e47846ba85f53cf26fe4f2506",
-                "reference": "bbecccae3343e99e47846ba85f53cf26fe4f2506",
+                "url": "https://api.github.com/repos/dreamfactorysoftware/azure-sdk-for-php/zipball/3326524639e3f42521f7259ea6ca02a6e901e3d3",
+                "reference": "3326524639e3f42521f7259ea6ca02a6e901e3d3",
                 "shasum": ""
             },
             "require": {
@@ -492,10 +564,19 @@
                 "pear-pear.php.net/mail_mimedecode": "*",
                 "pear-pear.php.net/net_url2": "*"
             },
+            "require-dev": {
+                "mikey179/vfsstream": "~1.2@stable",
+                "phpunit/phpunit": "~3.7@stable"
+            },
             "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-develop": "0.4.x-dev"
+                }
+            },
             "autoload": {
-                "psr-0": {
-                    "WindowsAzure\\": ""
+                "psr-4": {
+                    "WindowsAzure\\": "src/"
                 }
             },
             "notification-url": "https://packagist.org/downloads/",
@@ -506,6 +587,11 @@
                 {
                     "name": "Azure PHP SDK",
                     "email": "azurephpsdk@microsoft.com"
+                },
+                {
+                    "name": "Jerry Ablan",
+                    "email": "jerryablan@dreamfactory.com",
+                    "role": "DreamFactory Package Maintainer"
                 }
             ],
             "description": "This project provides a set of PHP client libraries that make it easy to access Windows Azure tables, blobs, queues, service runtime and service management APIs.",
@@ -514,7 +600,7 @@
                 "php",
                 "sdk"
             ],
-            "time": "2014-02-24 21:48:37"
+            "time": "2014-08-08 21:07:14"
         },
         {
             "name": "dreamfactory/javascript-sdk",
@@ -561,17 +647,17 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/dreamfactorysoftware/lib-php-common.git",
-                "reference": "daf6049d7d1306450b7e4a092dec2af2e0a916b4"
+                "reference": "258fb7a4b741b28bb3d2a955ef4ccbef4396495e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/dreamfactorysoftware/lib-php-common/zipball/daf6049d7d1306450b7e4a092dec2af2e0a916b4",
-                "reference": "daf6049d7d1306450b7e4a092dec2af2e0a916b4",
+                "url": "https://api.github.com/repos/dreamfactorysoftware/lib-php-common/zipball/258fb7a4b741b28bb3d2a955ef4ccbef4396495e",
+                "reference": "258fb7a4b741b28bb3d2a955ef4ccbef4396495e",
                 "shasum": ""
             },
             "require": {
-                "kisma/kisma": "~0.2@stable",
-                "php": ">=5.3.18"
+                "kisma/kisma": "~0.2",
+                "php": "~5.3,<5.6"
             },
             "require-dev": {
                 "phpunit/phpunit": "~3.7@stable"
@@ -594,55 +680,54 @@
             "authors": [
                 {
                     "name": "Jerry Ablan",
-                    "email": "jerryablan@dreamfactory.com",
-                    "role": "Lead Developer, server-side/client-side"
+                    "email": "jerryablan@dreamfactory.com"
                 },
                 {
                     "name": "Lee Hicks",
-                    "email": "leehicks@dreamfactory.com",
-                    "role": "Lead Developer, server-side/client-side"
+                    "email": "leehicks@dreamfactory.com"
                 }
             ],
             "description": "DreamFactory Services Platform(tm) Common Components for PHP",
-            "homepage": "http://dreamfactorysoftware.github.io/",
+            "homepage": "https://www.dreamfactory.com/",
             "keywords": [
                 "dsp",
                 "dsp-core"
             ],
-            "time": "2014-02-27 21:22:47"
+            "time": "2014-10-07 23:59:45"
         },
         {
             "name": "dreamfactory/lib-php-common-platform",
             "version": "dev-develop",
             "source": {
                 "type": "git",
-                "url": "https://bitbucket.org/dreamfactory/lib-php-common-platform.git",
-                "reference": "d983011b387fdd9a92609ecc87f3c8cee7be0378"
+                "url": "https://github.com/dreamfactorysoftware/lib-php-common-platform.git",
+                "reference": "7fe2d88edfeb93c0919d2f33496c96e24f1e6679"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://bitbucket.org/dreamfactory/lib-php-common-platform/get/d983011b387fdd9a92609ecc87f3c8cee7be0378.zip",
-                "reference": "d983011b387fdd9a92609ecc87f3c8cee7be0378",
+                "url": "https://api.github.com/repos/dreamfactorysoftware/lib-php-common-platform/zipball/7fe2d88edfeb93c0919d2f33496c96e24f1e6679",
+                "reference": "7fe2d88edfeb93c0919d2f33496c96e24f1e6679",
                 "shasum": ""
             },
             "require": {
                 "aws/aws-sdk-php": "~2.4.0@stable",
-                "dready92/php-on-couch": "dev-master",
-                "dreamfactory/azure-sdk-for-php": "~0.4.0@stable",
-                "dreamfactory/javascript-sdk": "~1.0@dev",
-                "dreamfactory/lib-php-common": "~1.4@dev",
-                "dreamfactory/lib-php-common-yii": "~1.4@dev",
-                "dreamfactory/oasys": "~0.4.0@dev",
-                "dreamfactory/yii": "1.1.13",
-                "kisma/kisma": "~0.2@dev",
-                "pear/http_request2": "*",
-                "pear/mail_mime": "*",
-                "pear/mail_mime-decode": "*",
-                "pear/net_url2": "*",
-                "php": ">=5.3.10",
-                "phpforce/soap-client": "dev-master",
+                "dready92/php-on-couch": "*",
+                "dreamfactory/azure-sdk-for-php": "dev-develop as dev-master",
+                "dreamfactory/javascript-sdk": "~1.0",
+                "dreamfactory/lib-php-common": "~1.5",
+                "dreamfactory/lib-php-common-yii": "~1.5",
+                "dreamfactory/oasys": "~0.4",
+                "dreamfactory/yii": "~1.1.13.10",
+                "jeremeamia/superclosure": "*",
+                "kisma/kisma": "~0.2",
+                "pear-pear.php.net/http_request2": "*",
+                "pear-pear.php.net/mail_mime": "*",
+                "pear-pear.php.net/mail_mimedecode": "*",
+                "pear-pear.php.net/net_url2": "*",
+                "php": "~5.3,<5.6",
+                "phpforce/soap-client": "*",
                 "rackspace/php-opencloud": "~1.5.0@stable",
-                "swiftmailer/swiftmailer": "~4.3.0@stable"
+                "swiftmailer/swiftmailer": "~4.3@stable"
             },
             "require-dev": {
                 "phpunit/dbunit": "@stable",
@@ -654,7 +739,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-develop": "1.5.x-dev"
+                    "dev-develop": "1.8.x-dev"
                 }
             },
             "autoload": {
@@ -685,26 +770,26 @@
                 "dsp-core",
                 "sdk"
             ],
-            "time": "2014-03-26 15:32:51"
+            "time": "2014-10-16 15:47:43"
         },
         {
             "name": "dreamfactory/lib-php-common-yii",
-            "version": "dev-develop",
+            "version": "1.5.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/dreamfactorysoftware/lib-php-common-yii.git",
-                "reference": "aaee4290718e1fa25e0cb7879cf13f3cad5a9e1d"
+                "reference": "83a9c223b840b32235569c76dbef0411664ab03e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/dreamfactorysoftware/lib-php-common-yii/zipball/aaee4290718e1fa25e0cb7879cf13f3cad5a9e1d",
-                "reference": "aaee4290718e1fa25e0cb7879cf13f3cad5a9e1d",
+                "url": "https://api.github.com/repos/dreamfactorysoftware/lib-php-common-yii/zipball/83a9c223b840b32235569c76dbef0411664ab03e",
+                "reference": "83a9c223b840b32235569c76dbef0411664ab03e",
                 "shasum": ""
             },
             "require": {
-                "dreamfactory/lib-php-common": "~1.4@stable",
-                "dreamfactory/yii": "1.1.13",
-                "kisma/kisma": "~0.2@stable",
+                "dreamfactory/lib-php-common": "~1.5.0@stable",
+                "dreamfactory/yii": "~1.1.13.3",
+                "kisma/kisma": "~0.2.53@stable",
                 "php": ">=5.3.18"
             },
             "require-dev": {
@@ -731,23 +816,19 @@
             "authors": [
                 {
                     "name": "Jerry Ablan",
-                    "email": "jerryablan@dreamfactory.com",
-                    "role": "Lead Developer, server-side/client-side"
-                },
-                {
-                    "name": "Jason Sykes",
-                    "email": "jasonsykes@dreamfactory.com",
-                    "role": "Lead Developer, client-side"
-                },
-                {
-                    "name": "Lee Hicks",
-                    "email": "leehicks@dreamfactory.com",
-                    "role": "Lead Developer, server-side/client-side"
+                    "email": "jerryablan@dreamfactory.com"
                 },
                 {
                     "name": "Todd Appleton",
-                    "email": "toddappleton@dreamfactory.com",
-                    "role": "Lead Developer and QA, client-side"
+                    "email": "toddappleton@dreamfactory.com"
+                },
+                {
+                    "name": "Lee Hicks",
+                    "email": "leehicks@dreamfactory.com"
+                },
+                {
+                    "name": "Jason Sykes",
+                    "email": "jasonsykes@dreamfactory.com"
                 }
             ],
             "description": "DreamFactory Services Platform(tm) Yii Components Library",
@@ -756,31 +837,36 @@
                 "sdk",
                 "yii"
             ],
-            "time": "2014-03-25 16:08:39"
+            "time": "2014-08-14 16:46:14"
         },
         {
             "name": "dreamfactory/oasys",
-            "version": "0.4.8",
+            "version": "dev-develop",
             "source": {
                 "type": "git",
                 "url": "https://github.com/dreamfactorysoftware/oasys.git",
-                "reference": "e755f316344f47b49d7ae1289fd861522c6932bc"
+                "reference": "5988ccfab42b26d644ef8d5ef48047d4004f11d2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/dreamfactorysoftware/oasys/zipball/e755f316344f47b49d7ae1289fd861522c6932bc",
-                "reference": "e755f316344f47b49d7ae1289fd861522c6932bc",
+                "url": "https://api.github.com/repos/dreamfactorysoftware/oasys/zipball/5988ccfab42b26d644ef8d5ef48047d4004f11d2",
+                "reference": "5988ccfab42b26d644ef8d5ef48047d4004f11d2",
                 "shasum": ""
             },
             "require": {
                 "ext-curl": "*",
-                "kisma/kisma": "~0.2@stable",
-                "php": ">=5.3.18"
+                "kisma/kisma": "~0.2",
+                "php": "~5.3"
             },
             "require-dev": {
-                "phpunit/phpunit": "~3.7@stable"
+                "phpunit/phpunit": "~3.7"
             },
             "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-develop": "0.4.x-dev"
+                }
+            },
             "autoload": {
                 "psr-4": {
                     "DreamFactory\\Oasys\\": "src/"
@@ -793,12 +879,11 @@
             "authors": [
                 {
                     "name": "Jerry Ablan",
-                    "email": "jerryablan@dreamfactory.com",
-                    "role": "Lead Developer"
+                    "email": "jerryablan@dreamfactory.com"
                 }
             ],
             "description": "DreamFactory Oasys(tm) Open Authentication System",
-            "homepage": "http://dreamfactorysoftware.github.io",
+            "homepage": "https://www.dreamfactory.com/",
             "keywords": [
                 "OpenId",
                 "ldap",
@@ -806,20 +891,20 @@
                 "oauth",
                 "oauth2"
             ],
-            "time": "2014-03-07 00:08:26"
+            "time": "2014-10-06 15:06:29"
         },
         {
             "name": "dreamfactory/yii",
-            "version": "1.1.13",
+            "version": "1.1.13.10",
             "source": {
                 "type": "git",
                 "url": "https://github.com/dreamfactorysoftware/yii.git",
-                "reference": "af4b63409222cbf5e23c9c18ca21fdd67afe76b6"
+                "reference": "780cab13660faebd773ef71670151937f6bb0e1b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/dreamfactorysoftware/yii/zipball/af4b63409222cbf5e23c9c18ca21fdd67afe76b6",
-                "reference": "af4b63409222cbf5e23c9c18ca21fdd67afe76b6",
+                "url": "https://api.github.com/repos/dreamfactorysoftware/yii/zipball/780cab13660faebd773ef71670151937f6bb0e1b",
+                "reference": "780cab13660faebd773ef71670151937f6bb0e1b",
                 "shasum": ""
             },
             "require": {
@@ -861,12 +946,10 @@
                 },
                 {
                     "name": "Sebastián Thierer",
-                    "email": "sebas@artfos.com",
                     "role": "Component development"
                 },
                 {
                     "name": "Jeffrey Winesett",
-                    "email": "jefftulsa@gmail.com",
                     "role": "Documentation and marketing"
                 },
                 {
@@ -886,7 +969,7 @@
                 "framework",
                 "yii"
             ],
-            "time": "2014-02-24 17:33:55"
+            "time": "2014-10-15 19:10:27"
         },
         {
             "name": "guzzle/guzzle",
@@ -894,12 +977,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/guzzle3.git",
-                "reference": "f5ff2107333dff8ce984946d506929d9172c3573"
+                "reference": "3c0ca2255751631f1dd64eb16bbe3b9440258297"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/guzzle3/zipball/f5ff2107333dff8ce984946d506929d9172c3573",
-                "reference": "f5ff2107333dff8ce984946d506929d9172c3573",
+                "url": "https://api.github.com/repos/guzzle/guzzle3/zipball/3c0ca2255751631f1dd64eb16bbe3b9440258297",
+                "reference": "3c0ca2255751631f1dd64eb16bbe3b9440258297",
                 "shasum": ""
             },
             "require": {
@@ -943,7 +1026,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "3.8-dev"
+                    "dev-master": "3.9-dev"
                 }
             },
             "autoload": {
@@ -978,7 +1061,55 @@
                 "rest",
                 "web service"
             ],
-            "time": "2014-03-26 17:17:05"
+            "time": "2014-10-15 19:36:56"
+        },
+        {
+            "name": "jeremeamia/SuperClosure",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/jeremeamia/super_closure.git",
+                "reference": "0d5d21de10b1b9d2f48729afda354162ad464204"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/jeremeamia/super_closure/zipball/0d5d21de10b1b9d2f48729afda354162ad464204",
+                "reference": "0d5d21de10b1b9d2f48729afda354162ad464204",
+                "shasum": ""
+            },
+            "require": {
+                "nikic/php-parser": "~0.9",
+                "php": ">=5.3.3"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "~3.7"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "Jeremeamia\\SuperClosure": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Jeremy Lindblom"
+                }
+            ],
+            "description": "Doing interesting things with closures like serialization.",
+            "homepage": "https://github.com/jeremeamia/super_closure",
+            "keywords": [
+                "closure",
+                "function",
+                "parser",
+                "serializable",
+                "serialize",
+                "tokenizer"
+            ],
+            "time": "2014-08-05 17:56:34"
         },
         {
             "name": "justinrainbow/json-schema",
@@ -986,12 +1117,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/justinrainbow/json-schema.git",
-                "reference": "d97cf3ce890fe80f247fc08594a1c8a1029fc7ed"
+                "reference": "87b54b460febed69726c781ab67462084e97a105"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/justinrainbow/json-schema/zipball/d97cf3ce890fe80f247fc08594a1c8a1029fc7ed",
-                "reference": "d97cf3ce890fe80f247fc08594a1c8a1029fc7ed",
+                "url": "https://api.github.com/repos/justinrainbow/json-schema/zipball/87b54b460febed69726c781ab67462084e97a105",
+                "reference": "87b54b460febed69726c781ab67462084e97a105",
                 "shasum": ""
             },
             "require": {
@@ -1022,11 +1153,6 @@
             ],
             "authors": [
                 {
-                    "name": "Igor Wiedler",
-                    "email": "igor@wiedler.ch",
-                    "homepage": "http://wiedler.ch/igor/"
-                },
-                {
                     "name": "Bruno Prieto Reis",
                     "email": "bruno.p.reis@gmail.com"
                 },
@@ -1035,9 +1161,12 @@
                     "email": "justin.rainbow@gmail.com"
                 },
                 {
+                    "name": "Igor Wiedler",
+                    "email": "igor@wiedler.ch"
+                },
+                {
                     "name": "Robert Schönthal",
-                    "email": "seroscho@googlemail.com",
-                    "homepage": "http://digitalkaoz.net"
+                    "email": "seroscho@googlemail.com"
                 }
             ],
             "description": "A library to validate a json schema.",
@@ -1046,7 +1175,52 @@
                 "json",
                 "schema"
             ],
-            "time": "2014-03-05 15:03:52"
+            "time": "2014-08-25 02:48:14"
+        },
+        {
+            "name": "nikic/php-parser",
+            "version": "0.9.x-dev",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/nikic/PHP-Parser.git",
+                "reference": "ef70767475434bdb3615b43c327e2cae17ef12eb"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/nikic/PHP-Parser/zipball/ef70767475434bdb3615b43c327e2cae17ef12eb",
+                "reference": "ef70767475434bdb3615b43c327e2cae17ef12eb",
+                "shasum": ""
+            },
+            "require": {
+                "ext-tokenizer": "*",
+                "php": ">=5.2"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "0.9-dev"
+                }
+            },
+            "autoload": {
+                "psr-0": {
+                    "PHPParser": "lib/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "BSD-3-Clause"
+            ],
+            "authors": [
+                {
+                    "name": "Nikita Popov"
+                }
+            ],
+            "description": "A PHP parser written in PHP",
+            "keywords": [
+                "parser",
+                "php"
+            ],
+            "time": "2014-07-23 18:24:17"
         },
         {
             "name": "pear-pear.php.net/Archive_Tar",
@@ -1297,268 +1471,6 @@
             "description": "Selection of methods that are often needed when working with XML documents.  Functionality includes creating of attribute lists from arrays, creation of tags, validation of XML names and more."
         },
         {
-            "name": "pear/http_request2",
-            "version": "dev-trunk",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/pear/HTTP_Request2.git",
-                "reference": "ed779344f6f9fad4ee69ad24827ec216b98d7ef9"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/pear/HTTP_Request2/zipball/ed779344f6f9fad4ee69ad24827ec216b98d7ef9",
-                "reference": "ed779344f6f9fad4ee69ad24827ec216b98d7ef9",
-                "shasum": ""
-            },
-            "require": {
-                "pear/net_url2": ">=2.0.0",
-                "pear/pear_exception": "*",
-                "php": ">=5.2.0"
-            },
-            "suggest": {
-                "ext-fileinfo": "Adds support for looking up mime-types using finfo.",
-                "ext-zlib": "Allows handling gzip compressed responses.",
-                "lib-curl": "Allows using cURL as a request backend.",
-                "lib-openssl": "Allows handling SSL requests when not using cURL."
-            },
-            "type": "library",
-            "autoload": {
-                "psr-0": {
-                    "HTTP_Request2": ""
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "BSD-3-Clause"
-            ],
-            "authors": [
-                {
-                    "name": "Alexey Borzov",
-                    "email": "avb@php.net",
-                    "role": "Developer HTML_Common2"
-                }
-            ],
-            "description": "Provides an easy way to perform HTTP requests.",
-            "homepage": "http://pear.php.net/package/HTTP_Request2",
-            "keywords": [
-                "PEAR",
-                "curl",
-                "http",
-                "request"
-            ],
-            "time": "2014-01-16 18:42:31"
-        },
-        {
-            "name": "pear/mail_mime",
-            "version": "dev-master",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/pear/Mail_Mime.git",
-                "reference": "8607cd83c59601dccca6ea4da985406083c6ac46"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/pear/Mail_Mime/zipball/8607cd83c59601dccca6ea4da985406083c6ac46",
-                "reference": "8607cd83c59601dccca6ea4da985406083c6ac46",
-                "shasum": ""
-            },
-            "require": {
-                "pear/pear_exception": "*"
-            },
-            "require-dev": {
-                "phpunit/phpunit": "*"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-0": {
-                    "Mail": "./"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "include-path": [
-                "./"
-            ],
-            "license": [
-                "BSD Style"
-            ],
-            "authors": [
-                {
-                    "name": "Cipriano Groenendal",
-                    "email": "cipri@php.net",
-                    "role": "Lead"
-                },
-                {
-                    "name": "Aleksander Machniak",
-                    "email": "alec@php.net",
-                    "role": "Lead"
-                }
-            ],
-            "description": "More info available on: http://pear.php.net/package/Mail_Mime",
-            "time": "2014-02-21 08:52:50"
-        },
-        {
-            "name": "pear/mail_mime-decode",
-            "version": "dev-master",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/dreamfactorysoftware/Mail_mimeDecode.git",
-                "reference": "749a32a7a79df2ccdba00937bd5cdcebe9487c7f"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/dreamfactorysoftware/Mail_mimeDecode/zipball/749a32a7a79df2ccdba00937bd5cdcebe9487c7f",
-                "reference": "749a32a7a79df2ccdba00937bd5cdcebe9487c7f",
-                "shasum": ""
-            },
-            "require": {
-                "pear/pear_exception": "*"
-            },
-            "require-dev": {
-                "phpunit/phpunit": "*"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-0": {
-                    "Mail_mimeDecode": "./"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "include-path": [
-                "./"
-            ],
-            "license": [
-                "BSD-2-Clause"
-            ],
-            "authors": [
-                {
-                    "name": "Cipriano Groenendal",
-                    "email": "cipri@php.net",
-                    "role": "Lead"
-                },
-                {
-                    "name": "Aleksander Machniak",
-                    "email": "alec@php.net",
-                    "role": "Lead"
-                }
-            ],
-            "description": "More info available on: http://pear.php.net/package/Mail_mimeDecode",
-            "time": "2014-02-21 22:56:36"
-        },
-        {
-            "name": "pear/net_url2",
-            "version": "dev-master",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/pear/Net_URL2.git",
-                "reference": "68d6a20bc82c0d4bedbcae082e2c1739932dcb93"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/pear/Net_URL2/zipball/68d6a20bc82c0d4bedbcae082e2c1739932dcb93",
-                "reference": "68d6a20bc82c0d4bedbcae082e2c1739932dcb93",
-                "shasum": ""
-            },
-            "require": {
-                "php": ">=5.1.4"
-            },
-            "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-master": "2.0.x-dev"
-                }
-            },
-            "autoload": {
-                "psr-0": {
-                    "Net_URL2": ""
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "BSD-3-Clause"
-            ],
-            "authors": [
-                {
-                    "name": "David Coallier",
-                    "email": "davidc@php.net"
-                },
-                {
-                    "name": "Tom Klingenberg",
-                    "email": "tkli@php.net"
-                },
-                {
-                    "name": "Christian Schmidt",
-                    "email": "chmidt@php.net"
-                }
-            ],
-            "description": "Class for parsing and handling URL. Provides parsing of URLs into their constituent parts (scheme, host, path etc.), URL generation, and resolving of relative URLs.",
-            "homepage": "https://github.com/pear/Net_URL2",
-            "keywords": [
-                "PEAR",
-                "RFC 3986",
-                "net",
-                "networking",
-                "uri",
-                "url"
-            ],
-            "time": "2014-01-01 22:23:14"
-        },
-        {
-            "name": "pear/pear_exception",
-            "version": "dev-master",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/pear/PEAR_Exception.git",
-                "reference": "d5a3e9597040dcc56a4a2053a605e07214951202"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/pear/PEAR_Exception/zipball/d5a3e9597040dcc56a4a2053a605e07214951202",
-                "reference": "d5a3e9597040dcc56a4a2053a605e07214951202",
-                "shasum": ""
-            },
-            "require": {
-                "php": ">=4.4.0"
-            },
-            "require-dev": {
-                "phpunit/phpunit": "*"
-            },
-            "type": "class",
-            "extra": {
-                "branch-alias": {
-                    "dev-master": "1.0.x-dev"
-                }
-            },
-            "autoload": {
-                "psr-0": {
-                    "PEAR": ""
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "include-path": [
-                "."
-            ],
-            "license": [
-                "BSD-2-Clause"
-            ],
-            "authors": [
-                {
-                    "name": "Helgi Thormar",
-                    "email": "dufuz@php.net"
-                },
-                {
-                    "name": "Greg Beaver",
-                    "email": "cellog@php.net",
-                    "role": "lead"
-                }
-            ],
-            "description": "The PEAR Exception base class.",
-            "homepage": "https://github.com/pear/PEAR_Exception",
-            "keywords": [
-                "exception"
-            ],
-            "time": "2014-02-21 17:39:41"
-        },
-        {
             "name": "phpforce/common",
             "version": "dev-master",
             "source": {
@@ -1609,12 +1521,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpforce/soap-client.git",
-                "reference": "e0ee205ba7c45d15b645d32bcafbc3c527059093"
+                "reference": "9f014c8d5e48f5d983600f37098f22d67e9cb1e1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpforce/soap-client/zipball/e0ee205ba7c45d15b645d32bcafbc3c527059093",
-                "reference": "e0ee205ba7c45d15b645d32bcafbc3c527059093",
+                "url": "https://api.github.com/repos/phpforce/soap-client/zipball/9f014c8d5e48f5d983600f37098f22d67e9cb1e1",
+                "reference": "9f014c8d5e48f5d983600f37098f22d67e9cb1e1",
                 "shasum": ""
             },
             "require": {
@@ -1654,7 +1566,7 @@
                 "soap",
                 "web services"
             ],
-            "time": "2014-01-09 10:36:56"
+            "time": "2014-06-13 12:06:55"
         },
         {
             "name": "rackspace/php-opencloud",
@@ -1704,16 +1616,16 @@
         },
         {
             "name": "seld/jsonlint",
-            "version": "1.1.2",
+            "version": "1.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Seldaek/jsonlint.git",
-                "reference": "7cd4c4965e17e6e4c07f26d566619a4c76f8c672"
+                "reference": "a7bc2ec9520ad15382292591b617c43bdb1fec35"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Seldaek/jsonlint/zipball/7cd4c4965e17e6e4c07f26d566619a4c76f8c672",
-                "reference": "7cd4c4965e17e6e4c07f26d566619a4c76f8c672",
+                "url": "https://api.github.com/repos/Seldaek/jsonlint/zipball/a7bc2ec9520ad15382292591b617c43bdb1fec35",
+                "reference": "a7bc2ec9520ad15382292591b617c43bdb1fec35",
                 "shasum": ""
             },
             "require": {
@@ -1724,8 +1636,8 @@
             ],
             "type": "library",
             "autoload": {
-                "psr-0": {
-                    "Seld\\JsonLint": "src/"
+                "psr-4": {
+                    "Seld\\JsonLint\\": "src/Seld/JsonLint/"
                 }
             },
             "notification-url": "https://packagist.org/downloads/",
@@ -1736,8 +1648,7 @@
                 {
                     "name": "Jordi Boggiano",
                     "email": "j.boggiano@seld.be",
-                    "homepage": "http://seld.be",
-                    "role": "Developer"
+                    "homepage": "http://seld.be"
                 }
             ],
             "description": "JSON Linter",
@@ -1747,7 +1658,7 @@
                 "parser",
                 "validator"
             ],
-            "time": "2013-11-04 15:41:11"
+            "time": "2014-09-05 15:36:20"
         },
         {
             "name": "swiftmailer/swiftmailer",
@@ -1805,12 +1716,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/Console.git",
-                "reference": "ab9359cbf100259625c756b57c578eea15b3c464"
+                "reference": "771649efa94246e63a6ab2726ba908a358bdd403"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/Console/zipball/ab9359cbf100259625c756b57c578eea15b3c464",
-                "reference": "ab9359cbf100259625c756b57c578eea15b3c464",
+                "url": "https://api.github.com/repos/symfony/Console/zipball/771649efa94246e63a6ab2726ba908a358bdd403",
+                "reference": "771649efa94246e63a6ab2726ba908a358bdd403",
                 "shasum": ""
             },
             "require": {
@@ -1818,16 +1729,18 @@
             },
             "require-dev": {
                 "psr/log": "~1.0",
-                "symfony/event-dispatcher": "~2.1"
+                "symfony/event-dispatcher": "~2.1",
+                "symfony/process": "~2.1"
             },
             "suggest": {
                 "psr/log": "For using the console logger",
-                "symfony/event-dispatcher": ""
+                "symfony/event-dispatcher": "",
+                "symfony/process": ""
             },
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "2.5-dev"
+                    "dev-master": "2.6-dev"
                 }
             },
             "autoload": {
@@ -1841,19 +1754,17 @@
             ],
             "authors": [
                 {
-                    "name": "Fabien Potencier",
-                    "email": "fabien@symfony.com",
-                    "homepage": "http://fabien.potencier.org",
-                    "role": "Lead Developer"
-                },
-                {
                     "name": "Symfony Community",
                     "homepage": "http://symfony.com/contributors"
+                },
+                {
+                    "name": "Fabien Potencier",
+                    "email": "fabien@symfony.com"
                 }
             ],
             "description": "Symfony Console Component",
             "homepage": "http://symfony.com",
-            "time": "2014-03-19 15:49:37"
+            "time": "2014-10-05 13:59:22"
         },
         {
             "name": "symfony/finder",
@@ -1862,12 +1773,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/Finder.git",
-                "reference": "d45faef922df8438cce99b5ee226bf06c32d145e"
+                "reference": "ceb2c693cffbe5255b623b2543456235a25672c1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/Finder/zipball/d45faef922df8438cce99b5ee226bf06c32d145e",
-                "reference": "d45faef922df8438cce99b5ee226bf06c32d145e",
+                "url": "https://api.github.com/repos/symfony/Finder/zipball/ceb2c693cffbe5255b623b2543456235a25672c1",
+                "reference": "ceb2c693cffbe5255b623b2543456235a25672c1",
                 "shasum": ""
             },
             "require": {
@@ -1876,7 +1787,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "2.5-dev"
+                    "dev-master": "2.6-dev"
                 }
             },
             "autoload": {
@@ -1890,19 +1801,17 @@
             ],
             "authors": [
                 {
-                    "name": "Fabien Potencier",
-                    "email": "fabien@symfony.com",
-                    "homepage": "http://fabien.potencier.org",
-                    "role": "Lead Developer"
-                },
-                {
                     "name": "Symfony Community",
                     "homepage": "http://symfony.com/contributors"
+                },
+                {
+                    "name": "Fabien Potencier",
+                    "email": "fabien@symfony.com"
                 }
             ],
             "description": "Symfony Finder Component",
             "homepage": "http://symfony.com",
-            "time": "2014-03-03 12:53:01"
+            "time": "2014-10-01 05:53:11"
         },
         {
             "name": "symfony/process",
@@ -1911,12 +1820,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/Process.git",
-                "reference": "1b6f4fc4e4338033cea4ff0051f2b99a28a30134"
+                "reference": "2f0db541a7de08dbe5a4b55acfbaf8e3e6b029d9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/Process/zipball/1b6f4fc4e4338033cea4ff0051f2b99a28a30134",
-                "reference": "1b6f4fc4e4338033cea4ff0051f2b99a28a30134",
+                "url": "https://api.github.com/repos/symfony/Process/zipball/2f0db541a7de08dbe5a4b55acfbaf8e3e6b029d9",
+                "reference": "2f0db541a7de08dbe5a4b55acfbaf8e3e6b029d9",
                 "shasum": ""
             },
             "require": {
@@ -1925,7 +1834,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "2.5-dev"
+                    "dev-master": "2.6-dev"
                 }
             },
             "autoload": {
@@ -1939,19 +1848,17 @@
             ],
             "authors": [
                 {
-                    "name": "Fabien Potencier",
-                    "email": "fabien@symfony.com",
-                    "homepage": "http://fabien.potencier.org",
-                    "role": "Lead Developer"
-                },
-                {
                     "name": "Symfony Community",
                     "homepage": "http://symfony.com/contributors"
+                },
+                {
+                    "name": "Fabien Potencier",
+                    "email": "fabien@symfony.com"
                 }
             ],
             "description": "Symfony Process Component",
             "homepage": "http://symfony.com",
-            "time": "2014-03-26 11:51:10"
+            "time": "2014-10-01 05:53:11"
         }
     ],
     "aliases": [
@@ -1967,10 +1874,7 @@
         "kisma/kisma": 0,
         "dreamfactory/lib-php-common-platform": 20
     },
-    "platform": [
-
-    ],
-    "platform-dev": [
-
-    ]
+    "prefer-stable": false,
+    "platform": [],
+    "platform-dev": []
 }

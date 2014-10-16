@@ -1,11 +1,11 @@
 {
-	"config":      {
+	"config": {
 		"discard-changes": true,
-		"exclude":         [".idea"]
+		"exclude": [".idea"]
 	},
-	"require":     {
-		"php":                            ">=5.3.18",
-		"kisma/kisma":                    ">=0.2@dev",
+	"require": {
+		"php": "~5.3",
+		"kisma/kisma": "~0.2",
 		"dreamfactory/package-installer": "dev-develop as dev-master"
 	},
 	"require-dev": {}

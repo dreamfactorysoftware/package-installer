@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of the DreamFactory Services Platform(tm) Library Installer
- * Copyright 2012-2013 DreamFactory Software, Inc. {@email support@dreamfactory.com}
+ * Copyright 2012-2014 DreamFactory Software, Inc. {@email support@dreamfactory.com}
  *
  * DreamFactory Services Platform(tm) Library Installer {@link http://github.com/dreamfactorysoftware/package-installer}
  * DreamFactory Services Platform(tm) {@link http://github.com/dreamfactorysoftware/dsp-core}
@@ -56,11 +56,13 @@ class Plugin implements EventSubscriberInterface, PluginInterface
     //*************************************************************************
 
     /**
-     * @param Composer $composer
+     * @param Composer    $composer
      * @param IOInterface $io
      */
     public function activate( Composer $composer, IOInterface $io )
     {
+        static $_activated = false;
+
         static::$_installer = new Installer( $io, $composer );
         static::$_installer->setRequireDev( static::$_requireDev );
         static::$_installer->setVerbosity( static::$_verbosity );
@@ -68,7 +70,12 @@ class Plugin implements EventSubscriberInterface, PluginInterface
         /** @noinspection PhpUndefinedMethodInspection */
         $composer->getInstallationManager()->addInstaller( static::$_installer );
 
-        $io->write( '<info>DreamFactory Package Installer available</info>' );
+        if ( !$_activated )
+        {
+            $_activated = true;
+
+            $io->write( '<info>DreamFactory Package Installer <comment>enabled</comment></info>' );
+        }
     }
 
     /**
@@ -78,7 +85,7 @@ class Plugin implements EventSubscriberInterface, PluginInterface
     {
         return array(
             PluginEvents::COMMAND => array(
-                array( 'onCommand', 0 )
+                array('onCommand', 0)
             ),
         );
     }
@@ -98,7 +105,9 @@ class Plugin implements EventSubscriberInterface, PluginInterface
         {
             /** @noinspection PhpUndefinedMethodInspection */
             $event->getOutput()->writeln(
-                '<info>DreamFactory Package Installer verbosity set to "' . Verbosity::prettyNameOf( static::$_verbosity ) . '"</info>'
+                '<info>DreamFactory Package Installer verbosity set to "' .
+                Verbosity::prettyNameOf( static::$_verbosity ) .
+                '"</info>'
             );
         }
 
@@ -111,7 +120,9 @@ class Plugin implements EventSubscriberInterface, PluginInterface
             {
                 /** @noinspection PhpUndefinedMethodInspection */
                 $event->getOutput()->writeln(
-                    '<info><warning>Development</warning> mode ' . ( $devMode ? 'enabled' : 'disabled' ) . ' via command line</info>'
+                    '<info><warning>Development</warning> mode ' .
+                    ( $devMode ? 'enabled' : 'disabled' ) .
+                    ' via command line</info>'
                 );
             }
         }
