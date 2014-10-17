@@ -41,7 +41,7 @@ use Kisma\Core\Utility\Sql;
  * Installer
  * DreamFactory Package Installer
  *
- * Under each DSP   lies a /storage directory. This plug-in installs DreamFactory DSP packages into this space
+ * Under each DSP lies a /storage directory. This plug-in installs DreamFactory DSP packages into this space
  *
  * /storage/plugins                                    Installation base (plug-in vendors)
  * /storage/plugins/.manifest/composer.json            Main config file
@@ -107,9 +107,17 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
     //*************************************************************************
 
     /**
+     * @var int Reflects the command's verbosity
+     */
+    protected static $_verbosity = Verbosity::NORMAL;
+    /**
+     * @var bool True if this install was started with "require-dev", false if "no-dev"
+     */
+    protected static $_requireDev = true;
+    /**
      * @var array The types of packages I can install. Can be changed via composer.json:extra.supported-types[]
      */
-    protected $_supportedTypes = array(
+    protected static $_supportedTypes = array(
         PackageTypes::APPLICATION => '/applications',
         PackageTypes::JETPACK     => '/plugins',
         PackageTypes::LIBRARY     => '/plugins',
@@ -120,34 +128,9 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
      */
     protected static $_platformBasePath = '../../../../';
     /**
-     * @var string The base installation path, where composer.json lives: ./
-     */
-    protected $_baseInstallPath = './';
-    /**
-     * @var string The path of the package installation relative to manifest directory (i.e.
-     *      ../../[applications|plugins]/vendor/package-name)
-     */
-    protected $_packageInstallPath = '../../';
-    /**
      * @var string The target of the package link relative to /web
      */
-    protected $_packageLinkBasePath = '../storage/';
-    /**
-     * @var int Reflects the command's verbosity
-     */
-    protected static $_verbosity = Verbosity::NORMAL;
-    /**
-     * @var bool True if this install was started with "require-dev", false if "no-dev"
-     */
-    protected static $_requireDev = true;
-    /**
-     * @var \Composer\Composer
-     */
-    protected $_composer;
-    /**
-     * @var \Composer\IO\IOInterface
-     */
-    protected $_io;
+    protected static $_packageLinkBasePath = '../storage/';
 
     //*************************************************************************
     //* Methods
@@ -167,13 +150,15 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
             throw new \Exception( 'This installer cannot be used on a hosted DSP system.', 500 );
         }
 
-        $this->_composer = $composer;
-        $this->_io = $io;
-        $this->_baseInstallPath = \getcwd();
-
-        static::setVerbosity( $io );
-
         parent::__construct( $io, $composer, $type );
+
+        //	Set from IOInterface
+        static::$_verbosity = $io->isVerbose()
+            ? Verbosity::VERBOSE
+            : $io->isVeryVerbose()
+                ? Verbosity::VERY_VERBOSE
+                : $io->isDebug()
+                    ? Verbosity::DEBUG : Verbosity::NORMAL;
 
         //	Make sure proper storage paths are available
         $this->_validateInstallationTree();
@@ -262,7 +247,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
      */
     public function supports( $packageType )
     {
-        $_does = \array_key_exists( $packageType, $this->_supportedTypes );
+        $_does = \array_key_exists( $packageType, static::$_supportedTypes );
 
         $this->_log(
             'We ' . ( $_does ? 'loves' : 'hates' ) . ' packages\'s of type "<info>' . $packageType . '</info>"',
@@ -528,7 +513,7 @@ SQL;
 
     /**
      * @param PackageInterface $package
-     * @param array            $data The package data. Set $data = false to remove the package data file
+     * @param array|bool       $data The package data. Set $data = false to remove the package data file
      *
      * @return string The name of the file data to which data was written
      * @throws \Kisma\Core\Exceptions\FileSystemException
@@ -537,10 +522,7 @@ SQL;
     {
         $_packageDataPath = $this->_getManifestPath( $package->getType(), false ) . '/packages';
 
-        if ( !$this->filesystem->ensureDirectoryExists( $_packageDataPath ) )
-        {
-            throw new FileSystemException( 'Unable to create package data directory.' );
-        }
+        $this->filesystem->ensureDirectoryExists( $_packageDataPath );
 
         $this->_log( 'Package manifest directory is ' . $_packageDataPath, Verbosity::VERBOSE );
 
@@ -562,7 +544,7 @@ SQL;
         $_file = new JsonFile( $_fileName );
         $_file->write( (array)$data );
 
-        $this->_log( 'Package data written to "<info>' . $_fileName . '</info>"' );
+        $this->_log( 'Package data written to <info>' . $_fileName . '</info>' );
 
         return $_fileName;
     }
@@ -646,7 +628,10 @@ SQL;
     }
 
     /**
-     * @throws \Kisma\Core\Exceptions\FileSystemException
+     * @param PackageInterface $package
+     *
+     * @return array|bool
+     * @throws FileSystemException
      */
     protected function _deleteLinks( PackageInterface $package )
     {
@@ -714,9 +699,9 @@ SQL;
             {
                 foreach ( $_types as $_type => $_path )
                 {
-                    if ( !array_key_exists( $_type, $this->_supportedTypes ) )
+                    if ( !array_key_exists( $_type, static::$_supportedTypes ) )
                     {
-                        $this->_supportedTypes[$_type] = $_path;
+                        static::$_supportedTypes[$_type] = $_path;
                         $this->_log( 'Added support for package type "<info>' . $_type . '</info>"' );
                     }
                 }
@@ -838,7 +823,7 @@ SQL;
     {
         //	Build path the link target
         $_target =
-            rtrim( $this->_packageLinkBasePath, '/' ) .
+            rtrim( static::$_packageLinkBasePath, '/' ) .
             '/' .
             trim( $this->_getPackageTypeSubPath( $package->getType() ), '/' ) .
             '/' .
@@ -864,7 +849,7 @@ SQL;
      */
     protected function _getPackageTypeSubPath( $type )
     {
-        return Option::get( $this->_supportedTypes, $type );
+        return Option::get( static::$_supportedTypes, $type );
     }
 
     /**
@@ -882,7 +867,7 @@ SQL;
         //	Make sure the private storage base is there...
         $this->filesystem->ensureDirectoryExists( $_basePath . static::DEFAULT_PRIVATE_PATH );
 
-        foreach ( $this->_supportedTypes as $_type => $_path )
+        foreach ( static::$_supportedTypes as $_type => $_path )
         {
             //  Construct and validate each type's manifest path
             $this->_getManifestPath( $_type );
@@ -954,18 +939,6 @@ SQL;
      */
     public static function setVerbosity( $verbosity )
     {
-        if ( $verbosity instanceof IOInterface )
-        {
-            //	Set from IOInterface if passed in...
-            $verbosity =
-                $verbosity->isVerbose()
-                    ? Verbosity::VERBOSE
-                    : $verbosity->isVeryVerbose()
-                    ? Verbosity::VERY_VERBOSE
-                    : $verbosity->isDebug()
-                        ? Verbosity::DEBUG : Verbosity::NORMAL;
-        }
-
         static::$_verbosity = $verbosity;
     }
 

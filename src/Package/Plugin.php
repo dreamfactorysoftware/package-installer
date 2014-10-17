@@ -61,21 +61,13 @@ class Plugin implements EventSubscriberInterface, PluginInterface
      */
     public function activate( Composer $composer, IOInterface $io )
     {
-        static $_activated = false;
-
         static::$_installer = new Installer( $io, $composer );
         static::$_installer->setRequireDev( static::$_requireDev );
         static::$_installer->setVerbosity( static::$_verbosity );
 
-        /** @noinspection PhpUndefinedMethodInspection */
-        $composer->getInstallationManager()->addInstaller( static::$_installer );
-
-        if ( !$_activated )
-        {
-            $_activated = true;
-
-            $io->write( '<info>DreamFactory Package Installer <comment>enabled</comment></info>' );
-        }
+        $composer
+            ->getInstallationManager()
+            ->addInstaller( static::$_installer );
     }
 
     /**
