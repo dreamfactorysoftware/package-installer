@@ -566,9 +566,9 @@ SQL;
 
         if ( static::$_requireDev )
         {
-            $this->_log( 'Linking skipped because of "<info>require-dev</info>"' );
-
-            return true;
+//            $this->_log( 'Linking skipped because of "<info>require-dev</info>"' );
+//
+//            return true;
         }
 
         return $_links;
