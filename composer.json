@@ -1,47 +1,46 @@
 {
-	"name":              "dreamfactory/package-installer",
-	"description":       "DreamFactory Services Platform(tm) Package Installer",
-	"type":              "composer-plugin",
-	"keywords":          ["dsp", "cloud", "jetpack", "plugin"],
-	"homepage":          "http://dreamfactorysoftware.github.io/",
-	"license":           ["Apache-2.0"],
-	"authors":           [
+	"name": "dreamfactory/package-installer",
+	"description": "DreamFactory Services Platform(tm) Package Installer",
+	"type": "composer-plugin",
+	"keywords": ["dsp", "cloud", "installer", "plugin", "jetpack"],
+	"homepage": "https://www.dreamfactory.com/",
+	"license": ["Apache-2.0"],
+	"authors": [
 		{
-			"name":  "Ablan, Jerry",
-			"email": "jerryablan@dreamfactory.com",
-			"role":  "Sr. Software Engineer"
+			"name": "Ablan, Jerry",
+			"email": "jerryablan@dreamfactory.com"
 		}
 	],
-	"config":            {
+	"config": {
 		"discard-changes": true
 	},
-	"support":           {
-		"email":  "support@dreamfactory.com",
+	"support": {
+		"email": "support@dreamfactory.com",
 		"source": "https://github.com/dreamfactorysoftware/package-installer",
 		"issues": "https://github.com/dreamfactorysoftware/package-installer/issues"
 	},
 	"minimum-stability": "dev",
-	"require":           {
+	"require": {
 		"composer-plugin-api": "1.0.0",
-		"kisma/kisma":         "~0.2@stable"
+		"kisma/kisma": "~0.2"
 	},
-	"require-dev":       {
+	"require-dev": {
 		"dreamfactory/lib-php-common-platform": "dev-develop as dev-master",
-		"composer/composer":                    "*"
+		"composer/composer": "*"
 	},
-	"autoload":          {
+	"autoload": {
 		"psr-4": {
 			"DreamFactory\\Tools\\Composer\\": "src/"
 		}
 	},
-	"extra":             {
-		"class":                    "DreamFactory\\Tools\\Composer\\Package\\Plugin",
+	"extra": {
+		"class": "DreamFactory\\Tools\\Composer\\Package\\Plugin",
 		"_comment.supported-types": "provides a way to extend the types and locations of plug-ins which we can install",
-		"supported-types":          {
+		"supported-types": {
 			"dreamfactory-application": "/applications",
-			"dreamfactory-jetpack":     "/plugins",
-			"dreamfactory-library":     "/plugins",
-			"dreamfactory-plugin":      "/plugins"
+			"dreamfactory-jetpack": "/plugins",
+			"dreamfactory-library": "/plugins",
+			"dreamfactory-plugin": "/plugins"
 		}
 	}
 }
