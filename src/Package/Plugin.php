@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of the DreamFactory Services Platform(tm) Library Installer
- * Copyright 2012-2013 DreamFactory Software, Inc. {@email support@dreamfactory.com}
+ * Copyright 2012-2014 DreamFactory Software, Inc. {@email support@dreamfactory.com}
  *
  * DreamFactory Services Platform(tm) Library Installer {@link http://github.com/dreamfactorysoftware/package-installer}
  * DreamFactory Services Platform(tm) {@link http://github.com/dreamfactorysoftware/dsp-core}
@@ -34,84 +34,89 @@ use Kisma\Core\Enums\Verbosity;
  */
 class Plugin implements EventSubscriberInterface, PluginInterface
 {
-	//*************************************************************************
-	//	Members
-	//*************************************************************************
+    //*************************************************************************
+    //	Members
+    //*************************************************************************
 
-	/**
-	 * @var Installer
-	 */
-	protected static $_installer;
-	/**
-	 * @var bool require-dev or no-dev
-	 */
-	protected static $_requireDev = true;
-	/**
-	 * @var int The verbosity level of the command
-	 */
-	protected static $_verbosity = Verbosity::NORMAL;
+    /**
+     * @var Installer
+     */
+    protected static $_installer;
+    /**
+     * @var bool require-dev or no-dev
+     */
+    protected static $_requireDev = true;
+    /**
+     * @var int The verbosity level of the command
+     */
+    protected static $_verbosity = Verbosity::NORMAL;
 
-	//*************************************************************************
-	//	Methods
-	//*************************************************************************
+    //*************************************************************************
+    //	Methods
+    //*************************************************************************
 
-	/**
-	 * @param Composer $composer
-	 * @param IOInterface $io
-	 */
-	public function activate( Composer $composer, IOInterface $io )
-	{
-		static::$_installer = new Installer( $io, $composer );
-		static::$_installer->setRequireDev( static::$_requireDev );
-		static::$_installer->setVerbosity( static::$_verbosity );
+    /**
+     * @param Composer    $composer
+     * @param IOInterface $io
+     */
+    public function activate( Composer $composer, IOInterface $io )
+    {
+        static::$_installer = new Installer( $io, $composer );
+        static::$_installer->setRequireDev( static::$_requireDev );
+        static::$_installer->setVerbosity( static::$_verbosity );
 
-		/** @noinspection PhpUndefinedMethodInspection */
-		$composer->getInstallationManager()->addInstaller( static::$_installer );
+        $composer
+            ->getInstallationManager()
+            ->addInstaller( static::$_installer );
+    }
 
-		$io->write( '<info>DFPI:</info> DreamFactory Package Installer activated' );
-	}
+    /**
+     * {@InheritDoc}
+     */
+    public static function getSubscribedEvents()
+    {
+        return array(
+            PluginEvents::COMMAND => array(
+                array('onCommand', 0)
+            ),
+        );
+    }
 
-	/**
-	 * {@InheritDoc}
-	 */
-	public static function getSubscribedEvents()
-	{
-		return array(
-			PluginEvents::COMMAND => array(
-				array( 'onCommand', 0 )
-			),
-		);
-	}
+    /**
+     * @param CommandEvent $event
+     * @param bool         $devMode
+     */
+    public static function onCommand( CommandEvent $event, $devMode = true )
+    {
+        static::$_requireDev = $devMode;
 
-	/**
-	 * @param CommandEvent $event
-	 * @param bool         $devMode
-	 */
-	public static function onCommand( CommandEvent $event, $devMode = true )
-	{
-		static::$_requireDev = $devMode;
+        /** @noinspection PhpUndefinedMethodInspection */
+        static::$_verbosity = $event->getOutput()->getVerbosity();
 
-		/** @noinspection PhpUndefinedMethodInspection */
-		static::$_verbosity = $event->getOutput()->getVerbosity();
+        if ( static::$_verbosity >= Verbosity::VERBOSE )
+        {
+            /** @noinspection PhpUndefinedMethodInspection */
+            $event->getOutput()->writeln(
+                '<info>DreamFactory Package Installer verbosity set to "' .
+                Verbosity::prettyNameOf( static::$_verbosity ) .
+                '"</info>'
+            );
+        }
 
-		if ( static::$_verbosity >= Verbosity::VERBOSE )
-		{
-			/** @noinspection PhpUndefinedMethodInspection */
-			$event->getOutput()->writeln( '<info>DFPI:</info> Verbosity set to <info>' . Verbosity::prettyNameOf( static::$_verbosity ) . '</info>' );
-		}
+        if ( null !== static::$_installer )
+        {
+            static::$_installer->setRequireDev( static::$_requireDev );
+            static::$_installer->setVerbosity( static::$_verbosity );
 
-		if ( null !== static::$_installer )
-		{
-			static::$_installer->setRequireDev( static::$_requireDev );
-			static::$_installer->setVerbosity( static::$_verbosity );
-
-			if ( static::$_verbosity >= Verbosity::VERBOSE )
-			{
-				/** @noinspection PhpUndefinedMethodInspection */
-				$event->getOutput()->writeln(
-					'<info>DFPI:</info> <warning>Development</warning> mode ' . ( $devMode ? 'enabled' : 'disabled' ) . ' via command line'
-				);
-			}
-		}
-	}
+            if ( static::$_verbosity >= Verbosity::VERBOSE )
+            {
+                /** @noinspection PhpUndefinedMethodInspection */
+                $event->getOutput()->writeln(
+                    '<info><warning>Development</warning> mode ' .
+                    ( $devMode ? 'enabled' : 'disabled' ) .
+                    ' via command line</info>'
+                );
+            }
+        }
+    }
 }

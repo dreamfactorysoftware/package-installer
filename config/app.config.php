@@ -23,12 +23,12 @@
  * It must return an array of key/value pairs.
  */
 return array(
-	'example.key'         => 'value',
-	'example.another_key' => array(
-		'values' => array(
-			'value1',
-			'value2',
-			'value3',
-		),
-	),
+    'example.key'         => 'value',
+    'example.another_key' => array(
+        'values' => array(
+            'value1',
+            'value2',
+            'value3',
+        ),
+    ),
 );
