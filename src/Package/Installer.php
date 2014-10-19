@@ -270,7 +270,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
             $this->_getPackageTypeSubPath( $package->getType() ) . '/' .
             $package->getPrettyName();
 
-        $this->io->write( 'Package base path will be: ' . $_path );
+        $this->_log( '    getPackageBasePath: <comment>' . $_path . '</comment>', Verbosity::DEBUG );
 
         return $_path;
     }
@@ -928,7 +928,7 @@ SQL;
 
         if ( $io->isVerbose() )
         {
-            $io->write( 'Installation path found at <comment>' . $_path . '</comment>' );
+            $io->write( '    DSP base found: <comment>' . $_path . '</comment>' );
         }
 
         return static::$_platformBasePath = realpath( $_path );
