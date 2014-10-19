@@ -29,6 +29,8 @@ use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 use Composer\Script\Event;
 use Composer\Script\ScriptEvents;
+use DreamFactory\Library\Utility\IfSet;
+use DreamFactory\Library\Utility\Includer;
 use DreamFactory\Platform\Utility\ResourceStore;
 use DreamFactory\Tools\Composer\Enums\PackageTypes;
 use Kisma\Core\Enums\Verbosity;
@@ -60,7 +62,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
     /**
      * @type bool If true, installer will attempt to update the local DSP's database directly.
      */
-    const ENABLE_DATABASE_ACCESS = false;
+    const ENABLE_DATABASE_ACCESS = true;
     /**
      * @type string
      */
@@ -250,7 +252,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
         $_does = \array_key_exists( $packageType, static::$_supportedTypes );
 
         $this->_log(
-            'We ' . ( $_does ? 'loves' : 'hates' ) . ' packages\'s of type "<info>' . $packageType . '</info>"',
+            'We ' . ( $_does ? 'loveses' : 'hateses' ) . ' packageses of type <info>' . $packageType . '</info>!',
             Verbosity::VERY_VERBOSE
         );
 
@@ -270,7 +272,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
             $this->_getPackageTypeSubPath( $package->getType() ) . '/' .
             $package->getPrettyName();
 
-        $this->_log( '    getPackageBasePath: <comment>' . $_path . '</comment>', Verbosity::DEBUG );
+        $this->_log( 'package base path <comment>' . $_path . '</comment>', Verbosity::DEBUG );
 
         return $_path;
     }
@@ -284,27 +286,21 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
     {
         $_configFile = ( $basePath ?: static::$_platformBasePath ) . static::DEFAULT_DATABASE_CONFIG_FILE;
 
-        if ( !file_exists( $_configFile ) )
+        if ( false === ( $_dbConfig = Includer::includeIfExists( $_configFile ) ) || !is_array( $_dbConfig ) )
         {
-            $this->_log( 'No database configuration found. <info>Registration not complete</info>.' );
+            $this->_log( 'db configuration not found or invalid. Using default "localhost".' );
 
-            return false;
-        }
-
-        /** @noinspection PhpIncludeInspection */
-        if ( false === ( $_dbConfig = @include( $_configFile ) ) )
-        {
-            $this->_log(
-                'Not registered. Unable to read database configuration file: <error>' . $_configFile . '</error>'
+            $_dbConfig = array(
+                'connectionString' => 'mysql:host=localhost;port=3306;dbname=dreamfactory',
+                'username'         => 'dsp_user',
+                'password'         => 'dsp_user',
             );
-
-            return false;
         }
 
         Sql::setConnectionString(
-            Option::get( $_dbConfig, 'connectionString' ),
-            Option::get( $_dbConfig, 'username' ),
-            Option::get( $_dbConfig, 'password' )
+            IfSet::get( $_dbConfig, 'connectionString' ),
+            IfSet::get( $_dbConfig, 'username' ),
+            IfSet::get( $_dbConfig, 'password' )
         );
 
         return true;
@@ -321,21 +317,18 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 
         $_packageData = $this->_getPackageConfig( $package, 'data' );
 
-        if ( empty( $_packageData ) || null === ( $_records = Option::get( $_packageData, $_supportedData ) ) )
+        if ( empty( $_packageData ) || null === ( $_records = IfSet::get( $_packageData, $_supportedData ) ) )
         {
-            $this->_log( 'No registration requested', Verbosity::VERY_VERBOSE );
+            $this->_log( 'plugin does not require database registration.', Verbosity::VERY_VERBOSE );
 
             return false;
         }
 
         if ( static::ENABLE_DATABASE_ACCESS && !$this->_checkDatabase() )
         {
-            if ( static::$_requireDev )
-            {
-                $this->_log( 'Registration requested, but <warning>no database connection available</warning>.' );
+            $this->_log( 'plugin not registered to database. <warning>no connection available</warning>.' );
 
-                return false;
-            }
+            return false;
         }
 
         return $_records;
@@ -359,16 +352,16 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
         $_defaultApiName = $this->_getPackageConfig( $package, '_suffix' );
 
         $_payload = array(
-            'api_name'                => $_apiName = Option::get( $_app, 'api-name', $_defaultApiName ),
-            'name'                    => Option::get( $_app, 'name', $_defaultApiName ),
-            'description'             => Option::get( $_app, 'description' ),
-            'is_active'               => Option::getBool( $_app, 'is-active', false ),
-            'url'                     => Option::get( $_app, 'url' ),
-            'is_url_external'         => Option::getBool( $_app, 'is-url-external' ),
-            'import_url'              => Option::get( $_app, 'import-url' ),
-            'requires_fullscreen'     => Option::getBool( $_app, 'requires-fullscreen' ),
-            'allow_fullscreen_toggle' => Option::getBool( $_app, 'allow-fullscreen-toggle' ),
-            'toggle_location'         => Option::get( $_app, 'toggle-location' ),
+            'api_name'                => $_apiName = IfSet::get( $_app, 'api-name', $_defaultApiName ),
+            'name'                    => IfSet::get( $_app, 'name', $_defaultApiName ),
+            'description'             => IfSet::get( $_app, 'description' ),
+            'is_active'               => IfSet::getBool( $_app, 'is-active', false ),
+            'url'                     => IfSet::get( $_app, 'url' ),
+            'is_url_external'         => IfSet::getBool( $_app, 'is-url-external' ),
+            'import_url'              => IfSet::get( $_app, 'import-url' ),
+            'requires_fullscreen'     => IfSet::getBool( $_app, 'requires-fullscreen' ),
+            'allow_fullscreen_toggle' => IfSet::getBool( $_app, 'allow-fullscreen-toggle' ),
+            'toggle_location'         => IfSet::get( $_app, 'toggle-location' ),
             'requires_plugin'         => 1,
         );
 
@@ -399,7 +392,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
             return false;
         }
 
-        $this->_log( '<info>Package "' . $_apiName . '" installed on DSP</info>' );
+        $this->_log( 'Package <info>' . $_apiName . '</info> installed' );
 
         return true;
     }
@@ -413,7 +406,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
      */
     protected function _deleteApplication( PackageInterface $package )
     {
-        $this->_log( 'Installer::_deleteApplication called.', Verbosity::DEBUG );
+        $this->_log( 'deleting application', Verbosity::DEBUG );
 
         if ( false === ( $_app = $this->_getRegistrationInfo( $package ) ) )
         {
@@ -436,7 +429,7 @@ SQL;
 
         $_data = array(
             ':api_name'  => $_apiName =
-                Option::get( $_app, 'api-name', $this->_getPackageConfig( $package, '_suffix' ) ),
+                IfSet::get( $_app, 'api-name', $this->_getPackageConfig( $package, '_suffix' ) ),
             ':is_active' => 0
         );
 
@@ -544,7 +537,7 @@ SQL;
         $_file = new JsonFile( $_fileName );
         $_file->write( (array)$data );
 
-        $this->_log( 'Package data written to <info>' . $_fileName . '</info>' );
+        $this->_log( 'Package data written to <info>' . $_fileName . '</info>', Verbosity::VERBOSE );
 
         return $_fileName;
     }
@@ -564,13 +557,6 @@ SQL;
             return false;
         }
 
-        if ( static::$_requireDev )
-        {
-//            $this->_log( 'Linking skipped because of "<info>require-dev</info>"' );
-//
-//            return true;
-        }
-
         return $_links;
     }
 
@@ -582,15 +568,12 @@ SQL;
      */
     protected function _createLinks( PackageInterface $package )
     {
-        $this->_log( '-- Create Links', Verbosity::DEBUG );
-        $this->_log( '---------------', Verbosity::DEBUG );
-
         if ( is_bool( $_links = $this->_checkPackageLinks( $package ) ) )
         {
             return $_links;
         }
 
-        $this->_log( 'Examining package links', Verbosity::VERBOSE );
+        $this->_log( 'adding package links', Verbosity::VERBOSE );
 
         //	Make the links
         foreach ( Option::clean( $_links ) as $_link )
@@ -600,11 +583,7 @@ SQL;
 
             if ( \is_link( $_linkName ) )
             {
-                if ( $_target == ( $_priorTarget = readlink( $_linkName ) ) )
-                {
-                    $this->_log( 'Package link exists: <info>' . $_linkName . '</info>' );
-                }
-                else
+                if ( $_target != ( $_priorTarget = readlink( $_linkName ) ) )
                 {
                     $this->_log(
                         'Link exists but target "<error>' .
@@ -623,7 +602,7 @@ SQL;
                 throw new FileSystemException( 'Unable to create symlink: ' . $_linkName );
             }
 
-            $this->_log( 'Package linked to "<info>' . $_linkName . '</info>"' );
+            $this->_log( '  - link <info>' . $_linkName . '</info> created', Verbosity::VERBOSE );
         }
     }
 
@@ -635,15 +614,12 @@ SQL;
      */
     protected function _deleteLinks( PackageInterface $package )
     {
-        $this->_log( '-- Delete Links', Verbosity::DEBUG );
-        $this->_log( '---------------', Verbosity::DEBUG );
-
         if ( is_bool( $_links = $this->_checkPackageLinks( $package ) ) )
         {
             return $_links;
         }
 
-        $this->_log( 'Removing package symlinks' );
+        $this->_log( 'removing package links.' );
 
         //	Make the links
         foreach ( Option::clean( $_links ) as $_link )
@@ -654,18 +630,18 @@ SQL;
             //	Already linked?
             if ( !\is_link( $_linkName ) )
             {
-                $this->_log( 'Expected link "<warning>' . $_linkName . '</warning>" not found. Ignoring.' );
+                $this->_log( 'expected link "<warning>' . $_linkName . '</warning>" not found. Ignoring.' );
                 continue;
             }
 
             if ( false === @\unlink( $_linkName ) )
             {
-                $this->_log( 'File system error removing symlink: <error>' . $_linkName . '</error>' );
+                $this->_log( 'cannot remove symlink <error>' . $_linkName . '</error>' );
 
                 throw new FileSystemException( 'Unable to remove symlink: ' . $_linkName );
             }
 
-            $this->_log( 'Package links removed' );
+            $this->_log( '  - link <info>' . $_linkName . '</info> removed', Verbosity::VERBOSE );
         }
     }
 
@@ -681,7 +657,7 @@ SQL;
 
         if ( $_validated !== ( $_packageName = $package->getPrettyName() ) )
         {
-            $this->_log( 'Installer::_validatePackage called.', Verbosity::DEBUG );
+            $this->_log( 'checking package validity', Verbosity::DEBUG );
 
             //	Link path for plug-ins
             $_config = $this->_parseConfiguration( $package );
@@ -695,14 +671,16 @@ SQL;
             );
 
             //	Get supported types
-            if ( null !== ( $_types = Option::get( $_config, 'supported-types' ) ) )
+            if ( null !== ( $_types = IfSet::get( $_config, 'supported-types' ) ) )
             {
+                $this->_log( 'I can install the following types of packages:', Verbosity::VERBOSE );
+
                 foreach ( $_types as $_type => $_path )
                 {
                     if ( !array_key_exists( $_type, static::$_supportedTypes ) )
                     {
                         static::$_supportedTypes[$_type] = $_path;
-                        $this->_log( 'Added support for package type "<info>' . $_type . '</info>"' );
+                        $this->_log( '  <info>' . $_type . '</info>', Verbosity::VERBOSE );
                     }
                 }
             }
@@ -724,14 +702,14 @@ SQL;
     {
         static $_cache = array();
 
-        if ( null === ( $_packageConfig = Option::get( $_cache, $_packageName = $package->getPrettyName() ) ) )
+        if ( null === ( $_packageConfig = IfSet::get( $_cache, $_packageName = $package->getPrettyName() ) ) )
         {
             //	Get the extra stuff
             $_extra = Option::clean( $package->getExtra() );
             $_extraConfig = array();
 
             //	Read configuration section. Can be an array or name of file to include
-            if ( null !== ( $_configFile = Option::get( $_extra, 'config' ) ) )
+            if ( null !== ( $_configFile = IfSet::get( $_extra, 'config' ) ) )
             {
                 if ( is_string( $_configFile ) && is_file( $_configFile ) && is_readable( $_configFile ) )
                 {
@@ -762,7 +740,7 @@ SQL;
         }
 
         //	Merge any config with the extra data
-        return $key ? Option::get( $_packageConfig, $key, $defaultValue ) : $_packageConfig;
+        return $key ? IfSet::get( $_packageConfig, $key, $defaultValue ) : $_packageConfig;
     }
 
     /**
@@ -794,14 +772,14 @@ SQL;
         }
 
         $_config = $this->_getPackageConfig( $package );
-        $_links = Option::get( $_config, 'links', array() );
+        $_links = IfSet::get( $_config, 'links', array() );
 
         //	If no links found, create default for plugin
         if ( empty( $_links ) && PackageTypes::PLUGIN == $package->getType() )
         {
             $_link = array(
                 'target' => null,
-                'link'   => Option::get( $_config, 'api_name', $_parts[1] )
+                'link'   => IfSet::get( $_config, 'api_name', $_parts[1] )
             );
 
             $_config['links'] = array($this->_normalizeLink( $package, $_link ));
@@ -829,7 +807,7 @@ SQL;
             '/' .
             trim( $package->getPrettyName(), '/' ) .
             '/' .
-            trim( Option::get( $link, 'target' ), '/' );
+            trim( IfSet::get( $link, 'target' ), '/' );
 
         //	And the link
         $_linkName =
@@ -837,7 +815,7 @@ SQL;
             '/' .
             trim( static::DEFAULT_PLUGIN_LINK_PATH, '/' ) .
             '/' .
-            trim( Option::get( $link, 'link', $this->_getPackageConfig( $package, '_suffix' ) ), '/' );
+            trim( IfSet::get( $link, 'link', $this->_getPackageConfig( $package, '_suffix' ) ), '/' );
 
         return array($_target, $_linkName);
     }
@@ -849,7 +827,7 @@ SQL;
      */
     protected function _getPackageTypeSubPath( $type )
     {
-        return Option::get( static::$_supportedTypes, $type );
+        return IfSet::get( static::$_supportedTypes, $type );
     }
 
     /**
