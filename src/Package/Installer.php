@@ -32,11 +32,9 @@ use Composer\Script\ScriptEvents;
 use Composer\Util\Filesystem;
 use DreamFactory\Library\Utility\IfSet;
 use DreamFactory\Library\Utility\Includer;
-use DreamFactory\Platform\Utility\ResourceStore;
 use DreamFactory\Tools\Composer\Enums\PackageTypes;
 use Kisma\Core\Enums\Verbosity;
 use Kisma\Core\Exceptions\FileSystemException;
-use Kisma\Core\Exceptions\StorageException;
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;
 
@@ -375,14 +373,58 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 
         try
         {
-            //  Make this a parameter array
-            Option::prefixKeys( ':', $_payload );
+            $_sql = 'SELECT id FROM df_sys_app WHERE api_name = :api_name';
+            $_app = Sql::find( $_sql, array(':api_name' => $_apiName) );
 
-            //  Write with the store
-            if ( !ResourceStore::model( 'service' )->upsert( array('api_name' => $_apiName), $_payload ) )
+            if ( empty( $_app ) )
             {
-                throw new StorageException( 'Error saving application to database.' );
+                $_columns = implode( ',', array_keys( $_payload ) );
+
+                //  Make this a parameter array
+                Option::prefixKeys( ':', $_payload );
+
+                $_values = array_keys( $_payload );
+
+                $_sql = <<<MYSQL
+INSERT INTO df_sys_app
+    ({$_columns}})
+VALUES
+    ({$_values})
+MYSQL;
+                //  New
+                $_count = Sql::execute( $_sql, $_payload );
             }
+            else
+            {
+
+                $_payload['id'] = $_app['id'];
+                $_keys = array_keys( $_payload );
+
+                Option::prefixKeys( ':', $_payload );
+
+                $_sets = array();
+
+                foreach ( $_keys as $_key )
+                {
+                    $_sets[] = $_key . ' = :' . $_key;
+                }
+
+                $_sets = implode( ', ', $_sets );
+
+                //  Update
+                $_sql = <<<MYSQL
+UPDATE df_sys_app SET
+    {$_sets}
+WHERE
+    id = :id
+MYSQL;
+
+                $_count = Sql::execute( $_sql, $_payload );
+            }
+
+            $this->_log( 'Package <info>' . $_apiName . '</info> installed' );
+
+            return $_count;
         }
         catch ( \Exception $_ex )
         {
@@ -390,10 +432,6 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 
             return false;
         }
-
-        $this->_log( 'Package <info>' . $_apiName . '</info> installed' );
-
-        return true;
     }
 
     /**
