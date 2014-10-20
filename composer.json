@@ -12,7 +12,8 @@
         }
     ],
     "config": {
-        "discard-changes": true
+        "discard-changes": true,
+        "no-plugins": true
     },
     "support": {
         "email": "support@dreamfactory.com",
