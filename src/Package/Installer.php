@@ -29,6 +29,7 @@ use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 use Composer\Script\Event;
 use Composer\Script\ScriptEvents;
+use Composer\Util\Filesystem;
 use DreamFactory\Library\Utility\IfSet;
 use DreamFactory\Library\Utility\Includer;
 use DreamFactory\Platform\Utility\ResourceStore;
@@ -138,21 +139,15 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
     //* Methods
     //*************************************************************************
 
-    /**
-     * @param IOInterface $io
-     * @param Composer    $composer
-     * @param string      $type
-     *
-     * @throws \Exception
-     */
-    public function __construct( IOInterface $io, Composer $composer, $type = 'library' )
+    /** @inheritdoc */
+    public function __construct( IOInterface $io, Composer $composer, $type = 'library', Filesystem $filesystem = null )
     {
         if ( file_exists( static::FABRIC_MARKER ) )
         {
             throw new \Exception( 'This installer cannot be used on a hosted DSP system.', 500 );
         }
 
-        parent::__construct( $io, $composer, $type );
+        parent::__construct( $io, $composer, $type, $filesystem );
 
         //	Set from IOInterface
         static::$_verbosity = $io->isVerbose()
@@ -172,8 +167,9 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
     public static function getSubscribedEvents()
     {
         return array(
-            ScriptEvents::PRE_INSTALL_CMD => array(array('onOperation', 0)),
-            ScriptEvents::PRE_UPDATE_CMD  => array(array('onOperation', 0)),
+            ScriptEvents::PRE_PACKAGE_INSTALL   => array(array('onOperation', 0)),
+            ScriptEvents::PRE_PACKAGE_UPDATE    => array(array('onOperation', 0)),
+            ScriptEvents::PRE_PACKAGE_UNINSTALL => array(array('onOperation', 0)),
         );
     }
 
@@ -183,15 +179,12 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
      */
     public static function onOperation( Event $event, $devMode )
     {
-        if ( static::$_verbosity >= Verbosity::DEBUG )
-        {
-            $event->getIO()->write(
-                'DreamFactory Package Installer: <info>' . $event->getName() . '</info> event received'
-            );
-        }
-
         static::$_requireDev = $devMode;
-        static::$_platformBasePath = static::_findPlatformBasePath( $event->getIO(), __DIR__ );
+
+        if ( false !== ( $_path = static::_findPlatformBasePath( $event->getIO(), __DIR__, false ) ) )
+        {
+            static::$_platformBasePath = $_path;
+        }
     }
 
     /**
@@ -872,11 +865,12 @@ SQL;
      *
      * @param \Composer\IO\IOInterface $io
      * @param string                   $startPath
+     * @param bool                     $required If false, method returns false if no directory found
      *
-     * @throws \Kisma\Core\Exceptions\FileSystemException
+     * @throws FileSystemException
      * @return string
      */
-    protected static function _findPlatformBasePath( IOInterface $io, $startPath = null )
+    protected static function _findPlatformBasePath( IOInterface $io, $startPath = null, $required = true )
     {
         //  Start path given or this file's directory
         $_path = $startPath ?: __DIR__;
@@ -900,6 +894,11 @@ SQL;
             //	If we get to the root, ain't no DSP...
             if ( '/' == $_path || empty( $_path ) )
             {
+                if ( !$required )
+                {
+                    return false;
+                }
+
                 throw new FileSystemException( 'Unable to find a DSP installation directory.' );
             }
         }
