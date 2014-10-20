@@ -41,6 +41,8 @@ use Kisma\Core\Exceptions\StorageException;
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;
 
+require dirname( dirname( __DIR__ ) ) . '/vendor/kisma/kisma/src/Kisma.php';
+
 /**
  * Installer
  * DreamFactory Package Installer
