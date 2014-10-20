@@ -34,6 +34,7 @@ use DreamFactory\Library\Utility\IfSet;
 use DreamFactory\Library\Utility\Includer;
 use DreamFactory\Platform\Utility\ResourceStore;
 use DreamFactory\Tools\Composer\Enums\PackageTypes;
+use Kisma\Core\Enums\CoreSettings;
 use Kisma\Core\Enums\Verbosity;
 use Kisma\Core\Exceptions\FileSystemException;
 use Kisma\Core\Exceptions\StorageException;
@@ -377,6 +378,9 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
         {
             //  Make this a parameter array
             Option::prefixKeys( ':', $_payload );
+
+            //  This is here to load class...
+            \Kisma::get( CoreSettings::DEBUG );
 
             //  Write with the store
             if ( !ResourceStore::model( 'service' )->upsert( array('api_name' => $_apiName), $_payload ) )
