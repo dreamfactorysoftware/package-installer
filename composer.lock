@@ -752,12 +752,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/dreamfactorysoftware/lib-php-common-platform.git",
-                "reference": "ccb3e2863feefef628b38fcda30d3a7580610f1c"
+                "reference": "6b98cce1f7e2e0966bf20765311a811864bd29c7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/dreamfactorysoftware/lib-php-common-platform/zipball/ccb3e2863feefef628b38fcda30d3a7580610f1c",
-                "reference": "ccb3e2863feefef628b38fcda30d3a7580610f1c",
+                "url": "https://api.github.com/repos/dreamfactorysoftware/lib-php-common-platform/zipball/6b98cce1f7e2e0966bf20765311a811864bd29c7",
+                "reference": "6b98cce1f7e2e0966bf20765311a811864bd29c7",
                 "shasum": ""
             },
             "require": {
@@ -767,9 +767,10 @@
                 "dreamfactory/javascript-sdk": "~1.0",
                 "dreamfactory/lib-php-common": "~1.5",
                 "dreamfactory/lib-php-common-yii": "~1.5",
-                "dreamfactory/oasys": "~0.4",
+                "dreamfactory/oasys": "~0.4@dev",
                 "dreamfactory/yii": "~1.1.13.10",
                 "jeremeamia/superclosure": "*",
+                "kisma/kisma": "@stable",
                 "pear-pear.php.net/http_request2": "*",
                 "pear-pear.php.net/mail_mime": "*",
                 "pear-pear.php.net/mail_mimedecode": "*",
@@ -820,7 +821,7 @@
                 "dsp-core",
                 "sdk"
             ],
-            "time": "2014-10-19 23:03:04"
+            "time": "2014-10-20 00:40:47"
         },
         {
             "name": "dreamfactory/lib-php-common-yii",
@@ -896,12 +897,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/dreamfactorysoftware/oasys.git",
-                "reference": "f1ec64abdf2b3560297f999f69a97f6ee5a0983c"
+                "reference": "0b17b8f4bf0e7d57798e08775fe8be97e93826e8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/dreamfactorysoftware/oasys/zipball/f1ec64abdf2b3560297f999f69a97f6ee5a0983c",
-                "reference": "f1ec64abdf2b3560297f999f69a97f6ee5a0983c",
+                "url": "https://api.github.com/repos/dreamfactorysoftware/oasys/zipball/0b17b8f4bf0e7d57798e08775fe8be97e93826e8",
+                "reference": "0b17b8f4bf0e7d57798e08775fe8be97e93826e8",
                 "shasum": ""
             },
             "require": {
@@ -942,7 +943,7 @@
                 "oauth",
                 "oauth2"
             ],
-            "time": "2014-10-19 18:47:49"
+            "time": "2014-10-20 00:27:46"
         },
         {
             "name": "dreamfactory/yii",
