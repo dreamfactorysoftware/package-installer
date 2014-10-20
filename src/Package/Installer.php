@@ -142,12 +142,12 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
     /** @inheritdoc */
     public function __construct( IOInterface $io, Composer $composer, $type = 'library', Filesystem $filesystem = null )
     {
+        parent::__construct( $io, $composer, $type, $filesystem );
+
         if ( file_exists( static::FABRIC_MARKER ) )
         {
             throw new \Exception( 'This installer cannot be used on a hosted DSP system.', 500 );
         }
-
-        parent::__construct( $io, $composer, $type, $filesystem );
 
         //	Set from IOInterface
         static::$_verbosity = $io->isVerbose()
@@ -156,9 +156,6 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
                 ? Verbosity::VERY_VERBOSE
                 : $io->isDebug()
                     ? Verbosity::DEBUG : Verbosity::NORMAL;
-
-        //	Make sure proper storage paths are available
-        $this->_validateInstallationTree();
     }
 
     /**
@@ -197,6 +194,9 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 
         parent::install( $repo, $package );
 
+        //	Make sure proper storage paths are available
+        $this->_validateInstallationTree();
+
         $this->_createLinks( $package );
         $this->_addApplication( $package );
     }
@@ -214,6 +214,9 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 
         parent::update( $repo, $initial, $target );
 
+        //	Make sure proper storage paths are available
+        $this->_validateInstallationTree();
+
         //	Out with the old...
         $this->_deleteLinks( $initial );
         $this->_deleteApplication( $initial );
@@ -229,6 +232,9 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
      */
     public function uninstall( InstalledRepositoryInterface $repo, PackageInterface $package )
     {
+        //	Make sure proper storage paths are available
+        $this->_validateInstallationTree();
+
         $this->_log( 'Removing package <info>' . $package->getPrettyName() . '</info>', Verbosity::DEBUG );
 
         parent::uninstall( $repo, $package );
