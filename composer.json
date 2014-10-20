@@ -12,7 +12,8 @@
         }
     ],
     "config": {
-        "discard-changes": true
+        "discard-changes": true,
+        "no-plugins": true
     },
     "support": {
         "email": "support@dreamfactory.com",
@@ -22,6 +23,7 @@
     "minimum-stability": "dev",
     "require": {
         "composer-plugin-api": "1.0.0",
+        "kisma/kisma": "*",
         "dreamfactory/php-utils": "*"
     },
     "require-dev": {

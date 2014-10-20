@@ -156,9 +156,6 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
                 ? Verbosity::VERY_VERBOSE
                 : $io->isDebug()
                     ? Verbosity::DEBUG : Verbosity::NORMAL;
-
-        //	Make sure proper storage paths are available
-        $this->_validateInstallationTree();
     }
 
     /**
@@ -195,6 +192,9 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
     {
         $this->_log( 'Installing package <info>' . $package->getPrettyName() . '</info>', Verbosity::DEBUG );
 
+        //	Make sure proper storage paths are available
+        $this->_validateInstallationTree();
+
         parent::install( $repo, $package );
 
         $this->_createLinks( $package );
@@ -211,6 +211,9 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
     public function update( InstalledRepositoryInterface $repo, PackageInterface $initial, PackageInterface $target )
     {
         $this->_log( 'Updating package <info>' . $initial->getPrettyName() . '</info>', Verbosity::DEBUG );
+
+        //	Make sure proper storage paths are available
+        $this->_validateInstallationTree();
 
         parent::update( $repo, $initial, $target );
 
@@ -229,6 +232,9 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
      */
     public function uninstall( InstalledRepositoryInterface $repo, PackageInterface $package )
     {
+        //	Make sure proper storage paths are available
+        $this->_validateInstallationTree();
+
         $this->_log( 'Removing package <info>' . $package->getPrettyName() . '</info>', Verbosity::DEBUG );
 
         parent::uninstall( $repo, $package );
@@ -380,7 +386,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
         }
         catch ( \Exception $_ex )
         {
-            $this->_log( 'Package registration error with payload: ' . $_ex->getMessage() );
+            $this->_log( 'Package <info>' . $_apiName . '</info> not registered.' );
 
             return false;
         }
