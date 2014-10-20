@@ -142,12 +142,12 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
     /** @inheritdoc */
     public function __construct( IOInterface $io, Composer $composer, $type = 'library', Filesystem $filesystem = null )
     {
-        parent::__construct( $io, $composer, $type, $filesystem );
-
         if ( file_exists( static::FABRIC_MARKER ) )
         {
             throw new \Exception( 'This installer cannot be used on a hosted DSP system.', 500 );
         }
+
+        parent::__construct( $io, $composer, $type, $filesystem );
 
         //	Set from IOInterface
         static::$_verbosity = $io->isVerbose()
@@ -192,10 +192,10 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
     {
         $this->_log( 'Installing package <info>' . $package->getPrettyName() . '</info>', Verbosity::DEBUG );
 
-        parent::install( $repo, $package );
-
         //	Make sure proper storage paths are available
         $this->_validateInstallationTree();
+
+        parent::install( $repo, $package );
 
         $this->_createLinks( $package );
         $this->_addApplication( $package );
@@ -212,10 +212,10 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
     {
         $this->_log( 'Updating package <info>' . $initial->getPrettyName() . '</info>', Verbosity::DEBUG );
 
-        parent::update( $repo, $initial, $target );
-
         //	Make sure proper storage paths are available
         $this->_validateInstallationTree();
+
+        parent::update( $repo, $initial, $target );
 
         //	Out with the old...
         $this->_deleteLinks( $initial );
