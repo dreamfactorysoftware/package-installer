@@ -12,8 +12,7 @@
         }
     ],
     "config": {
-        "discard-changes": true,
-        "no-plugins": true
+        "discard-changes": true
     },
     "support": {
         "email": "support@dreamfactory.com",
@@ -27,7 +26,6 @@
         "dreamfactory/php-utils": "*"
     },
     "require-dev": {
-        "dreamfactory/lib-php-common-platform": "*",
         "composer/composer": "*"
     },
     "autoload": {
