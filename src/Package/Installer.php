@@ -269,9 +269,35 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
             $this->_getPackageTypeSubPath( $package->getType() ) . '/' .
             $package->getPrettyName();
 
-        $this->_log( 'package base path <comment>' . $_path . '</comment>', Verbosity::DEBUG );
-
         return $_path;
+    }
+
+    /**
+     * @param \Composer\Package\PackageInterface $package
+     *
+     * @return bool|mixed
+     */
+    protected function _getRegistrationInfo( PackageInterface $package )
+    {
+        static $_supportedData = 'application';
+
+        $_packageData = $this->_getPackageConfig( $package, 'data' );
+
+        if ( empty( $_packageData ) || null === ( $_records = IfSet::get( $_packageData, $_supportedData ) ) )
+        {
+            $this->_log( 'Package does not require database registration.', Verbosity::VERY_VERBOSE );
+
+            return false;
+        }
+
+        if ( static::ENABLE_DATABASE_ACCESS && !$this->_checkDatabase() )
+        {
+            $this->_log( 'Package registration not enabled or connection not available.', Verbosity::VERBOSE );
+
+            return false;
+        }
+
+        return $_records;
     }
 
     /**
@@ -285,7 +311,10 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 
         if ( false === ( $_dbConfig = Includer::includeIfExists( $_configFile ) ) || !is_array( $_dbConfig ) )
         {
-            $this->_log( 'db configuration not found or invalid. Using default "localhost".' );
+            $this->_log(
+                'No database specified and config file found. Using default "localhost" config.',
+                Verbosity::VERBOSE
+            );
 
             $_dbConfig = array(
                 'connectionString' => 'mysql:host=localhost;port=3306;dbname=dreamfactory',
@@ -306,41 +335,10 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
     /**
      * @param \Composer\Package\PackageInterface $package
      *
-     * @return bool|mixed
-     */
-    protected function _getRegistrationInfo( PackageInterface $package )
-    {
-        static $_supportedData = 'application';
-
-        $_packageData = $this->_getPackageConfig( $package, 'data' );
-
-        if ( empty( $_packageData ) || null === ( $_records = IfSet::get( $_packageData, $_supportedData ) ) )
-        {
-            $this->_log( 'plugin does not require database registration.', Verbosity::VERY_VERBOSE );
-
-            return false;
-        }
-
-        if ( static::ENABLE_DATABASE_ACCESS && !$this->_checkDatabase() )
-        {
-            $this->_log( 'plugin not registered to database. <warning>no connection available</warning>.' );
-
-            return false;
-        }
-
-        return $_records;
-    }
-
-    /**
-     * @param \Composer\Package\PackageInterface $package
-     *
      * @return bool
      */
     protected function _addApplication( PackageInterface $package )
     {
-        //  Add to composer file
-        $this->_addToComposer( $package );
-
         if ( false === ( $_app = $this->_getRegistrationInfo( $package ) ) )
         {
             return false;
@@ -360,6 +358,10 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
             'allow_fullscreen_toggle' => IfSet::getBool( $_app, 'allow-fullscreen-toggle' ),
             'toggle_location'         => IfSet::get( $_app, 'toggle-location' ),
             'requires_plugin'         => 1,
+            'created_by_id'           => 1,
+            'last_modified_by_id'     => 1,
+            'created_date'            => date( 'Y-m-d H:i:s' ),
+            'last_modified_date'      => date( 'Y-m-d H:i:s' ),
         );
 
         $this->_writePackageData( $package, $_payload );
@@ -369,66 +371,34 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
             return true;
         }
 
-        $this->_log( 'Inserting row into database', Verbosity::DEBUG );
+        $this->_log( 'Looking for existing row in database', Verbosity::DEBUG );
 
         try
         {
-            $_sql = 'SELECT id FROM df_sys_app WHERE api_name = :api_name';
-            $_app = Sql::find( $_sql, array(':api_name' => $_apiName) );
-
-            if ( empty( $_app ) )
+            if ( false === ( $_row = $this->_findApp( $_apiName ) ) )
             {
-                $_columns = implode( ',', array_keys( $_payload ) );
-
-                //  Make this a parameter array
-                Option::prefixKeys( ':', $_payload );
-
-                $_values = array_keys( $_payload );
-
-                $_sql = <<<MYSQL
-INSERT INTO df_sys_app
-    ({$_columns}})
-VALUES
-    ({$_values})
-MYSQL;
-                //  New
-                $_count = Sql::execute( $_sql, $_payload );
+                $this->_log( '  - Not found, inserting: ' . print_r( $_payload, true ), Verbosity::DEBUG );
+                $_row = $_payload;
             }
             else
             {
-
-                $_payload['id'] = $_app['id'];
-                $_keys = array_keys( $_payload );
-
-                Option::prefixKeys( ':', $_payload );
-
-                $_sets = array();
-
-                foreach ( $_keys as $_key )
-                {
-                    $_sets[] = $_key . ' = :' . $_key;
-                }
-
-                $_sets = implode( ', ', $_sets );
-
-                //  Update
-                $_sql = <<<MYSQL
-UPDATE df_sys_app SET
-    {$_sets}
-WHERE
-    id = :id
-MYSQL;
-
-                $_count = Sql::execute( $_sql, $_payload );
+                $this->_log( '  - Found, updating: ' . print_r( $_row, true ), Verbosity::DEBUG );
+                $_row = array_merge( $_row, $_payload );
             }
 
-            $this->_log( 'Package <info>' . $_apiName . '</info> installed' );
+            if ( false !== ( $_result = $this->_upsertApp( $_row ) ) )
+            {
+                $this->_log( 'Package <info>' . $_apiName . '</info> registered.', Verbosity::DEBUG );
+            }
 
-            return $_count;
+            //  Add to composer file
+            $this->_addToManifest( $package );
+
+            return $_result;
         }
         catch ( \Exception $_ex )
         {
-            $this->_log( 'Package <info>' . $_apiName . '</info> not registered.' );
+            $this->_log( 'Package <info>' . $_apiName . '</info> may or may not be registered: ' . $_ex->getMessage() );
 
             return false;
         }
@@ -479,14 +449,14 @@ SQL;
                 $_message =
                     ( null === ( $_statement = Sql::getStatement() )
                         ? 'Unknown database error'
-                        : 'Database error: ' . print_r( $_statement->errorInfo(), Verbosity::DEBUG ) );
+                        : print_r( $_statement->errorInfo(), Verbosity::DEBUG ) );
 
                 throw new \Exception( $_message );
             }
         }
         catch ( \Exception $_ex )
         {
-            $this->_log( 'Package registration error with payload: ' . $_ex->getMessage() );
+            $this->_log( 'Package registration error: ' . $_ex->getMessage() );
 
             return false;
         }
@@ -501,7 +471,7 @@ SQL;
      *
      * @return bool
      */
-    protected function _addToComposer( PackageInterface $package )
+    protected function _addToManifest( PackageInterface $package )
     {
         $_manifestPath = $this->_getManifestPath( $package->getType() );
 
@@ -610,7 +580,7 @@ SQL;
             return $_links;
         }
 
-        $this->_log( 'adding package links', Verbosity::VERBOSE );
+        $this->_log( 'Adding package links', Verbosity::VERBOSE );
 
         //	Make the links
         foreach ( Option::clean( $_links ) as $_link )
@@ -893,6 +863,99 @@ SQL;
     }
 
     /**
+     * @param string $apiName
+     * @param string $select Comma-separated list of columns to retrieve. Defaults to "*"
+     *
+     * @return bool|array
+     */
+    protected function _findApp( $apiName, $select = '*' )
+    {
+        try
+        {
+            $_sql = 'SELECT ' . $select . ' FROM df_sys_app WHERE api_name = :api_name';
+
+            if ( false === ( $_app = Sql::find( $_sql, array(':api_name' => $apiName) ) ) || empty( $_app ) )
+            {
+                $this->_log( 'No app found with api_name <comment>' . $apiName . '</comment>.', Verbosity::VERBOSE );
+
+                return false;
+            }
+
+            $this->_log( 'App registered: ' . print_r( $_app, true ), Verbosity::DEBUG );
+
+            return $_app;
+        }
+        catch ( \Exception $_ex )
+        {
+            $this->_log( 'App lookup error: ' . $_ex->getMessage() );
+
+            return false;
+        }
+    }
+
+    /**
+     * @param array $values Array of values to upsert
+     *
+     * @return bool|int
+     */
+    protected function _upsertApp( $values )
+    {
+        $_pairs = $_updates = array();
+
+        if ( isset( $values['id'] ) )
+        {
+            unset( $values['id'] );
+        }
+
+        $_params = Option::prefixKeys( ':', $values );
+
+        foreach ( array_keys( $values ) as $_key )
+        {
+            $_pairs[] = $_key . ' = VALUES(' . $_key . ')';
+        }
+
+        $_columns = implode( ', ', array_keys( $values ) );
+        $_pairs = implode( ', ', $_pairs );
+        $_binds = implode( ', ', array_keys( $_params ) );
+
+        $_sql = <<<MYSQL
+INSERT INTO df_sys_app
+(
+    {$_columns}
+)
+VALUES
+(
+    {$_binds}
+)
+ON DUPLICATE KEY UPDATE
+    {$_pairs}
+MYSQL;
+
+        $this->_log( 'Upsert app row: ' . $_sql, Verbosity::DEBUG );
+
+        try
+        {
+            if ( false === ( $_app = Sql::execute( $_sql, $_params ) ) || empty( $_app ) )
+            {
+                $_message =
+                    null === ( $_statement = Sql::getStatement() )
+                        ? 'Unknown database error'
+                        : print_r( $_statement->errorInfo(), Verbosity::DEBUG );
+
+                throw new \Exception( $_message );
+            }
+
+            return $_app;
+        }
+        catch ( \Exception $_ex )
+        {
+            $this->_log( 'Exception during registration: ' . $_ex->getMessage() );
+
+            return false;
+        }
+    }
+
+    /**
      * @param string $message
      * @param int    $verbosity
      */
@@ -909,7 +972,9 @@ SQL;
      *
      * @param \Composer\IO\IOInterface $io
      * @param string                   $startPath
-     * @param bool                     $required If false, method returns false if no directory found
+     * @param bool                     $required If false, method returns false if no
+     *                                           {
+     *                                           directory} found
      *
      * @throws FileSystemException
      * @return string
@@ -986,5 +1051,4 @@ SQL;
     {
         return static::$_requireDev;
     }
-
 }
