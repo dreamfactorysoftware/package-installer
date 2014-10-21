@@ -396,7 +396,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
         }
         catch ( \Exception $_ex )
         {
-            $this->_log( 'Package <info>' . $_apiName . '</info> may or may not be registered.' );
+            $this->_log( 'Package <info>' . $_apiName . '</info> may or may not be registered: ' . $_ex->getMessage() );
 
             return false;
         }
@@ -872,8 +872,12 @@ SQL;
 
         if ( false === ( $_app = Sql::find( $_sql, array(':api_name' => $apiName) ) ) || empty( $_app ) )
         {
+            $this->_log( 'No app found with api_name <comment>' . $apiName . '</comment>.', Verbosity::VERBOSE );
+
             return false;
         }
+
+        $this->_log( 'App registered: ' . print_r( $_app, true ), Verbosity::DEBUG );
 
         return $_app;
     }
