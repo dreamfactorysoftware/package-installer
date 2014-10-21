@@ -900,20 +900,27 @@ SQL;
      */
     protected function _upsertApp( $values )
     {
-        $_params = $values;
-        Option::prefixKeys( ':', $_params );
-
         $_id = isset( $values['id'] ) ? $values['id'] : null;
-
-        $_pairs = array();
-
-        foreach ( $values as $_key => $_value )
-        {
-            $_pairs[] = $_key . ' = :' . $_key;
-        }
+        $_params = Option::prefixKeys( ':', $values );
 
         if ( $_id )
         {
+            unset(
+                $values['id'],
+                $values['created_date'],
+                $values['created_by_id'],
+                $_params[':id'],
+                $_params[':created_date'],
+                $_params[':created_by_id']
+            );
+
+            $_pairs = array();
+
+            foreach ( array_keys( $values ) as $_key )
+            {
+                $_pairs[] = $_key . ' = :' . $_key;
+            }
+
             $_pairs = implode( ', ', $_pairs );
 
             $_sql = <<<MYSQL
@@ -922,10 +929,18 @@ UPDATE df_sys_app SET
 WHERE
     id = :id
 MYSQL;
+
+            $_params[':id'] = $_id;
         }
         else
         {
-            unset( $values['id'], $values['last_modified_date'], $values['last_modified_by_id'] );
+            unset(
+                $values['id'],
+                $values['last_modified_date'],
+                $values['last_modified_by_id'],
+                $_params[':last_modified_date'],
+                $_params[':last_modified_by_id']
+            );
 
             $_columns = implode( ', ', array_keys( $values ) );
             $_binds = implode( ', ', array_keys( $_params ) );
