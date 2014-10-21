@@ -864,22 +864,31 @@ SQL;
      * @param string $apiName
      * @param string $select Comma-separated list of columns to retrieve. Defaults to "*"
      *
-     * @return bool|int
+     * @return bool|array
      */
     protected function _findApp( $apiName, $select = '*' )
     {
-        $_sql = 'SELECT ' . $select . ' FROM df_sys_app WHERE api_name = :api_name';
-
-        if ( false === ( $_app = Sql::find( $_sql, array(':api_name' => $apiName) ) ) || empty( $_app ) )
+        try
         {
-            $this->_log( 'No app found with api_name <comment>' . $apiName . '</comment>.', Verbosity::VERBOSE );
+            $_sql = 'SELECT ' . $select . ' FROM df_sys_app WHERE api_name = :api_name';
+
+            if ( false === ( $_app = Sql::find( $_sql, array(':api_name' => $apiName) ) ) || empty( $_app ) )
+            {
+                $this->_log( 'No app found with api_name <comment>' . $apiName . '</comment>.', Verbosity::VERBOSE );
+
+                return false;
+            }
+
+            $this->_log( 'App registered: ' . print_r( $_app, true ), Verbosity::DEBUG );
+
+            return $_app;
+        }
+        catch ( \Exception $_ex )
+        {
+            $this->_log( 'App lookup error: ' . $_ex->getMessage() );
 
             return false;
         }
-
-        $this->_log( 'App registered: ' . print_r( $_app, true ), Verbosity::DEBUG );
-
-        return $_app;
     }
 
     /**
