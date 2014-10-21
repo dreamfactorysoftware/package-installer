@@ -339,9 +339,6 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
      */
     protected function _addApplication( PackageInterface $package )
     {
-        //  Add to composer file
-        $this->_addToComposer( $package );
-
         if ( false === ( $_app = $this->_getRegistrationInfo( $package ) ) )
         {
             return false;
@@ -393,6 +390,9 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
             {
                 $this->_log( 'Package <info>' . $_apiName . '</info> registered.', Verbosity::DEBUG );
             }
+
+            //  Add to composer file
+            $this->_addToManifest( $package );
 
             return $_result;
         }
@@ -449,14 +449,14 @@ SQL;
                 $_message =
                     ( null === ( $_statement = Sql::getStatement() )
                         ? 'Unknown database error'
-                        : 'Database error: ' . print_r( $_statement->errorInfo(), Verbosity::DEBUG ) );
+                        : print_r( $_statement->errorInfo(), Verbosity::DEBUG ) );
 
                 throw new \Exception( $_message );
             }
         }
         catch ( \Exception $_ex )
         {
-            $this->_log( 'Package registration error with payload: ' . $_ex->getMessage() );
+            $this->_log( 'Package registration error: ' . $_ex->getMessage() );
 
             return false;
         }
@@ -471,7 +471,7 @@ SQL;
      *
      * @return bool
      */
-    protected function _addToComposer( PackageInterface $package )
+    protected function _addToManifest( PackageInterface $package )
     {
         $_manifestPath = $this->_getManifestPath( $package->getType() );
 
