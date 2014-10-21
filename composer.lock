@@ -190,12 +190,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/Seldaek/monolog.git",
-                "reference": "b738a6c04c5fcc9e304d72f287e25256439fd13e"
+                "reference": "f835cd21e472683a9d251131f8c89ba18ed506c7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Seldaek/monolog/zipball/b738a6c04c5fcc9e304d72f287e25256439fd13e",
-                "reference": "b738a6c04c5fcc9e304d72f287e25256439fd13e",
+                "url": "https://api.github.com/repos/Seldaek/monolog/zipball/f835cd21e472683a9d251131f8c89ba18ed506c7",
+                "reference": "f835cd21e472683a9d251131f8c89ba18ed506c7",
                 "shasum": ""
             },
             "require": {
@@ -254,7 +254,7 @@
                 "logging",
                 "psr-3"
             ],
-            "time": "2014-10-17 18:12:45"
+            "time": "2014-10-21 09:22:09"
         },
         {
             "name": "psr/log",
