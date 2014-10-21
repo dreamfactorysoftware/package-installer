@@ -925,6 +925,8 @@ MYSQL;
         }
         else
         {
+            unset( $values['id'], $values['last_modified_date'], $values['last_modified_by_id'] );
+
             $_columns = implode( ', ', array_keys( $values ) );
             $_binds = implode( ', ', array_keys( $_params ) );
 
@@ -940,6 +942,8 @@ VALUES
 MYSQL;
 
         }
+
+        $this->_log( 'Creating app row: ' . $_sql, Verbosity::DEBUG );
 
         try
         {
