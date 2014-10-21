@@ -378,12 +378,12 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
         {
             if ( false === ( $_row = $this->_findApp( $_apiName ) ) )
             {
-                $this->_log( '  - Not found, inserting.', Verbosity::DEBUG );
+                $this->_log( '  - Not found, inserting: ' . print_r( $_payload, true ), Verbosity::DEBUG );
                 $_row = $_payload;
             }
             else
             {
-                $this->_log( '  - Found, updating.', Verbosity::DEBUG );
+                $this->_log( '  - Found, updating: ' . print_r( $_row, true ), Verbosity::DEBUG );
                 $_row = array_merge( $_row, $_payload );
             }
 
@@ -923,8 +923,8 @@ MYSQL;
         }
         else
         {
-            $_columns = array_keys( $values );
-            $_binds = array_keys( $_params );
+            $_columns = implode( ', ', array_keys( $values ) );
+            $_binds = implode( ', ', array_keys( $_params ) );
 
             $_sql = <<<MYSQL
 INSERT INTO df_sys_app
