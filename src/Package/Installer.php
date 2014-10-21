@@ -900,52 +900,25 @@ SQL;
      */
     protected function _upsertApp( $values )
     {
-        $_id = isset( $values['id'] ) ? $values['id'] : null;
+        $_pairs = $_updates = array();
+
+        if ( isset( $values['id'] ) )
+        {
+            unset( $values['id'] );
+        }
+
         $_params = Option::prefixKeys( ':', $values );
 
-        if ( $_id )
+        foreach ( array_keys( $values ) as $_key )
         {
-            unset(
-                $values['id'],
-                $values['created_date'],
-                $values['created_by_id'],
-                $_params[':id'],
-                $_params[':created_date'],
-                $_params[':created_by_id']
-            );
-
-            $_pairs = array();
-
-            foreach ( array_keys( $values ) as $_key )
-            {
-                $_pairs[] = $_key . ' = :' . $_key;
-            }
-
-            $_pairs = implode( ', ', $_pairs );
-
-            $_sql = <<<MYSQL
-UPDATE df_sys_app SET
-    {$_pairs}
-WHERE
-    id = :id
-MYSQL;
-
-            $_params[':id'] = $_id;
+            $_pairs[] = $_key . ' = VALUES(' . $_key . ')';
         }
-        else
-        {
-            unset(
-                $values['id'],
-                $values['last_modified_date'],
-                $values['last_modified_by_id'],
-                $_params[':last_modified_date'],
-                $_params[':last_modified_by_id']
-            );
 
-            $_columns = implode( ', ', array_keys( $values ) );
-            $_binds = implode( ', ', array_keys( $_params ) );
+        $_columns = implode( ', ', array_keys( $values ) );
+        $_pairs = implode( ', ', $_pairs );
+        $_binds = implode( ', ', array_keys( $_params ) );
 
-            $_sql = <<<MYSQL
+        $_sql = <<<MYSQL
 INSERT INTO df_sys_app
 (
     {$_columns}
@@ -954,11 +927,11 @@ VALUES
 (
     {$_binds}
 )
+ON DUPLICATE KEY UPDATE
+    {$_pairs}
 MYSQL;
 
-        }
-
-        $this->_log( 'Creating app row: ' . $_sql, Verbosity::DEBUG );
+        $this->_log( 'Upsert app row: ' . $_sql, Verbosity::DEBUG );
 
         try
         {
