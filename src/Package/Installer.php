@@ -269,8 +269,6 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
             $this->_getPackageTypeSubPath( $package->getType() ) . '/' .
             $package->getPrettyName();
 
-        $this->_log( 'Package base path is <comment>' . $_path . '</comment>', Verbosity::DEBUG );
-
         return $_path;
     }
 
@@ -363,6 +361,10 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
             'allow_fullscreen_toggle' => IfSet::getBool( $_app, 'allow-fullscreen-toggle' ),
             'toggle_location'         => IfSet::get( $_app, 'toggle-location' ),
             'requires_plugin'         => 1,
+            'created_by_id'           => 1,
+            'last_modified_by_id'     => 1,
+            'created_date'            => date( 'Y-m-d H:i:s' ),
+            'last_modified_date'      => date( 'Y-m-d H:i:s' ),
         );
 
         $this->_writePackageData( $package, $_payload );
