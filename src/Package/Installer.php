@@ -1059,5 +1059,4 @@ MYSQL;
     {
         return static::$_requireDev;
     }
-
 }

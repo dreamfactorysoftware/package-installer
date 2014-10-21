@@ -93,30 +93,10 @@ class Plugin implements EventSubscriberInterface, PluginInterface
         /** @noinspection PhpUndefinedMethodInspection */
         static::$_verbosity = $event->getOutput()->getVerbosity();
 
-        if ( static::$_verbosity >= Verbosity::VERBOSE )
-        {
-            /** @noinspection PhpUndefinedMethodInspection */
-            $event->getOutput()->writeln(
-                '<info>DreamFactory Package Installer verbosity set to "' .
-                Verbosity::prettyNameOf( static::$_verbosity ) .
-                '"</info>'
-            );
-        }
-
         if ( null !== static::$_installer )
         {
             static::$_installer->setRequireDev( static::$_requireDev );
             static::$_installer->setVerbosity( static::$_verbosity );
-
-            if ( static::$_verbosity >= Verbosity::VERBOSE )
-            {
-                /** @noinspection PhpUndefinedMethodInspection */
-                $event->getOutput()->writeln(
-                    '<info><warning>Development</warning> mode ' .
-                    ( $devMode ? 'enabled' : 'disabled' ) .
-                    ' via command line</info>'
-                );
-            }
         }
     }
 }
