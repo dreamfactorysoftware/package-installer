@@ -371,11 +371,12 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 
 		foreach ( $_app as $_key => $_value )
 		{
-			$_payload[strtr( strtolower( $_key ), '-', '_' )] = $_value;
+			unset( $_app[$_key] );
+			$_app[str_replace( '-', '_', strtolower( $_key ) )] = $_value;
 		}
 
 		//  Make sure we've got an api_name
-		$_payload['api_name'] = $_apiName = IfSet::get( $_payload, 'api_name', $_defaultApiName );
+		$_app['api_name'] = $_apiName = IfSet::get( $_app, 'api_name', $_defaultApiName );
 
 		//  Merge in our goodies
 		$_payload = array_merge(
