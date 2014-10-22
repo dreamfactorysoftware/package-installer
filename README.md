@@ -33,17 +33,17 @@ In addition to specifying a package type, the PPI utilizes the "extra" section o
         "extra": {
         	"data":
         		"application":	{
-					"name":              "Portal Sandbox",
-					"api-name":          "pbox",
-					"description":       "A sample application that demonstrates the DSP's portal service.",
-					"start-url":         "/index.php",
-					"url-is-external":   false,
-					"import-url":        "https://github.com/dreamfactorysoftware/portal-sandbox/archive/master.zip",
-					"active":            true,
-					"fullscreen":        false,
-					"fullscreen-toggle": true,
-					"toggle-location":   "top",
-					"config":            "config/app.config.php"
+					"api-name":                "pbox",
+					"name":                    "Portal Sandbox",
+					"description":             "A sample application that demonstrates the DSP's portal service.",
+					"url":                     "/index.php",
+					"is-url-external":         false,
+					"import-url":              "https://github.com/dreamfactorysoftware/portal-sandbox/archive/master.zip",
+					"active":                  true,
+					"requires-fullscreen":     false,
+					"allow-fullscreen-toggle": true,
+					"toggle-location":         "top",
+					"config":                  "config/app.config.php"
 			}.
 			"links":             [
 				{
@@ -55,6 +55,23 @@ In addition to specifying a package type, the PPI utilizes the "extra" section o
     }
 
 In the above example we are giving our package a pretty name, an `api_name` (which defines the route) and a few other details.
+
+#### Application Properties
+
+| Name | Type | Description |
+|------|------|-------------|
+| api-name|string|The API name for the app|            
+| name|string|The display name of the app|
+| description|string|The description of the app|         
+| is-active|boolean|If false, app is ignored by DSP|           
+| url|string|The absolute/relative url to this app|                 
+| is-url-external|boolean|Indicates the source of the url|     
+| import-url|string|The url from which this app can be downloaded|          
+| storage-service-id|int|The id of the storage service|  
+| storage-container|string|The container on the storage service which stores this app|   
+| requires-fullscreen|boolean|If true, full screen mode is default| 
+| allow-fullscreen-toggle|If true, full screen mode toggle is available||
+| toggle-location|string|The location of the toggle. Defaults to "top"|
 
 ### Packaging Without Composer
 Not possible at this time.

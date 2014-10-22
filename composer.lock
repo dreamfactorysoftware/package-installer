@@ -132,12 +132,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/lucifurious/kisma.git",
-                "reference": "aa4f8e5d21ac8ad8885d298555691c1a5c3f7349"
+                "reference": "0f536686177a0ec5e48951c57eec673535cfb25f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/lucifurious/kisma/zipball/aa4f8e5d21ac8ad8885d298555691c1a5c3f7349",
-                "reference": "aa4f8e5d21ac8ad8885d298555691c1a5c3f7349",
+                "url": "https://api.github.com/repos/lucifurious/kisma/zipball/0f536686177a0ec5e48951c57eec673535cfb25f",
+                "reference": "0f536686177a0ec5e48951c57eec673535cfb25f",
                 "shasum": ""
             },
             "require": {
@@ -148,7 +148,7 @@
                 "symfony/http-foundation": "~2.4"
             },
             "require-dev": {
-                "phpunit/phpunit": "~3.7"
+                "phpunit/phpunit": "@stable"
             },
             "type": "library",
             "extra": {
@@ -182,7 +182,7 @@
                 "php5",
                 "utility"
             ],
-            "time": "2014-10-05 22:12:34"
+            "time": "2014-10-21 21:31:18"
         },
         {
             "name": "monolog/monolog",
@@ -190,12 +190,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/Seldaek/monolog.git",
-                "reference": "f835cd21e472683a9d251131f8c89ba18ed506c7"
+                "reference": "d0a9acbad0643726453e901d9d49c14e13de9f86"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Seldaek/monolog/zipball/f835cd21e472683a9d251131f8c89ba18ed506c7",
-                "reference": "f835cd21e472683a9d251131f8c89ba18ed506c7",
+                "url": "https://api.github.com/repos/Seldaek/monolog/zipball/d0a9acbad0643726453e901d9d49c14e13de9f86",
+                "reference": "d0a9acbad0643726453e901d9d49c14e13de9f86",
                 "shasum": ""
             },
             "require": {
@@ -254,7 +254,7 @@
                 "logging",
                 "psr-3"
             ],
-            "time": "2014-10-21 09:22:09"
+            "time": "2014-10-21 20:10:18"
         },
         {
             "name": "psr/log",
