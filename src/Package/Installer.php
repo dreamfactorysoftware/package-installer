@@ -38,7 +38,6 @@ use Kisma\Core\Exceptions\FileSystemException;
 use Kisma\Core\Utility\Curl;
 use Kisma\Core\Utility\Option;
 use Kisma\Core\Utility\Sql;
-use SebastianBergmann\Exporter\Exception;
 
 /**
  * Installer
@@ -64,6 +63,10 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	 * @type bool If true, installer will attempt to update the local DSP's database directly.
 	 */
 	const ENABLE_DATABASE_ACCESS = true;
+	/**
+	 * @type bool If true, the package installer will fail to work in a hosted environment
+	 */
+	const DISABLE_FABRIC_INSTALLS = false;
 	/**
 	 * @type string
 	 */
@@ -146,7 +149,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 	/** @inheritdoc */
 	public function __construct( IOInterface $io, Composer $composer, $type = 'library', Filesystem $filesystem = null )
 	{
-		if ( file_exists( static::FABRIC_MARKER ) )
+		if ( static::DISABLE_FABRIC_INSTALLS && file_exists( static::FABRIC_MARKER ) )
 		{
 			throw new \Exception( 'This installer cannot be used on a hosted DSP system.', 500 );
 		}
@@ -168,7 +171,7 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 				$this->_log( 'DSP configuration retrieved: ' . print_r( $_config, true ) );
 			}
 		}
-		catch ( Exception $_ex )
+		catch ( \Exception $_ex )
 		{
 			static::$_dspConfig = array();
 		}
@@ -366,8 +369,6 @@ class Installer extends LibraryInstaller implements EventSubscriberInterface
 		}
 
 		$_defaultApiName = $this->_getPackageConfig( $package, '_suffix' );
-
-		$_payload = array();
 
 		foreach ( $_app as $_key => $_value )
 		{
