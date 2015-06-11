@@ -4,3 +4,4 @@ log
 tests/log
 tests/metrics
 tests/config/keys.php
+composer.lock
