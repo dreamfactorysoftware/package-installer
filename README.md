@@ -1,4 +1,4 @@
-## DreamFactory Platform Package Installer v1.4.12
+## DreamFactory Platform Package Installer v1.4.13
 [![Latest Stable Version](https://poser.pugx.org/dreamfactory/package-installer/v/stable.svg)](https://packagist.org/packages/dreamfactory/package-installer) [![Total Downloads](https://poser.pugx.org/dreamfactory/package-installer/downloads.svg)](https://packagist.org/packages/dreamfactory/package-installer) [![Latest Unstable Version](https://poser.pugx.org/dreamfactory/package-installer/v/unstable.svg)](https://packagist.org/packages/dreamfactory/package-installer) [![License](https://poser.pugx.org/dreamfactory/package-installer/license.svg)](https://packagist.org/packages/dreamfactory/package-installer)
 
 DreamFactory Platform Package Installer (PPI) is a tool for installing applications, libraries and plug-ins on to your [DSP](https://github.com/dreamfactorysoftware/dsp-core). 
